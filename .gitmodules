@@ -1,0 +1,9 @@
+[submodule "engine/view/vdom"]
+	path = engine/view/vdom
+	url = git@github.com:jiyi1990118/vdom.git
+[submodule "engine/view/syntax"]
+	path = engine/view/syntax
+	url = git@github.com:jiyi1990118/syntax.git
+[submodule "inside/observer"]
+	path = inside/observer
+	url = git@github.com:jiyi1990118/observer.git

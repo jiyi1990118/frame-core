@@ -1,0 +1,34 @@
+{
+  "name": "front-large-frame",
+  "version": "1.0.0",
+  "description": "web前端mvp and mvvm 框架，适用中大型项目",
+  "main": "index.js",
+  "scripts": {
+    "test": "watchify ./src/frontLarge.js -d -o ./dist/frontLarge.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jiyi1990118/frame-core.git"
+  },
+  "keywords": [
+    "mvp",
+    "mvvm",
+    "frame",
+    "js",
+    "large",
+    "frame",
+    "html5",
+    "javascript"
+  ],
+  "browserify" : {
+    "transform": [
+      [{"es6": true}]
+    ]
+  },
+  "author": "xiyuan",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/jiyi1990118/frame-core/issues"
+  },
+  "homepage": "https://github.com/jiyi1990118/frame-core#readme"
+}
