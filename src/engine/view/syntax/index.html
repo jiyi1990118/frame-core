@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>基于javascript的语法解析器</title>
+</head>
+<body>
+    <script src="syntax.js"></script>
+    <script>
+
+        //界定符
+        var DelimiterLeft="{{",
+            DelimiterRight="}}",
+//            str="html::code{{ !++a().c }} javascript";
+//            str="html::code{{5*~++str+'fsdf\\we'+.2/3}} javascript";
+//            str="html::code{{~-~-+2*5?t:n?a:b/2}} javascript";
+//            str="html::code{{~-~-+2*5?t:n?a:b/2}} javascript";
+//            str="html::code{{2?d:b[3+2?d:c]}} javascript";
+//            str="html::code{{2*(5+--t)}} javascript";
+//            str="html::code{{2*(a,b,c,2*~[3,6,2]+3)}} javascript";
+//            str="html::code{{b---2/g}} javascript";
+//            str="html::code{{ 3+3+!6+!++[2].k }} javascript";
+//            str="html::code{{5+[2][0].k+++2}} javascript";
+//            str="html::code{{[1,++[a,c,b][a,1],j] }} javascript";
+//            str="html::code{{ {[5]:c,t:{2:c ,b:({c:[n]}).t } } }} javascript";
+//            str="html::code{{ {[2]:3,t:({2:c}) } }} javascript";
+//            str="html::code{{ { [[1,2,3]]:3,t:2 } }} javascript";
+//            str="html::code{{ {  [[1,2,3]] :c,t:{2:c ,b:({c:[n,6]}).t } } }} javascript";
+//            str="html::code{{ !2+(y)(1,3)+9 }} javascript";
+//            str="html::code{{ !2+([][0])(1,3)+9 }} javascript";
+//            str="html::code{{ ++[2].k?s:8| ++gt.csdsd }} javascript";
+//            str="html::code{{ 3+[2].k()[0]({a:(c+2)})| ++gt.csdsd }} javascript";
+            str="html::code{{ 3,a%=6+!t |: filter($)  }} javascript";
+
+        window.addEventListener('load',function () {
+
+            //获取界定符位置
+            var DelimiterStart=str.indexOf(DelimiterLeft),
+                DelimiterEnd=str.indexOf(DelimiterRight);
+
+            //检查界定符是否完整
+            if(str.indexOf(DelimiterLeft) === -1  || str.indexOf(DelimiterRight) === -1 )return
+
+            //截取界定符中的字符
+            str=str.slice(DelimiterStart+DelimiterLeft.length).slice(0,DelimiterEnd-DelimiterStart-DelimiterLeft.length)
+
+            var sDate=Date.now();
+            syntax(str)
+            console.log(Date.now()-sDate)
+
+        })
+
+
+        /*
+         * dot 点号 1
+         * unitary 一元运算符 3
+         * single 加减运算 5
+         * complex 乘除 乘方 运算 4
+         * logical 逻辑运算 7
+         * bitwise 位运算 6
+         * ternary 三元运算 8
+         * comma 逗号 1
+         * semicolon 分号 1
+         * colon 冒号 8
+         * interrogation 问号 8
+         * bracketsLeft 左括号 2
+         * bracketsRight 右括号 2
+         * keySymbol 关键符号 8
+         * assignment 分配运算 8
+         * update 自运算  2
+         * filter 3 过滤运算
+         * */
+
+        /* UnaryExpression 一元表达式
+        * BinaryExpression 二元表达式
+        * TernaryExpression 三元表达式
+        * UpdateExpression 自运算
+        * AssignmentExpression 分配运算
+        * MemberExpression 成员表达式
+        * ArrayExpression 数组表达式
+        * ObjectExpression 对象表达式
+        * CallExpression 方法执行表达式
+        * FilterExpression 过滤器表达式
+        */
+
+    </script>
+</body>
+</html>

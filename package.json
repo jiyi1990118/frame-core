@@ -20,15 +20,24 @@
     "html5",
     "javascript"
   ],
-  "browserify" : {
-    "transform": [
-      [{"es6": true}]
-    ]
+  "browserify": {
+    "transform": []
   },
   "author": "xiyuan",
   "license": "GPL-3.0",
   "bugs": {
     "url": "https://github.com/jiyi1990118/frame-core/issues"
   },
-  "homepage": "https://github.com/jiyi1990118/frame-core#readme"
+  "homepage": "https://github.com/jiyi1990118/frame-core#readme",
+  "devDependencies": {
+    "browserify": "^14.3.0",
+    "browserify-shim": "^3.8.14",
+    "gulp": "^3.9.1",
+    "gulp-jsbeautifier": "^2.1.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-sourcemaps": "^2.6.0",
+    "gulp-uglify": "^2.1.2",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-source-stream": "^1.1.0"
+  }
 }

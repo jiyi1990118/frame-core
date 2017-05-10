@@ -8,8 +8,5 @@
         this.FL = FL();
     }
 })(function () {
-
-
-    var engine = require('./engine/exports');
-
+    return require('./engine/exports');
 })
