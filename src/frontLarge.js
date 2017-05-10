@@ -3,7 +3,9 @@
  */
 (function (FL) {
     if (typeof define === "function" && define.cmd) {
-        define(FL)
+        define(function () {
+            return FL;
+        })
     } else {
         this.FL = FL();
     }

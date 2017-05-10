@@ -5,14 +5,17 @@
 "use strict";
 
 //虚拟dom
-var vdom=require('./vdom/vdom');
+var vdom=require('./lib/vdom');
 
 //语法解析
-var syntax=require('./syntax/syntax');
+var syntax=require('./lib/syntax');
 
 //html字符转换成虚拟DOM数据结构
-var html2vdom=require('./html2vdom/html2vdom');
+var html2vdom=require('./lib/html2vdom');
 
-var observer=require('../../inside/observer/observer');
 
-module.exports = vdom
+//对外提供基础接口
+exports.vdom = vdom;
+exports.syntax = syntax;
+exports.html2vdom = html2vdom;
+
