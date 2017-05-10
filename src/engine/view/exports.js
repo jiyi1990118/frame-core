@@ -4,8 +4,15 @@
  */
 "use strict";
 
+//虚拟dom
+var vdom=require('./vdom/vdom');
 
+//语法解析
+var syntax=require('./syntax/syntax');
 
-module.exports = {
-    viewEngin:viewEngine
-}
+//html字符转换成虚拟DOM数据结构
+var html2vdom=require('./html2vdom/html2vdom');
+
+var observer=require('../../inside/observer/observer');
+
+module.exports = vdom

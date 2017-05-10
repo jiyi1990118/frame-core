@@ -1,12 +1,3 @@
 [submodule "engine/view/syntax"]
 	path = engine/view/syntax
 	url = git@github.com:jiyi1990118/syntax.git
-[submodule "src/engine/view/html2vdom"]
-	path = src/engine/view/html2vdom
-	url = git@github.com:jiyi1990118/html2vdom.git
-[submodule "src/engine/view/vdom"]
-	path = src/engine/view/vdom
-	url = git@github.com:jiyi1990118/vdom.git
-[submodule "src/inside/observer"]
-	path = src/inside/observer
-	url = git@github.com:jiyi1990118/observer.git
