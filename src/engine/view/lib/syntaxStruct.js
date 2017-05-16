@@ -2,6 +2,7 @@
  * 语法解析
  * Created by xiyuan on 17-4-25.
  */
+"use strict";
 
 //字符检测
 var strGate = {
@@ -94,7 +95,7 @@ var atomType = {
 }
 
 //语法解析
-function syntaxParser(code) {
+function syntaxParserClass(code) {
     //代码资源
     this.source = code;
     //代码长度
@@ -128,28 +129,28 @@ function syntaxParser(code) {
 };
 
 //获取预处理的元素
-syntaxParser.prototype.getSoonAtom = function () {
+syntaxParserClass.prototype.getSoonAtom = function () {
     var atom = this.soonAtom;
     delete this.soonAtom;
     return atom
 }
 
 //获取后面的表达式
-syntaxParser.prototype.nextExpressionLex = function (atom, isAdopt) {
+syntaxParserClass.prototype.nextExpressionLex = function (atom, isAdopt) {
     this.expStruct = null;
     this.expTemp.valueType = null;
     return this.expressionLex(atom, isAdopt);
 }
 
 //语法块结束符号添加
-syntaxParser.prototype.addBlockEnd = function (symbol) {
+syntaxParserClass.prototype.addBlockEnd = function (symbol) {
     this.expBlockEnd.push(symbol);
     //表达式层级参数
     this.levelArgs.push(this.arguments = []);
 }
 
 //表达式连接属性获取
-syntaxParser.prototype.getExpAttr = function (strcut, isBefore) {
+syntaxParserClass.prototype.getExpAttr = function (strcut, isBefore) {
     isBefore = isBefore === undefined ? true : isBefore;
 
     //表达式类型处理
@@ -188,7 +189,7 @@ syntaxParser.prototype.getExpAttr = function (strcut, isBefore) {
 }
 
 //表达式连接
-syntaxParser.prototype.expConcat = function (strcut, expStruct) {
+syntaxParserClass.prototype.expConcat = function (strcut, expStruct) {
     if (!strcut) {
         return expStruct;
     }
@@ -218,7 +219,7 @@ syntaxParser.prototype.expConcat = function (strcut, expStruct) {
 }
 
 //语法表达式扫描
-syntaxParser.prototype.expressionLex = function (atom, isAdopt) {
+syntaxParserClass.prototype.expressionLex = function (atom, isAdopt) {
     //检查语法是否出错
     if (this.errMsg)return;
 
@@ -930,10 +931,10 @@ syntaxParser.prototype.expressionLex = function (atom, isAdopt) {
     }
 
 
-})(syntaxParser.prototype);
+})(syntaxParserClass.prototype);
 
 //原子扫描
-syntaxParser.prototype.atomLex = function () {
+syntaxParserClass.prototype.atomLex = function () {
     if (this.eof())return
 
     //语法原子
@@ -1317,21 +1318,30 @@ syntaxParser.prototype.atomLex = function () {
         };
     }
 
-})(syntaxParser.prototype);
+})(syntaxParserClass.prototype);
 
 
 //检查扫描是否结束
-syntaxParser.prototype.eof = function () {
+syntaxParserClass.prototype.eof = function () {
     return this.index >= this.length;
 };
 
 //错误抛出
-syntaxParser.prototype.throwErr = function (msg, atom) {
+syntaxParserClass.prototype.throwErr = function (msg, atom) {
     this.errMsg = msg;
     atom = atom || this.preAtom;
     console.warn(msg + ' [ 第' + (atom.start + 1) + '个字符 ]');
 }
 
-module.exports =  function (code) {
-    return new syntaxParser(code)
+//语法缓存
+var syntaxCache={};
+
+module.exports =  function syntaxParser(code) {
+    //获取缓存
+    var syntaxStruct=syntaxCache[code];
+    if(!syntaxStruct){
+        //无缓存则解析，并放入缓存
+        syntaxStruct= syntaxCache[code]=new syntaxParserClass(code);
+    }
+    return syntaxStruct;
 }

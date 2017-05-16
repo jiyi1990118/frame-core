@@ -2,9 +2,10 @@
  * 虚拟Dom
  * Created by xiyuan on 17-5-9.
  */
+// "use strict";
 
 //钩子类型
-var hooks = ['create', 'update', 'remove', 'destroy', 'pre', 'post'];
+var hooks = ['init', 'create', 'update', 'remove', 'destroy', 'pre', 'post'];
 
 //空节点
 var emptyNode = vnode('', {}, [], undefined, undefined);
@@ -26,10 +27,14 @@ var htmlDomApi = {
         parentNode.insertBefore(newNode, referenceNode);
     },
     removeChild: function removeChild(node, child) {
-        node.removeChild(child);
+        child instanceof Array ? child.forEach(function (child) {
+            node.removeChild(child);
+        }) : node.removeChild(child);
     },
     appendChild: function appendChild(node, child) {
-        node.appendChild(child);
+        child instanceof Array ? child.forEach(function (child) {
+            node.appendChild(child);
+        }) : node.appendChild(child);
     },
     parentNode: function parentNode(node) {
         return node.parentNode;
@@ -57,17 +62,91 @@ var htmlDomApi = {
     }
 };
 
+//对象深度继承
+function objectclone(obj) {
+    var newObj;
+
+    if(obj instanceof Array){
+        newObj=[]
+    }else if(obj instanceof Object){
+        newObj={}
+    }
+
+    if(newObj){
+        Object.keys(obj).forEach(function (key) {
+            newObj[key]=objectclone(obj[key])
+        })
+    }else{
+        newObj=obj;
+    }
+
+    return newObj;
+}
+
+//虚拟节点对象
+function $vnode(conf) {
+    var $this=this;
+    
+    //配置继承
+    Object.keys(conf).forEach(function (key) {
+        $this[key]=conf[key];
+    })
+}
+
+//节点克隆
+$vnode.prototype.clone=function () {
+    var data={},
+        conf={},
+        scope={},
+        $this=this;
+
+    //收集所有的属性
+    Object.keys(this).forEach(function (key) {
+        conf[key]=$this[key];
+    });
+
+    conf.data=objectclone(conf.data);
+
+    //继承作用域
+    Object.keys(conf.$scope).forEach(function (key) {
+        scope[key]=conf.$scope[key];
+    })
+    conf.$scope=scope;
+
+    return new $vnode(conf);
+}
+
+//节点作用域传递
+$vnode.prototype.scope=function (scope) {
+    var $this=this;
+    if(scope instanceof Object){
+        Object.keys(scope).forEach(function (key) {
+            $this.$scope[key]=scope[key];
+        })
+    }
+}
+
+
+
+
 //虚拟节点构造
 function vnode(sel, data, children, text, elm) {
+
     var key = data === undefined ? undefined : data.key;
-    return {
-        tag: sel,
-        data: data,
+    var conf= {
+        sel: sel,
+        data: data||{},
+        $scope:{},
         children: children,
         text: text,
         elm: elm,
+        isShow: true,
+        isComponent: false,
+        isDirective: false,
         key: key
     };
+
+    return new $vnode(conf);
 }
 
 //是否未定义
@@ -105,7 +184,7 @@ function isVnode(vnode) {
     return vnode.sel !== undefined;
 }
 
-//创建
+//创建key对索引的map
 function createKeyToOldIdx(children, beginIdx, endIdx) {
     var i, map = {}, key, ch;
     //转换key对索引 map
@@ -117,6 +196,63 @@ function createKeyToOldIdx(children, beginIdx, endIdx) {
         }
     }
     return map;
+}
+
+//转换dom元素为虚拟节点
+function emptyNodeAt(elm) {
+    var id = elm.id ? '#' + elm.id : '';
+    var c = elm.className ? '.' + elm.className.split(' ').join('.') : '';
+    return vnode(htmlDomApi.tagName(elm).toLowerCase() + id + c, {}, [], undefined, elm);
+}
+
+//重新摆放子元素
+function rearrangeChild(vnode) {
+    var nowIndex = 0,
+        parentNode = vnode.elm,
+        parentChildNode = parentNode.childNodes;
+
+    //收集子元素
+    vnode.children.forEach(function (node, index) {
+        //检查是否需要重新摆放当前元素
+        if (node.isShow && parentChildNode[nowIndex++] !== node.elm) {
+            htmlDomApi.insertBefore(parentNode, node.elm, parentChildNode[nowIndex - 1])
+        };
+    });
+
+    while (nowIndex < parentChildNode.length) {
+        htmlDomApi.removeChild(parentNode, parentChildNode[nowIndex++]);
+    }
+}
+
+//重新摆放列表元素
+function rearrangeElm(vnodeList) {
+    var parentNode,
+        nowEle,
+        elmContainer=document.createDocumentFragment();
+
+    vnodeList.forEach(function (vnode) {
+        //检查是否需要重新摆放当前元素
+        if (vnode.isShow) {
+            if(parentNode){
+                htmlDomApi.insertBefore(parentNode, vnode.elm, nowEle.nextSibling);
+                nowEle=vnode.elm;
+            }else{
+                if(parentNode=vnode.elm.parentNode){
+                    htmlDomApi.insertBefore(parentNode, elmContainer, nowEle=vnode.elm)
+                }else{
+                    elmContainer.appendChild(vnode.elm);
+                }
+            }
+        }else if(parentNode){
+            htmlDomApi.removeChild(parentNode, vnode.elm);
+        }else{
+            if(parentNode=vnode.elm.parentNode){
+                htmlDomApi.removeChild(parentNode, nowEle=vnode.elm);
+            }
+        }
+    });
+
+    return elmContainer.childNodes;
 }
 
 function init(modules) {
@@ -134,13 +270,6 @@ function init(modules) {
         })
     })
 
-    //转换dom元素为虚拟节点
-    function emptyNodeAt(elm) {
-        var id = elm.id ? '#' + elm.id : '';
-        var c = elm.className ? '.' + elm.className.split(' ').join('.') : '';
-        return vnode(api.tagName(elm).toLowerCase() + id + c, {}, [], undefined, elm);
-    }
-
     //创建删除的钩子
     function createRmCb(childElm, listeners) {
         return function rmCb() {
@@ -151,26 +280,14 @@ function init(modules) {
     }
 
     //根据虚拟节点创建真实dom节点
-    function createElm(vnode, insertedVnodeQueue) {
-        var i, data = vnode.data,
+    function createElm(vnode, insertedVnodeQueue, callback, extraParameters) {
+        var i,
+            isRearrange,
+            data = vnode.data || {},
+            initCount = cbs.init.length,
             children = vnode.children, sel = vnode.sel;
 
-        //获取并执行 虚拟节点中的初始化钩子
-        if (isDef(data)) {
-            if (isDef(i = data.hook) && isDef(i = i.init)) {
-                i(vnode);
-                data = vnode.data;
-            }
-        }
-
-        //检查是否是注释
-        if (sel === '!') {
-            if (isUndef(vnode.text)) {
-                vnode.text = '';
-            }
-            vnode.elm = api.createComment(vnode.text);
-
-        } else if (isDef(sel)) {
+        if (isDef(sel)) {
             // 解析选择器
 
             //获取ID起始位置
@@ -183,39 +300,139 @@ function init(modules) {
             var dot = dotIdx > 0 ? dotIdx : sel.length;
 
             //获取标签
-            var tag = hashIdx !== -1 || dotIdx !== -1 ? sel.slice(0, Math.min(hash, dot)) : sel;
-
-            //创建实体Dom元素
-            var elm = vnode.elm = isDef(data) && isDef(i = data.ns) ? api.createElementNS(i, tag)
-                : api.createElement(tag);
+            vnode.tag = hashIdx !== -1 || dotIdx !== -1 ? sel.slice(0, Math.min(hash, dot)) : sel;
 
             //获取元素ID
             if (hash < dot)
-                elm.id = sel.slice(hash + 1, dot);
+                vnode.id = sel.slice(hash + 1, dot);
 
             //获取元素Class
             if (dotIdx > 0)
-                elm.className = sel.slice(dot + 1).replace(/\./g, ' ');
+                vnode.className = sel.slice(dot + 1).replace(/\./g, ' ');
+        }
 
-            //触发model中的create 钩子
-            cbs.create.forEach(function (createHook) {
-                createHook(emptyNode, vnode)
-            })
+        //初始化创建
+        function initCreate() {
+            if (initCount && --initCount)return
 
-            //检查子元素 并递归创建子元素真实Dom
-            if (isArray(children)) {
-                children.forEach(function (ch) {
-                    if (ch instanceof Object) {
-                        api.appendChild(elm, createElm(ch, insertedVnodeQueue));
-                    } else {
+            //检查是否组件 或指令
+            if (vnode.isComponent || vnode.isDirective) {
+
+                //检查当前元素是否替换
+                if(vnode.isReplace){
+
+                    switch (true){
+                        case typeof vnode.innerVnode === 'string':
+                            vnode.innerVnode=module.exports.html2vdom(vnode.innerVnode);
+                        case vnode.innerVnode instanceof Array:
+                        case vnode.innerVnode instanceof Object:
+                            if(!(vnode.innerVnode instanceof Array)){
+                                vnode.innerVnode=[vnode.innerVnode];
+                            }
+
+                            vnode.elm=[];
+                            vnode.innerVnode.forEach(function (ch) {
+                                createElm(ch, insertedVnodeQueue, function (velm, isRearrange) {
+                                    if (isRearrange) {
+                                        //重新排列元素
+                                        var childNodes= rearrangeElm(vnode.innerVnode);
+                                        //检查是否插入节点
+                                        if(childNodes.length){
+                                            vnode.elm=[].slice.call(childNodes);
+                                            //返回当前节点数据
+                                            callback(vnode.elm, isRearrange);
+                                        }
+                                    } else {
+                                        vnode.elm=vnode.elm.concat(velm)
+                                    }
+                                }, extraParameters)
+
+                            })
+
+                    }
+
+                }else{
+                    //创建实体Dom元素
+                    var elm = vnode.elm = isDef(data) && isDef(i = data.ns) ? api.createElementNS(i, vnode.tag)
+                        : api.createElement(vnode.tag);
+
+                    if (vnode.id) elm.id = vnode.id;
+                    if (vnode.className) elm.className = vnode.className;
+
+                    //触发model中的create 钩子
+                    cbs.create.forEach(function (createHook) {
+                        createHook(emptyNode, vnode)
+                    })
+
+                    //检查子元素 并递归创建子元素真实Dom
+                    if (isArray(children)) {
+                        children.forEach(function (ch) {
+                            if (ch instanceof Object) {
+                                createElm(ch, insertedVnodeQueue, function (velm, isRearrange) {
+                                    if (isRearrange) {
+                                        rearrangeChild(vnode);
+                                    } else {
+                                        api.appendChild(elm, velm);
+                                    }
+                                }, extraParameters)
+                            } else {
+                                api.appendChild(elm, api.createTextNode(ch));
+                            }
+                        })
+                    } else if (primitive(vnode.text)) {
                         api.appendChild(elm, api.createTextNode(vnode.text));
                     }
-                })
-            } else if (primitive(vnode.text)) {
-                api.appendChild(elm, api.createTextNode(vnode.text));
+
+
+                }
+
+            } else {
+                //检查是否是注释
+                if (sel === '!') {
+                    if (isUndef(vnode.text)) {
+                        vnode.text = '';
+                    }
+                    vnode.elm = api.createComment(vnode.text);
+
+                } else if (isDef(sel)) {
+
+                    //创建实体Dom元素
+                    var elm = vnode.elm = isDef(data) && isDef(i = data.ns) ? api.createElementNS(i, vnode.tag)
+                        : api.createElement(vnode.tag);
+
+                    if (vnode.id) elm.id = vnode.id;
+                    if (vnode.className) elm.className = vnode.className;
+
+                    //触发model中的create 钩子
+                    cbs.create.forEach(function (createHook) {
+                        createHook(emptyNode, vnode)
+                    })
+
+                    //检查子元素 并递归创建子元素真实Dom
+                    if (isArray(children)) {
+                        children.forEach(function (ch) {
+                            if (ch instanceof Object) {
+                                createElm(ch, insertedVnodeQueue, function (velm, isRearrange) {
+                                    if (isRearrange) {
+                                        rearrangeChild(vnode);
+                                    } else {
+                                        api.appendChild(elm, velm);
+                                    }
+                                }, extraParameters)
+                            } else {
+                                api.appendChild(elm, api.createTextNode(ch));
+                            }
+                        })
+                    } else if (primitive(vnode.text)) {
+                        api.appendChild(elm, api.createTextNode(vnode.text));
+                    }
+                } else {
+                    //文本节点
+                    vnode.elm = api.createTextNode(vnode.text);
+                }
             }
 
-            i = vnode.data.hook;
+            i = data.hook;
             if (isDef(i)) {
                 //检查并触发create类型钩子
                 if (i.create)
@@ -225,20 +442,39 @@ function init(modules) {
                 if (i.insert)
                     insertedVnodeQueue.push(vnode);
             }
-
-        } else {
-            //文本节点
-            vnode.elm = api.createTextNode(vnode.text);
+            //返回当前节点数据
+            callback(vnode.elm, isRearrange);
         }
-        return vnode.elm;
+
+        //获取并执行 虚拟节点中的初始化钩子
+        if (isDef(data) && isDef(i = data.hook) && isDef(i = i.init)) {
+            initCount++;
+            i(vnode, initCreate, extraParameters);
+        } else if (!initCount) {
+            initCreate()
+        }
+
+        //触发model中的create 钩子
+        cbs.init.forEach(function (initHook) {
+            initHook(vnode, initCreate, extraParameters)
+        })
+        //标识父元素重新排列子元素
+        isRearrange = true;
     }
 
     //创建新的虚拟节点
-    function addVnodes(parentElm, before, vnodes, startIdx, endIdx, insertedVnodeQueue) {
+    function addVnodes(parentVnode, before, vnodes, startIdx, endIdx, insertedVnodeQueue, extraParameters) {
+        var parentElm = parentVnode.elm;
         for (; startIdx <= endIdx; ++startIdx) {
             var ch = vnodes[startIdx];
             if (ch instanceof Object) {
-                api.appendChild(parentElm, createElm(ch, insertedVnodeQueue), before);
+                createElm(ch, insertedVnodeQueue, function (velm, isRearrange) {
+                    if (isRearrange) {
+                        rearrangeChild(parentVnode);
+                    } else {
+                        api.appendChild(parentElm, velm, before);
+                    }
+                }, extraParameters)
             } else {
                 api.appendChild(parentElm, api.createTextNode(vnode.text), before);
             }
@@ -308,7 +544,8 @@ function init(modules) {
     }
 
     //更新子元素
-    function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue) {
+    function updateChildren(parentVnode, oldCh, newCh, insertedVnodeQueue, extraParameters) {
+        var parentElm = parentVnode.elm;
         var oldStartIdx = 0, newStartIdx = 0;
         var oldEndIdx = oldCh.length - 1;
         var oldStartVnode = oldCh[0];
@@ -334,20 +571,20 @@ function init(modules) {
             } else if (!newEndVnode) {
                 newEndVnode = newCh[--newEndIdx];
             } else if (sameVnode(oldStartVnode, newStartVnode)) {
-                patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue);
+                patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue, extraParameters);
                 oldStartVnode = oldCh[++oldStartIdx];
                 newStartVnode = newCh[++newStartIdx];
             } else if (sameVnode(oldEndVnode, newEndVnode)) {
-                patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue);
+                patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue, extraParameters);
                 oldEndVnode = oldCh[--oldEndIdx];
                 newEndVnode = newCh[--newEndIdx];
             } else if (sameVnode(oldStartVnode, newEndVnode)) {
-                patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue);
+                patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue, extraParameters);
                 api.insertBefore(parentElm, oldStartVnode.elm, api.nextSibling(oldEndVnode.elm));
                 oldStartVnode = oldCh[++oldStartIdx];
                 newEndVnode = newCh[--newEndIdx];
             } else if (sameVnode(oldEndVnode, newStartVnode)) {
-                patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue);
+                patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue, extraParameters);
                 api.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm);
                 oldEndVnode = oldCh[--oldEndIdx];
                 newStartVnode = newCh[++newStartIdx];
@@ -357,14 +594,26 @@ function init(modules) {
                 }
                 idxInOld = oldKeyToIdx[newStartVnode.key];
                 if (isUndef(idxInOld)) {
-                    api.insertBefore(parentElm, createElm(newStartVnode, insertedVnodeQueue), oldStartVnode.elm);
+                    createElm(newStartVnode, insertedVnodeQueue, function (velm, isRearrange) {
+                        if (isRearrange) {
+                            rearrangeChild(parentVnode);
+                        } else {
+                            api.insertBefore(parentElm, velm, oldStartVnode.elm);
+                        }
+                    }, extraParameters)
                     newStartVnode = newCh[++newStartIdx];
                 } else {
                     elmToMove = oldCh[idxInOld];
                     if (elmToMove.sel !== newStartVnode.sel) {
-                        api.insertBefore(parentElm, createElm(newStartVnode, insertedVnodeQueue), oldStartVnode.elm);
+                        createElm(newStartVnode, insertedVnodeQueue, function (velm, isRearrange) {
+                            if (isRearrange) {
+                                rearrangeChild(parentVnode);
+                            } else {
+                                api.insertBefore(parentElm, velm, oldStartVnode.elm);
+                            }
+                        }, extraParameters)
                     } else {
-                        patchVnode(elmToMove, newStartVnode, insertedVnodeQueue);
+                        patchVnode(elmToMove, newStartVnode, insertedVnodeQueue, extraParameters);
                         oldCh[idxInOld] = undefined;
                         api.insertBefore(parentElm, elmToMove.elm, oldStartVnode.elm);
                     }
@@ -376,14 +625,14 @@ function init(modules) {
         //处理需要新增或移除的节点
         if (oldStartIdx > oldEndIdx) {
             before = newCh[newEndIdx + 1] == null ? null : newCh[newEndIdx + 1].elm;
-            addVnodes(parentElm, before, newCh, newStartIdx, newEndIdx, insertedVnodeQueue);
+            addVnodes(parentVnode, before, newCh, newStartIdx, newEndIdx, insertedVnodeQueue, extraParameters);
         } else if (newStartIdx > newEndIdx) {
             removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx);
         }
     }
 
     //虚拟节点补丁
-    function patchVnode(oldVnode, vnode, insertedVnodeQueue) {
+    function patchVnode(oldVnode, vnode, insertedVnodeQueue, extraParameters) {
         var i, hook;
 
         //修补前 触发节点中的prepatch 钩子
@@ -411,11 +660,11 @@ function init(modules) {
         //检查节点中的文本
         if (isUndef(vnode.text)) {
             if (isDef(oldCh) && isDef(ch)) {
-                if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue);
+                if (oldCh !== ch) updateChildren(vnode, oldCh, ch, insertedVnodeQueue, extraParameters);
             } else if (isDef(ch)) {
                 if (isDef(oldVnode.text))
                     api.setTextContent(elm, '');
-                addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue);
+                addVnodes(vnode, null, ch, 0, ch.length - 1, insertedVnodeQueue, extraParameters);
             } else if (isDef(oldCh)) {
                 removeVnodes(elm, oldCh, 0, oldCh.length - 1);
             } else if (isDef(oldVnode.text)) {
@@ -432,10 +681,15 @@ function init(modules) {
     }
 
     //对比节点并修补
-    return function patch(oldVnode, vnode) {
+    return function patch(oldVnode, vnode, scope, filter) {
 
         var i, elm, parent;
         var insertedVnodeQueue = [];
+
+        var extraParameters = {
+            scope: scope,
+            filter: filter || {}
+        }
 
         //检查并转换dom元素为虚拟Dom
         if (!isVnode(oldVnode)) {
@@ -450,9 +704,14 @@ function init(modules) {
             //创建新节点
             vnode.forEach(function (vnode) {
                 //创建新节点
-                createElm(vnode, insertedVnodeQueue);
-                //新增节点到父元素容器中
-                api.insertBefore(parent, vnode.elm, api.nextSibling(elm));
+                createElm(vnode, insertedVnodeQueue, function (velm, isRearrange) {
+                    if (isRearrange) {
+                        rearrangeChild(parentVnode);
+                    } else {
+                        //新增节点到父元素容器中
+                        api.insertBefore(parent, vnode.elm, api.nextSibling(elm));
+                    }
+                }, extraParameters);
             })
 
             if (parent !== null) {
@@ -475,20 +734,24 @@ function init(modules) {
             //检查两个虚拟节点是否相同
             if (sameVnode(oldVnode, vnode)) {
                 //节点修补
-                patchVnode(oldVnode, vnode, insertedVnodeQueue);
+                patchVnode(oldVnode, vnode, insertedVnodeQueue, extraParameters);
             } else {
                 elm = oldVnode.elm;
                 parent = api.parentNode(elm);
 
                 //创建新节点
-                createElm(vnode, insertedVnodeQueue);
-
-                if (parent !== null) {
-                    //新增节点到父元素容器中
-                    api.insertBefore(parent, vnode.elm, api.nextSibling(elm));
-                    //移除旧元素
-                    removeVnodes(parent, [oldVnode], 0, 0);
-                }
+                createElm(vnode, insertedVnodeQueue, function (velm, isRearrange) {
+                    if (parent !== null) {
+                        if (isRearrange) {
+                            rearrangeChild(vnode);
+                        } else {
+                            //新增节点到父元素容器中
+                            api.insertBefore(parent, vnode.elm, api.nextSibling(elm));
+                        }
+                        //移除旧元素
+                        removeVnodes(parent, [oldVnode], 0, 0);
+                    }
+                }, extraParameters);
             }
         }
 
@@ -825,8 +1088,109 @@ function eventListenersModule() {
     };
 }
 
+var compMange = require('./componentMange');
+var directorieMange = require('./directiveMange');
+
+//组件检查
+function compAndDirectiveInspect() {
+
+    function inspectInit(vnode, initCall, extraParameters) {
+        var compExample,
+            isInitCall,
+            data = vnode.data,
+            attrsMap = data.attrsMap || {},
+            attrs = data.attrs = data.attrs || {},
+            handleExampleQueue = [],
+            compClass = compMange.get(vnode.tag);
+
+        function exapmpleQueueHandle() {
+
+            var compExample = handleExampleQueue.pop();
+            if (compExample) {
+
+                //检查是否指令 并销毁当前指令属性记录
+                if(compExample instanceof directorieMange.directiveClass){
+                    delete attrsMap[compExample.name];
+                }
+
+                //是否停止当前节点后续指令与组件渲染
+                if (compExample.conf.stopRender) {
+                    isInitCall = true;
+                    compExample.init();
+                    handleExampleQueue=undefined;
+                //是否需要等待当前指令或组件加载后渲染后续指令与组件
+                } else if (compExample.conf.loadRender) {
+                    compExample.watchCreate(function () {
+                        exapmpleQueueHandle();
+                    })
+                    compExample.init();
+                } else {
+                    compExample.init();
+                    exapmpleQueueHandle();
+                }
+            }
+
+        }
+
+
+        //组件检查
+        if (compClass) {
+            compExample = compClass(vnode, extraParameters);
+            //存入实例队列
+            handleExampleQueue.push(compExample);
+            //观察组件渲染
+            compExample.watchRender(function () {
+                initCall();
+                isInitCall = true;
+            })
+        } else {
+            isInitCall = true;
+        }
+
+        //指令检查
+        Object.keys(attrsMap).forEach(function (attrName) {
+            var directorieExample,
+                directorieClass = directorieMange.get(attrName);
+
+            if (directorieClass) {
+                directorieExample = directorieClass(vnode, extraParameters);
+                //存入实例队列
+                handleExampleQueue.push(directorieExample);
+                //观察指令渲染
+                directorieExample.watchRender(function () {
+                    if (isInitCall) initCall();
+                })
+            } else {
+                //如果不是指令则写入属性
+                attrs[attrName] = attrsMap[attrName].value;
+            }
+
+        })
+
+
+        if (handleExampleQueue.length) {
+            //根据优先级摆放处理队列
+            handleExampleQueue = handleExampleQueue.sort(function (before, after) {
+                return before.priority - after.priority;
+            });
+
+            //实例队列处理
+            exapmpleQueueHandle();
+        } else {
+            initCall();
+        }
+
+    }
+
+    return {
+        init: inspectInit
+    }
+}
+
 module.exports = {
-    patch: init([attributesModule(), classModule(), propsModule(), styleModule(), eventListenersModule()]),
+    patch: init([compAndDirectiveInspect(), attributesModule(), classModule(), propsModule(), styleModule(), eventListenersModule()]),
     vnode: vnode,
-    isVnode: isVnode
+    isVnode: isVnode,
+    domApi: htmlDomApi,
+    node2vnode: emptyNodeAt
 };

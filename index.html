@@ -5,18 +5,210 @@
     <title>视图渲染</title>
 </head>
 <body>
-<script type="text/javascript" src="dist/frontLarge.js"></script>
+
+<div class="template">
+    <h1>这是标题：{{vtitle['s']=pageDate.title+'---'}}sdfsd{{s}}</h1>
+    <span >这是内容:{{pageDate.content}}</span>
+    <list-gird conf="gridConf" for="gridConf in gridList"></list-gird>
+    <strong>这是描述</strong>
+    <ul>
+        <fors exp="(key,value) in arr">
+            <li>{{key}}:{{value}}</li>
+        </fors>
+    </ul>
+</div>
+
+<script type="text/javascript" src="dist/vf.js"></script>
 <script type="text/javascript">
+// :for="gridConf in gridList"
+
+    window.addEventListener('load', function () {
+        var sDate = Date.now(),
+//            htmlStr=document.querySelector('script[type="text/template"]').textContent;
+            htmlStr = document.querySelector('.template').outerHTML;
+
+        vf.viewEngin.componentMange.register('list-gird', {
+            template: '<div class="grid"><strong>grid</strong></div>',
+            props: {
+                conf:{
+                    key:'gridConf',
+                    type:Object,
+                    default:{},
+                    watch:function () {
+
+                    },
+                    autoRender:true
+                },
+            },
+            isReplace: true,
+            data: function () {
+                var sortOrders = {}
+                this.columns.forEach(function (key) {
+                    sortOrders[key] = 1
+                })
+                return {
+                    sortKey: '',
+                    sortOrders: sortOrders
+                }
+            },
+            filters: {},
+            hook: {
+                init: function () {
+
+                },
+                create: function () {
+
+                },
+                destroy: function () {
+
+                }
+            }
+        });
+
+        vf.viewEngin.componentMange.register('for', {
+            priority:100,
+            scope: {
+                listData: []
+            },
+            props: {
+                exp: function (expStr) {
+
+                    var reg = /^\s*(?:(?:\(\s*([a-z\$_]+[\w\$]*)\s*(?:\,\s*([a-z\$_]+[\w\$]*))?\s*\))|([a-z\$_]+[\w\.\$]*))\s*in\s+([a-z\$_]+.*)\s*$/i,
+                        matchRes = expStr.match(reg);
+
+                    if (!matchRes)return;
+
+                    //匹配的值
+                    var block_val = matchRes[1],
+                        block_key = matchRes[2],
+                        alone_val = matchRes[3],
+                        source_obj = matchRes[4],
+                        keyString,
+                        valString;
+
+                    //检查是否有key/index
+                    if (block_key) {
+                        keyString = block_val;
+                        valString = block_key;
+                    } else {
+                        valString = block_val || alone_val;
+                    }
 
 
+                    return [
+                        {
+                            key:'listData',
+                            exp:source_obj,
+                            type:[Array,Object],
+                            default:function () {
+                                return []
+                            },
+                            watch:function () {
 
-    window.addEventListener('load',function () {
-        var sDate=Date.now(),
-            htmlStr=document.querySelector('script[type="text/template"]').textContent;
+                            },
+                            autoRender:true
+                        }
+                    ]
+                }
+            },
+            /*render: function (vnode, scope) {
+                var $this = this,
+                    innerVnodes = [];
 
-        var vDom=FL.viewEngin.html2vdom(htmlStr);
-        
-        console.log(Date.now()-sDate);
+                scope.listData.forEach(function (val, key) {
+                    innerVnodes.push($this.render(vnode, {}))
+                })
+
+                this.vnode=innerVnodes;
+                return
+            }*/
+        });
+
+        vf.viewEngin.directiveMange.register('for', {
+            priority:100,
+            scope: {
+                listData: []
+            },
+            //是否需要等待当前指令或组件加载后渲染后续指令与组件
+            loadRender:true,
+            //是否停止当前节点后续指令与组件渲染
+            stopRender:true,
+            //是替换当前节点
+            isReplace:true,
+            //属性作用域
+            props: function (expStr) {
+
+                //提取表达式
+                var reg = /^\s*(?:(?:\(\s*([a-z\$_]+[\w\$]*)\s*(?:\,\s*([a-z\$_]+[\w\$]*))?\s*\))|([a-z\$_]+[\w\.\$]*))\s*in\s+([a-z\$_]+.*)\s*$/i,
+                    matchRes = expStr.match(reg);
+
+                if (!matchRes)return;
+
+                //匹配的值
+                var block_val = matchRes[1],
+                    block_key = matchRes[2],
+                    alone_val = matchRes[3],
+                    source_obj = matchRes[4],
+                    keyString,
+                    valString;
+
+                //检查是否有key/index
+                if (block_key) {
+                    keyString = block_val;
+                    valString = block_key;
+                } else {
+                    valString = block_val || alone_val;
+                }
+
+                this.stroage.scopeKey=keyString;
+                this.stroage.scopeVal=valString;
+
+                return [
+                    {
+                        key:'listData',
+                        exp:source_obj,
+                        type:[Array,Object],
+                        default:[
+                            1,2,3,4,5,6,
+                        ],
+                        autoRender:true
+                    }
+                ]
+            },
+            event:{
+
+            },
+            render: function (vnode, scope) {
+                var $this=this,
+                    innerVnodes = [];
+
+                scope.listData.forEach(function (val, key) {
+                    var scope={},
+                    //节点克隆
+                    _vnode=vnode.clone();
+
+                    scope[$this.stroage.scopeVal]=val;
+
+                    if($this.stroage.scopeKey){
+                        scope[$this.stroage.scopeKey]=key;
+                    }
+                    //传递作用域
+                    _vnode.scope(scope);
+
+                    //节点收集
+                    innerVnodes.push(_vnode)
+
+                })
+
+                //改变当前节点
+                return innerVnodes;
+            }
+        });
+
+
+        console.log(vf.viewEngin, Date.now() - sDate);
+
+        console.log(vf.viewEngin.vdom.patch(document.querySelector('.template'), vf.viewEngin.render(htmlStr), {scope: ''}));
 
     })
 
@@ -53,8 +245,8 @@
                         <li class="content-center" $-class="{desc:colModel.order == 'desc',asc:colModel.order == 'asc'}"
                             $-on:click="eventManage.headerClick(colKey,colModel)"
                             $-for=" ( colKey , colModel ) in gridConf.colsModel">
-                            <strong $-if="!colModel.titleConfig.template">{{colModel.titleConfig.content ||
-                                colModel.name ||""}}</strong>
+                            <strong $-if="!colModel.titleConfig.template">{{colModel.titleConfig.content ||colModel.name
+                                ||""}}</strong>
                             <template config="colModel.titleConfig"></template>
                             <span $-if="colModel.order" $-show="gridConf.orderIndex == colKey "><i
                                     class="iconfont icon-down-copy-asc"></i><i

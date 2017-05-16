@@ -4,7 +4,7 @@
   "description": "web前端mvp and mvvm 框架，适用中大型项目",
   "main": "index.js",
   "scripts": {
-    "test": "watchify ./src/frontLarge.js -d -o ./dist/frontLarge.js"
+    "test": "watchify ./src/vf.js -d -o ./dist/vf.js"
   },
   "repository": {
     "type": "git",

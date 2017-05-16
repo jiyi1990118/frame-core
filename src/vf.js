@@ -1,13 +1,13 @@
 /**
  * Created by xiyuan on 17-5-9.
  */
-(function (FL) {
+(function (vf) {
     if (typeof define === "function" && define.cmd) {
         define(function () {
-            return FL;
+            return vf;
         })
     } else {
-        this.FL = FL();
+        this.vf = vf();
     }
 })(function () {
     return require('./engine/exports');

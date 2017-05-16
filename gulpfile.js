@@ -12,9 +12,9 @@ var uglify = require('gulp-uglify');
 
 //压缩任务
 gulp.task('min', function () {
-    return browserify('./src/frontLarge.js')
+    return browserify('./src/vf.js')
         .bundle()
-        .pipe(source('frontLarge.min.js'))
+        .pipe(source('vf.min.js'))
         .pipe(buffer())
         .pipe(uglify({
             mangle: {except: ['require', 'exports', 'module', '$']},//排除混淆关键字类型：Boolean 默认：true 是否修改变量名
@@ -27,18 +27,18 @@ gulp.task('min', function () {
 
 //代码美化任务
 gulp.task('normal', function () {
-    return browserify('./src/frontLarge.js')
+    return browserify('./src/vf.js')
         .bundle()
-        .pipe(source('frontLarge.js'))
+        .pipe(source('vf.js'))
         .pipe(buffer())
         .pipe(prettify())
         .pipe(gulp.dest('./dist/'));
 });
 
 //任务监听
-var watcher = gulp.watch('./src/**/*.js', ['min','normal']);
+/*var watcher = gulp.watch('./src/!**!/!*.js', ['min','normal']);
 watcher.on('change', function(event) {
     console.log('File ' + event.path + ' was ' + event.type + ', running tasks...');
-});
+});*/
 
 gulp.task('default', ['min','normal']);

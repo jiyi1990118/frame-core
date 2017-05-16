@@ -16,10 +16,17 @@
  * // To get a DocumentFragment. If doctype is defined then it returns a Document.
  * HTMLtoDOM(htmlString);
  */
+"use strict";
 
 //browser and jsdom compatibility
-window = window || this;
+var window = window || this;
 var document = window.document;
+
+//虚拟Dom
+var vdom = require('./vdom');
+
+//语法解析
+var syntaxStruct = require('./syntaxStruct');
 
 var HTMLParser = (function () {
     // Regular Expressions for parsing tags and attributes
@@ -225,29 +232,59 @@ function makeMap(str) {
 }
 
 /**
- * html 转换成虚拟dom数据结构
+ * html字符串转虚拟dom
+ * @param htmlStr
+ * @returns {Array}
  */
-module.exports = function html2vdom(html) {
+function str2vdom(htmlStr) {
     var nowStruct,
         eleStruct = [],
         structLevel = [];
 
-    HTMLParser(html, {
+    HTMLParser(htmlStr, {
         //标签节点起始
         start: function (tagName, attrs, unary) {
-            nowStruct = {
-                sel: tagName,
-                data: {
+            nowStruct = vdom.vnode(
+                tagName,
+                {
                     attrsMap: attrs.reduce(function (attrs, current) {
-                        attrs[current.name] = current.value;
+                        var type,
+                            localtion,
+                            modifiers,
+                            attrName = current.name;
+
+                        //获取自定义属性的类型
+                        if ((localtion = attrName.indexOf(':')) !== -1) {
+                            type = attrName.slice(localtion + 1);
+                            attrName = attrName.slice(0, localtion) || 'bind';
+                            //获取修饰符
+                            if ((localtion = type.indexOf('.')) !== -1) {
+                                modifiers = type.slice(localtion + 1);
+                                type = type.slice(0, localtion);
+                                modifiers = modifiers.split('.')
+                            }
+                        } else {
+                            //获取修饰符
+                            if ((localtion = attrName.indexOf('.')) !== -1) {
+                                modifiers = attrName.slice(localtion + 1);
+                                attrName = attrName.slice(0, localtion);
+                                modifiers = modifiers.split('.')
+                            }
+                        }
+
+                        attrs[attrName] = {
+                            type: type,
+                            modifiers: modifiers,
+                            value: current.value,
+                            attrName: current.name
+                        };
+
                         return attrs;
                     }, {})
                 },
-                children: [],
-                text: undefined,
-                elm: undefined,
-                key: undefined
-            }
+                []
+            )
+
             structLevel.push(nowStruct)
             if (unary) {
                 this.end();
@@ -283,43 +320,50 @@ module.exports = function html2vdom(html) {
             var DelimiterLeft = "{{",
                 DelimiterRight = "}}";
 
-            var exps = [];
+            var exps = [],
+                strs = [];
 
             /**
              * 获取表达式
              * @param text
              * @returns {*}
              */
-            function findExp(text) {
+            (function findExp(text) {
                 var sid,
                     eid,
                     expStr,
+                    _str,
                     str = text;
 
                 if (str.length) {
                     if ((sid = str.indexOf(DelimiterLeft)) === -1 || (eid = str.indexOf(DelimiterRight, sid)) === -1) {
-                        exps.push(str)
+                        exps.push(str);
+                        strs.push(str);
                     } else {
+                        if (sid) {
+                            _str = str.slice(0, sid);
+                            exps.push(_str);
+                            strs.push(_str);
+                        }
                         //截取界定符中的表达式字符
                         expStr = str.slice(sid + DelimiterLeft.length).slice(0, eid - sid - DelimiterLeft.length);
+                        //解析表达式
+                        exps.push(syntaxStruct(expStr));
                         //剩下的字符
-                        exps.push({
-                            expStr: expStr
-                        })
                         findExp(str.slice(eid + DelimiterRight.length));
                     }
                 }
                 return text;
-            }
+            })(text)
 
-            var nowStruct = {
-                text: findExp(text),
-                data: {
+            var nowStruct = vdom.vnode(
+                undefined,
+                {
                     exps: exps
                 },
-                elm: undefined,
-                key: undefined
-            }
+                undefined,
+                strs.join('')
+            )
 
             //检查当前是否顶级层级
             if (structLevel.length) {
@@ -331,4 +375,43 @@ module.exports = function html2vdom(html) {
     })
     structLevel = undefined;
     return eleStruct.length === 1 ? eleStruct[0] : eleStruct;
+}
+
+/**
+ * dom转虚拟Dom
+ * @param dom
+ */
+function dom2vdom(dom) {
+    var vnode;
+
+    switch (dom.nodeType) {
+        //Text
+        case 3:
+            if (/^\s+$/.test(dom.textContent))return;
+            vnode = vdom.vnode(undefined, undefined, undefined, dom.textContent, dom)
+            break;
+        //Element
+        case 1:
+            vnode = vdom.node2vnode(dom);
+        //DocumentFragment
+        case 11:
+            vnode = vnode || [];
+            dom.childNodes.forEach(function (node) {
+                var cvnode = dom2vdom(node);
+                if (cvnode) vnode.children.push(cvnode);
+            })
+            break;
+        //DocumentType
+        case 9:
+            console.warn('暂不支持document')
+    }
+    return vnode;
+}
+
+/**
+ * html 转换成虚拟dom数据结构
+ */
+module.exports = vdom.html2vdom = function html2vdom(html) {
+    //检查是否dom节点
+    return html.nodeName ? dom2vdom(html) : str2vdom(html);
 };
