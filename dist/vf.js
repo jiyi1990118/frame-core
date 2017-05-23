@@ -2794,6 +2794,9 @@
          */
         // "use strict";
 
+        //语法结构处理
+        var syntaxHandle = require('./syntaxHandle');
+
         //钩子类型
         var hooks = ['init', 'create', 'update', 'remove', 'destroy', 'pre', 'post'];
 
@@ -2917,7 +2920,13 @@
             } else if (conf.elm instanceof Array) {
                 conf.elm = undefined;
             }
-            conf.data = objectclone($this.data);
+            conf.data = function(data) {
+                var tmp = {};
+                Object.keys(data).forEach(function(key) {
+                    tmp[key] = data[key];
+                })
+                return tmp;
+            }($this.data);
 
             //继承作用域
             Object.keys($this.$scope || {}).forEach(function(key) {
@@ -2932,18 +2941,7 @@
             }
 
             conf.children = children;
-
             return new $vnode(conf);
-        }
-
-        //节点作用域传递
-        $vnode.prototype.scope = function(scope) {
-            var $this = this;
-            if (scope instanceof Object) {
-                Object.keys(scope).forEach(function(key) {
-                    $this.$scope[key] = scope[key];
-                })
-            }
         }
 
         //节点作用域传递
@@ -2988,6 +2986,10 @@
 
             Object.keys(this.$scope || {}).forEach(function(key) {
                 delete $this.$scope[key];
+            })
+
+            Object.keys(this.data || {}).forEach(function(key) {
+                delete $this.data[key];
             })
 
             Object.keys(this).forEach(function(key) {
@@ -3190,6 +3192,7 @@
                                     //销毁对象但不销毁元素
                                     oldVnode.destroy('elm');
                                     oldVnode = vnode.clone();
+                                    console.log(vnode, '????')
                                     return
                                 } else {
                                     vnode.elm = [];
@@ -3262,6 +3265,20 @@
                         } else {
                             //文本节点
                             vnode.elm = api.createTextNode(vnode.text);
+
+                            //字符串内容表达式检查
+                            if (vnode.data && vnode.data.exps) {
+                                var exps = vnode.data.exps;
+                                exps.forEach(function(exp, index) {
+                                    if (exp instanceof Object) {
+                                        (exps[index] = syntaxHandle(exp, extraParameters.scope)).readWatch(function(data) {
+
+                                        })
+                                    }
+                                })
+
+                                console.log(extraParameters)
+                            }
                         }
                     }
 
@@ -3276,8 +3293,9 @@
                             insertedVnodeQueue.push(vnode);
                     }
 
+                    //销毁旧节点
                     oldVnode && oldVnode.destroy();
-
+                    //节点备份
                     oldVnode = vnode.clone();
 
                     //返回当前节点数据
@@ -4051,9 +4069,7 @@
                             exapmpleQueueHandle();
                         }
                     }
-
                 }
-
 
                 //组件检查
                 if (compClass) {
@@ -4081,13 +4097,13 @@
                         handleExampleQueue.push(directorieExample);
                         //观察指令渲染
                         directorieExample.watchRender(function() {
+                            console.log('this is', vnode)
                             if (isInitCall) initCall();
                         })
                     } else {
                         //如果不是指令则写入属性
                         attrs[attrName] = attrsMap[attrName].value;
                     }
-
                 })
 
 
@@ -4120,7 +4136,8 @@
 
     }, {
         "./componentMange": 3,
-        "./directiveMange": 4
+        "./directiveMange": 4,
+        "./syntaxHandle": 6
     }],
     9: [function(require, module, exports) {
         /**

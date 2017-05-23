@@ -4,6 +4,9 @@
  */
 // "use strict";
 
+//语法结构处理
+var syntaxHandle = require('./syntaxHandle');
+
 //钩子类型
 var hooks = ['init', 'create', 'update', 'remove', 'destroy', 'pre', 'post'];
 
@@ -127,7 +130,13 @@ $vnode.prototype.clone = function () {
     }else if(conf.elm instanceof Array){
         conf.elm=undefined;
     }
-    conf.data = objectclone($this.data);
+    conf.data = function (data) {
+        var tmp={};
+        Object.keys(data).forEach(function (key) {
+            tmp[key]=data[key];
+        })
+        return tmp;
+    }($this.data);
 
     //继承作用域
     Object.keys($this.$scope||{}).forEach(function (key) {
@@ -142,18 +151,7 @@ $vnode.prototype.clone = function () {
     }
 
     conf.children=children;
-
     return new $vnode(conf);
-}
-
-//节点作用域传递
-$vnode.prototype.scope = function (scope) {
-    var $this = this;
-    if (scope instanceof Object) {
-        Object.keys(scope).forEach(function (key) {
-            $this.$scope[key] = scope[key];
-        })
-    }
 }
 
 //节点作用域传递
@@ -169,6 +167,16 @@ $vnode.prototype.scope = function (scope) {
 //节点销毁
 $vnode.prototype.destroy=function (type) {
     var $this = this;
+
+    //检查是否文本
+    if(isUndef(this.sel) && this.data && this.data.exps){
+        Object.keys(this.data.exps).forEach(function (key) {
+            if($this.data.exps[key] instanceof Object){
+                $this.data.exps[key].destroy();
+            }
+            delete $this.data.exps[key];
+        })
+    }
 
     if(this.elm){
         if(this.elm instanceof Array){
@@ -198,6 +206,10 @@ $vnode.prototype.destroy=function (type) {
 
     Object.keys(this.$scope||{}).forEach(function (key) {
         delete $this.$scope[key];
+    })
+
+    Object.keys(this.data||{}).forEach(function (key) {
+        delete $this.data[key];
     })
 
     Object.keys(this).forEach(function (key) {
@@ -394,11 +406,11 @@ function init(modules) {
 
                         //检查节点是否被渲染，此处需要做元素对比
                         if(vnode.elm && vnode.elm.length){
-                            console.log(vnode,'????')
                             patch(oldVnode,vnode);
                             //销毁对象但不销毁元素
                             oldVnode.destroy('elm');
                             oldVnode=vnode.clone();
+                            console.log(vnode,'????')
                             return
                         }else{
                             vnode.elm = [];
@@ -471,6 +483,20 @@ function init(modules) {
                 } else {
                     //文本节点
                     vnode.elm = api.createTextNode(vnode.text);
+
+                    //字符串内容表达式检查
+                    if(vnode.data && vnode.data.exps){
+                        var exps=vnode.data.exps;
+                        exps.forEach(function (exp,index) {
+                            if(exp instanceof Object){
+                                (exps[index]=syntaxHandle(exp,extraParameters.scope)).readWatch(function (data) {
+
+                                })
+                            }
+                        })
+
+                        console.log(extraParameters)
+                    }
                 }
             }
 
@@ -485,8 +511,9 @@ function init(modules) {
                     insertedVnodeQueue.push(vnode);
             }
 
+            //销毁旧节点
             oldVnode && oldVnode.destroy();
-
+            //节点备份
             oldVnode=vnode.clone();
 
             //返回当前节点数据
@@ -1234,9 +1261,7 @@ function compAndDirectiveInspect() {
                     exapmpleQueueHandle();
                 }
             }
-
         }
-
 
         //组件检查
         if (compClass) {
@@ -1264,13 +1289,13 @@ function compAndDirectiveInspect() {
                 handleExampleQueue.push(directorieExample);
                 //观察指令渲染
                 directorieExample.watchRender(function () {
+                    console.log('this is',vnode)
                     if (isInitCall) initCall();
                 })
             } else {
                 //如果不是指令则写入属性
                 attrs[attrName] = attrsMap[attrName].value;
             }
-
         })
 
 

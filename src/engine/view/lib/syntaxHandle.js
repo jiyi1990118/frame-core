@@ -129,16 +129,16 @@ function operation(symbol, val1, val2, val3) {
  * @param scope
  * @param filter
  */
-function analysis(struct,scope,filter) {
-    var $this=this;
+function analysis(struct, scope, filter) {
+    var $this = this;
 
-    this.reads=[];
-    this.watchs=[];
-    this.scope=scope;
-    this.filter=filter;
+    this.reads = [];
+    this.watchs = [];
+    this.scope = scope;
+    this.filter = filter;
 
-    this.lex(struct,function (resData) {
-        $this.resData=resData.value;
+    this.lex(struct, function (resData) {
+        $this.resData = resData.value;
 
         //触发观察
         $this.watchs.forEach(function (fn) {
@@ -149,33 +149,33 @@ function analysis(struct,scope,filter) {
         $this.reads.forEach(function (fn) {
             fn(resData.value);
         });
-        $this.reads=[];
+        $this.reads = [];
     });
 
 }
 
 //语法结果观察
-analysis.prototype.watch=function (fn) {
+analysis.prototype.watch = function (fn) {
     this.watchs.push(fn);
 }
 
 //语法结果读取
-analysis.prototype.read=function (fn) {
+analysis.prototype.read = function (fn) {
     //检查返回的数据
-    if(this.hasOwnProperty('resData')){
+    if (this.hasOwnProperty('resData')) {
         fn(this.resData);
-    }else{
+    } else {
         this.reads.push(fn);
     }
     return this.resData;
 }
 
 //语法结果读取
-analysis.prototype.readWatch=function (fn) {
+analysis.prototype.readWatch = function (fn) {
     //检查返回的数据
-    if(this.hasOwnProperty('resData')){
+    if (this.hasOwnProperty('resData')) {
         fn(this.resData);
-    }else{
+    } else {
         this.watchs.push(fn);
     }
     return this.resData;
@@ -197,7 +197,7 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
             this.lex(nowStruct.argment, ob.watch('argment'));
             ob.receive(function (data) {
                 callback({
-                    value:operation('$' + nowStruct.operator, data.argment)
+                    value: operation('$' + nowStruct.operator, data.argment)
                 })
             })
             break;
@@ -208,7 +208,7 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
 
             ob.receive(function (data) {
                 callback({
-                    value:operation(nowStruct.operator, data.left, data.right)
+                    value: operation(nowStruct.operator, data.left, data.right)
                 })
             })
 
@@ -221,43 +221,43 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
 
             ob.receive(function (data) {
                 callback({
-                    value:operation(nowStruct.operator, data.condition, data.accord, data.mismatch)
+                    value: operation(nowStruct.operator, data.condition, data.accord, data.mismatch)
                 })
             })
             break;
         //成员表达式
         case 'MemberExpression':
-            this.lex(nowStruct.object, ob.watch('object'),isFilter)
-            this.lex(nowStruct.property, ob.watch('property'),nowStruct.computed || 'noComputed');
+            this.lex(nowStruct.object, ob.watch('object'), isFilter)
+            this.lex(nowStruct.property, ob.watch('property'), nowStruct.computed || 'noComputed');
 
             ob.receive(function (data) {
 
                 //检查是否对象表达式
-                if(data.object.type === 'Object' && data.object.value[data.property.value].observer){
+                if (data.object.type === 'Object' && data.object.value[data.property.value].observer) {
                     callback({
-                        value:data.object.value[data.property.value].value,
-                        observer:data.object.value[data.property.value].observer,
-                        keys:data.object.value[data.property.value].keys
+                        value: data.object.value[data.property.value].value,
+                        observer: data.object.value[data.property.value].observer,
+                        keys: data.object.value[data.property.value].keys
                     });
-                }else{
+                } else {
 
                     //检查是否是观察对象
-                    if(data.object.observer){
-                        keys= data.object.keys.concat(data.property.value).join('.');
+                    if (data.object.observer) {
+                        keys = data.object.keys.concat(data.property.value).join('.');
 
-                        if(_keys !== keys){
+                        if (_keys !== keys) {
                             _keys && data.object.observer.unwatch(_keys);
                             //数据读取并监听
-                            data.object.observer.readWatch(_keys=keys,function (newData) {
+                            data.object.observer.readWatch(_keys = keys, function (newData) {
                                 callback({
-                                    value:newData,
-                                    observer:data.object.observer,
-                                    keys:data.object.keys.concat(data.property.value)
+                                    value: newData,
+                                    observer: data.object.observer,
+                                    keys: data.object.keys.concat(data.property.value)
                                 });
                             });
                         }
 
-                    }else{
+                    } else {
                         console.warn('语法对象错误!')
                     }
                 }
@@ -273,7 +273,7 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
 
             ob.receive(function (data) {
                 callback({
-                    value:operation('Array', data)
+                    value: operation('Array', data)
                 });
             })
             break;
@@ -284,14 +284,14 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
             })
 
             ob.receive(function (data) {
-                var objData=operation('Object', data);
+                var objData = operation('Object', data);
                 callback({
-                    value:objData,
-                    observer:observer(objData),
-                    keys:[],
-                    type:'Object'
+                    value: objData,
+                    observer: observer(objData),
+                    keys: [],
+                    type: 'Object'
                 });
-                
+
             })
 
             break;
@@ -307,7 +307,7 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
 
             ob.receive(function (data) {
                 callback({
-                    value:operation('Call', data)
+                    value: operation('Call', data)
                 });
             })
             break;
@@ -326,7 +326,7 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
 
             ob.receive(function (data) {
                 callback({
-                    value:operation('Filter', data)
+                    value: operation('Filter', data)
                 });
             })
 
@@ -342,7 +342,7 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
 
             ob.receive(function (data) {
                 callback({
-                    value:operation(nowStruct.operator, data.identifier, data.value,nowStruct.identifier)
+                    value: operation(nowStruct.operator, data.identifier, data.value, nowStruct.identifier)
                 })
             })
             break;
@@ -352,25 +352,25 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
                 //空
                 case 'Null':
                     callback({
-                        value:null
+                        value: null
                     });
                     break;
                 //字符
                 case 'String':
                     callback({
-                        value:nowStruct.value
+                        value: nowStruct.value
                     });
                     break;
                 //布尔
                 case 'Boolean':
                     callback({
-                        value:nowStruct.value === "false" ? false : true
+                        value: nowStruct.value === "false" ? false : true
                     });
                     break;
                 //数字
                 case 'Numeric':
                     callback({
-                        value:nowStruct.value
+                        value: nowStruct.value
                     });
                     break;
                 //关键字
@@ -378,24 +378,24 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
                 //标识符
                 case 'identifier':
 
-                    switch (isFilter){
+                    switch (isFilter) {
                         case true:
                             callback({
-                                value:this.filter[nowStruct.value]
+                                value: this.filter[nowStruct.value]
                             });
                         case 'noComputed':
                             callback({
-                                value:nowStruct.value
+                                value: nowStruct.value
                             });
                             break;
                         default:
-                            obData=observer(this.scope);
+                            obData = observer(this.scope);
                             //数据读取并监听
-                            obData.readWatch(nowStruct.value,function (newData) {
+                            obData.readWatch(nowStruct.value, function (newData) {
                                 callback({
-                                    value:newData,
-                                    observer:obData,
-                                    keys:[nowStruct.value]
+                                    value: newData,
+                                    observer: obData,
+                                    keys: [nowStruct.value]
                                 });
                             });
                     }
@@ -414,7 +414,7 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
 function structHandle(syntaxStruct, scope, filter) {
 
     //语法结构
-    this.structRes = new analysis(syntaxStruct,scope,filter);
+    this.structRes = new analysis(syntaxStruct, scope, filter);
 
     //语法过滤器
     this.filter = filter;
@@ -425,8 +425,8 @@ function structHandle(syntaxStruct, scope, filter) {
 }
 
 //数据分配
-structHandle.prototype.assign = function (key,data) {
-    this.scope[key]=data;
+structHandle.prototype.assign = function (key, data) {
+    this.scope[key] = data;
 }
 
 //表达式数据观察

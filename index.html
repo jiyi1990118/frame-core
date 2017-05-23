@@ -7,9 +7,9 @@
 <body>
 
 <div class="template">
-    <h1>这是标题：{{vtitle['s']=pageDate.title+'---'}}sdfsd{{s}}</h1>
+    <h1>这是标题：{{pageDate.title+'---'}}sdfsd{{s}}</h1>
     <!--<list-gird conf="gridConfs" for="gridConf in {listData:listData}.listData.data"></list-gird>-->
-    <div conf="gridConfs" for="gridConf in {listData:listData}.listData.data">------</div>
+    <div conf="gridConfs" for="gridConf in {listData:listData}.listData.data">---{{gridConf}}---</div>
     <strong>内容</strong>
 </div>
 
@@ -195,7 +195,6 @@
                     innerVnodes.push(_vnode)
 
                 });
-
                 //改变当前节点
                 return innerVnodes;
             }
@@ -204,7 +203,7 @@
 
         console.log(vf.viewEngin, Date.now() - sDate);
 
-        var scope=window.scope={scope: ''}
+        var scope=window.scope={scope: '',test:{},pageDate:{title:'this title val'}}
 
         console.log(vf.viewEngin.vdom.patch(document.querySelector('.template'), vf.viewEngin.render(htmlStr), scope));
 
