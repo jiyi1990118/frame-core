@@ -394,7 +394,6 @@ function init(modules) {
 
                         //检查节点是否被渲染，此处需要做元素对比
                         if(vnode.elm && vnode.elm.length){
-                            console.log(vnode,'????')
                             patch(oldVnode,vnode);
                             //销毁对象但不销毁元素
                             oldVnode.destroy('elm');

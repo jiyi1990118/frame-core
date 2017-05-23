@@ -8,14 +8,9 @@
 
 <div class="template">
     <h1>这是标题：{{vtitle['s']=pageDate.title+'---'}}sdfsd{{s}}</h1>
-    <span >这是内容:{{pageDate.content}}</span>
-    <list-gird conf="gridConf" for="gridConf in gridList"></list-gird>
-    <strong>这是描述</strong>
-    <ul>
-        <fors exp="(key,value) in arr">
-            <li>{{key}}:{{value}}</li>
-        </fors>
-    </ul>
+    <!--<list-gird conf="gridConfs" for="gridConf in {listData:listData}.listData.data"></list-gird>-->
+    <div conf="gridConfs" for="gridConf in {listData:listData}.listData.data">------</div>
+    <strong>内容</strong>
 </div>
 
 <script type="text/javascript" src="dist/vf.js"></script>
@@ -127,7 +122,8 @@
         vf.viewEngin.directiveMange.register('for', {
             priority:100,
             scope: {
-                listData: []
+                listData: [],
+                test:'ooo'
             },
             //是否需要等待当前指令或组件加载后渲染后续指令与组件
             loadRender:true,
@@ -139,7 +135,7 @@
             props: function (expStr) {
 
                 //提取表达式
-                var reg = /^\s*(?:(?:\(\s*([a-z\$_]+[\w\$]*)\s*(?:\,\s*([a-z\$_]+[\w\$]*))?\s*\))|([a-z\$_]+[\w\.\$]*))\s*in\s+([a-z\$_]+.*)\s*$/i,
+                var reg = /^\s*(?:(?:\(\s*([a-z\$_]+[\w\$]*)\s*(?:\,\s*([a-z\$_]+[\w\$]*))?\s*\))|([a-z\$_]+[\w\.\$]*))\s*in\s+(.+)\s*$/i,
                     matchRes = expStr.match(reg);
 
                 if (!matchRes)return;
@@ -169,7 +165,7 @@
                         exp:source_obj,
                         type:[Array,Object],
                         default:[
-                            1,2,3,4,5,6,
+
                         ],
                         autoRender:true
                     }
@@ -185,7 +181,7 @@
                 scope.listData.forEach(function (val, key) {
                     var scope={},
                     //节点克隆
-                    _vnode=vnode.clone();
+                    _vnode=$this.templateVnode.clone();
 
                     scope[$this.stroage.scopeVal]=val;
 
@@ -198,7 +194,7 @@
                     //节点收集
                     innerVnodes.push(_vnode)
 
-                })
+                });
 
                 //改变当前节点
                 return innerVnodes;
@@ -208,7 +204,24 @@
 
         console.log(vf.viewEngin, Date.now() - sDate);
 
-        console.log(vf.viewEngin.vdom.patch(document.querySelector('.template'), vf.viewEngin.render(htmlStr), {scope: ''}));
+        var scope=window.scope={scope: ''}
+
+        console.log(vf.viewEngin.vdom.patch(document.querySelector('.template'), vf.viewEngin.render(htmlStr), scope));
+
+        function c() {
+            var a=10000;
+
+
+            while(a--){
+
+                a%2?scope.listData={data:[1,2,3]}:scope.listData={data:[1,2,3,1,2,3,4,5,2,3,4,2,3,2,3,2,1]}
+            }
+
+
+        }
+
+
+//        setTimeout(c,10000)
 
     })
 

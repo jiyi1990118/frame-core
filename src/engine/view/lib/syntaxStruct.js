@@ -1341,7 +1341,14 @@ module.exports =  function syntaxParser(code) {
     var syntaxStruct=syntaxCache[code];
     if(!syntaxStruct){
         //无缓存则解析，并放入缓存
-        syntaxStruct= syntaxCache[code]=new syntaxParserClass(code);
+        syntaxStruct= new syntaxParserClass(code);
+        syntaxCache[code]=syntaxStruct.expStruct;
+
+        //销毁对象
+        Object.keys(syntaxStruct).forEach(function (key) {
+            delete syntaxStruct[key];
+        })
+        syntaxStruct=syntaxCache[code];
     }
     return syntaxStruct;
 }

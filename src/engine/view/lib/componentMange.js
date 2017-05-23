@@ -142,10 +142,12 @@ compClass.prototype.init = function () {
 
                     //读取表达式返回的值
                     if(!syntaxExample.read(function (newData) {
+                            $api.scope[propConf.key]=newData;
                         //检查是否自动渲染
                         if(propConf.autoRender){
                             //监听表达式返回的值
                             syntaxExample.watch(function (newData) {
+                                $api.scope[propConf.key]=newData;
                                 if(isRender)$this.render();
                             })
                         }
@@ -163,7 +165,7 @@ compClass.prototype.init = function () {
                             $api.scope[propConf.key]=propConf['default'];
                             renderTrigger();
                         }
-                    };
+                    }
 
                     // console.log(propConf,strcut,syntaxExample)
                 }else{
