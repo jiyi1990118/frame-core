@@ -136,7 +136,8 @@
 
                 //提取表达式
                 var reg = /^\s*(?:(?:\(\s*([a-z\$_]+[\w\$]*)\s*(?:\,\s*([a-z\$_]+[\w\$]*))?\s*\))|([a-z\$_]+[\w\.\$]*))\s*in\s+(.+)\s*$/i,
-                    matchRes = expStr.match(reg);
+                    matchRes = expStr.match(reg),
+                    $this=this;
 
                 if (!matchRes)return;
 
@@ -163,6 +164,10 @@
                     {
                         key:'listData',
                         exp:source_obj,
+                        //获取当前表达式的观察数据信息
+                        getWatchInfo:function (watchInfo) {
+                            $this.stroage.watchInfo=watchInfo;
+                        },
                         type:[Array,Object],
                         default:[
 
@@ -176,10 +181,21 @@
             },
             render: function (vnode, scope) {
                 var $this=this,
+                    watchRenders=[],
                     innerVnodes = [];
 
+                //移除上一次for循环的子数据监听
+                if(this.stroage.watchRenders instanceof Array){
+                    this.stroage.watchRenders.forEach(function (info) {
+                        info.ob.unWatch(info.key,info.fn);
+                    })
+                    delete this.stroage.watchRenders;
+                }
+
+                //遍历for循环的数据
                 scope.listData.forEach(function (val, key) {
                     var scope={},
+                        watchKey,
                     //节点克隆
                     _vnode=$this.templateVnode.clone();
 
@@ -188,13 +204,33 @@
                     if($this.stroage.scopeKey){
                         scope[$this.stroage.scopeKey]=key;
                     }
+
                     //传递作用域
                     _vnode.scope(scope);
 
+//                    console.log(_vnode);
+
+                    //观察值的变化
+                    if($this.stroage.watchInfo){
+                        watchKey=$this.stroage.watchInfo.key+'['+key+']';
+
+                        function watchFn(data) {
+                            _vnode.$scope[$this.stroage.scopeVal]=data;
+                            console.log('!!!!!!!',data)
+                        }
+                        $this.stroage.watchInfo.observer.watch(watchKey,watchFn);
+
+                        watchRenders.push({
+                            fn:watchFn,
+                            key:watchKey,
+                            ob:$this.stroage.watchInfo.observer
+                        })
+                    }
                     //节点收集
                     innerVnodes.push(_vnode)
-
                 });
+
+                this.stroage.watchRenders=watchRenders;
                 //改变当前节点
                 return innerVnodes;
             }

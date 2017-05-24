@@ -51,12 +51,12 @@ function directiveClass(directiveConf, vnode, extraParameters, directiveName) {
         render: function () {
 
         },
+        rootScope:vnode.rootScope,
         stroage: {},
         //模板节点
         templateVnode:vnode.clone()
 
     }
-
 }
 
 //监听创建
@@ -124,11 +124,23 @@ directiveClass.prototype.init = function () {
                         //读取表达式返回的值
                         if (!syntaxExample.read(function (newData) {
                             $api.scope[propConf.key] = newData;
-                            //检查是否自动渲染
+
+                            //获取当前值的watchKey
+                            if(propConf.getWatchInfo instanceof Function){
+                                propConf.getWatchInfo(syntaxExample.getWatchInfo());
+                            }
+
+                                //检查是否自动渲染
                             if (propConf.autoRender) {
                                 //监听表达式返回的值
                                 syntaxExample.watch(function (newData) {
                                     $api.scope[propConf.key] = newData;
+
+                                    //获取当前值的watchKey
+                                    if(propConf.getWatchInfo instanceof Function){
+                                        propConf.getWatchInfo(syntaxExample.getWatchInfo());
+                                    }
+
                                     if (isRender) $this.render();
                                 })
                             }
@@ -175,6 +187,7 @@ directiveClass.prototype.render = function () {
     //检查是否有渲染的方法
     if (conf.render instanceof Function) {
         vnode.innerVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
+    console.log(vnode,':::::::::::')
     }
 
     //标识当前节点是否替换

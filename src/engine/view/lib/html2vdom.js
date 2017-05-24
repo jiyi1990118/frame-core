@@ -321,7 +321,8 @@ function str2vdom(htmlStr) {
                 DelimiterRight = "}}";
 
             var exps = [],
-                strs = [];
+                strs = [],
+                expStr;
 
             /**
              * 获取表达式
@@ -331,7 +332,6 @@ function str2vdom(htmlStr) {
             (function findExp(text) {
                 var sid,
                     eid,
-                    expStr,
                     _str,
                     str = text;
 
@@ -359,7 +359,8 @@ function str2vdom(htmlStr) {
             var nowStruct = vdom.vnode(
                 undefined,
                 {
-                    exps: exps
+                    exps: exps,
+                    textExpString:expStr
                 },
                 undefined,
                 strs.join('')

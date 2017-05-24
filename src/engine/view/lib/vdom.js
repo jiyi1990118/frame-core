@@ -7,6 +7,8 @@
 //语法结构处理
 var syntaxHandle = require('./syntaxHandle');
 
+var observer = require('../../../inside/lib/observer');
+
 //钩子类型
 var hooks = ['init', 'create', 'update', 'remove', 'destroy', 'pre', 'post'];
 
@@ -110,7 +112,7 @@ $vnode.prototype.clone = function () {
         innerVnode=[],
         $this = this;
 
-    var pros=['$scope','children','elm','isShow','key','sel','tag','text'];
+    var pros=['$scope','children','elm','isShow','key','sel','tag','text','rootScope'];
 
     //收集所有的属性
     pros.forEach(function (key) {
@@ -118,7 +120,6 @@ $vnode.prototype.clone = function () {
             conf[key] = $this[key];
         }
     })
-
 
     if(this.innerVnode instanceof Array && this.innerVnode.length){
         // if(this.isReplace)conf.isReplace=true;
@@ -130,6 +131,7 @@ $vnode.prototype.clone = function () {
     }else if(conf.elm instanceof Array){
         conf.elm=undefined;
     }
+
     conf.data = function (data) {
         var tmp={};
         Object.keys(data).forEach(function (key) {
@@ -137,6 +139,15 @@ $vnode.prototype.clone = function () {
         })
         return tmp;
     }($this.data);
+
+
+    //检查是否文本 并克隆文本表达式
+    if(isUndef(this.sel) && this.data && this.data.exps){
+        conf.data.exps=[];
+        Object.keys(this.data.exps).forEach(function (key) {
+            conf.data.exps[key]=$this.data.exps[key];
+        })
+    }
 
     //继承作用域
     Object.keys($this.$scope||{}).forEach(function (key) {
@@ -164,18 +175,33 @@ $vnode.prototype.scope = function (scope) {
     }
 }
 
+//将观察的数据转换成作用域
+$vnode.prototype.observerToScope=function (watchData,watchKey,scopeKey) {
+    var $this = this,
+    ob=observer(watchData);
+    ob.readWatch(watchKey,function (data) {
+        $this.$scope[scopeKey] = data;
+    });
+    return ob;
+}
+
 //节点销毁
 $vnode.prototype.destroy=function (type) {
     var $this = this;
 
     //检查是否文本
     if(isUndef(this.sel) && this.data && this.data.exps){
-        Object.keys(this.data.exps).forEach(function (key) {
-            if($this.data.exps[key] instanceof Object){
-                $this.data.exps[key].destroy();
-            }
-            delete $this.data.exps[key];
-        })
+        switch (type){
+            case 'elm':
+                break;
+            default:
+                Object.keys(this.data.exps).forEach(function (key) {
+                    if($this.data.exps[key] instanceof Object){
+                        $this.data.exps[key].destroy();
+                    }
+                    delete $this.data.exps[key];
+                })
+        }
     }
 
     if(this.elm){
@@ -204,9 +230,11 @@ $vnode.prototype.destroy=function (type) {
         }
     }
 
-    Object.keys(this.$scope||{}).forEach(function (key) {
-        delete $this.$scope[key];
-    })
+    if(type !=='elm'){
+        Object.keys(this.$scope||{}).forEach(function (key) {
+            delete $this.$scope[key];
+        })
+    }
 
     Object.keys(this.data||{}).forEach(function (key) {
         delete $this.data[key];
@@ -226,6 +254,7 @@ function vnode(sel, data, children, text, elm) {
         sel: sel,
         data: data || {},
         $scope: {},
+        rootScope:{},
         children: children,
         text: text,
         elm: elm,
@@ -356,13 +385,29 @@ function init(modules) {
     }
 
     //根据虚拟节点创建真实dom节点
-    function createElm(vnode, insertedVnodeQueue, callback, extraParameters) {
+    function createElm(vnode, insertedVnodeQueue, callback, extraParameters,parentScope) {
         var i,
             isRearrange,
             oldVnode,
             data = vnode.data || {},
             initCount = cbs.init.length,
             children = vnode.children, sel = vnode.sel;
+
+        //检查并传递作用域
+        if(Object.keys(vnode.rootScope).length && extraParameters.scope !== vnode.rootScope){
+            Object.keys(extraParameters.scope).forEach(function (key) {
+                vnode.$scope[key]=extraParameters.scope[key];
+            })
+        }else{
+            vnode.rootScope=extraParameters.scope;
+        }
+
+        //由父节点传递作用域给子级
+        if(parentScope instanceof Object){
+            Object.keys(parentScope).forEach(function (key) {
+                vnode.$scope[key]=parentScope[key];
+            })
+        }
 
         if (isDef(sel)) {
             // 解析选择器
@@ -406,7 +451,7 @@ function init(modules) {
 
                         //检查节点是否被渲染，此处需要做元素对比
                         if(vnode.elm && vnode.elm.length){
-                            patch(oldVnode,vnode);
+                            patch(oldVnode,vnode,vnode.rootScope);
                             //销毁对象但不销毁元素
                             oldVnode.destroy('elm');
                             oldVnode=vnode.clone();
@@ -472,7 +517,7 @@ function init(modules) {
                                         api.appendChild(elm, ch.elm);
                                     }
                                     oldVnode = ch.clone();
-                                }, extraParameters)
+                                }, extraParameters,vnode.$scope);
                             } else {
                                 api.appendChild(elm, api.createTextNode(ch));
                             }
@@ -484,18 +529,27 @@ function init(modules) {
                     //文本节点
                     vnode.elm = api.createTextNode(vnode.text);
 
+                    var scope={};
+                    Object.keys(vnode.rootScope).forEach(function (key) {
+                        scope[key]=vnode.rootScope[key];
+                    });
+                    Object.keys(vnode.$scope).forEach(function (key) {
+                        scope[key]=vnode.$scope[key];
+                    });
+
+
                     //字符串内容表达式检查
                     if(vnode.data && vnode.data.exps){
                         var exps=vnode.data.exps;
                         exps.forEach(function (exp,index) {
                             if(exp instanceof Object){
-                                (exps[index]=syntaxHandle(exp,extraParameters.scope)).readWatch(function (data) {
-
+                                ;(exps[index]=syntaxHandle(exp,[vnode.rootScope,vnode.$scope],{},true)).readWatch(function (data) {
+                                    console.log('this is text ',data,vnode.$scope)
                                 })
                             }
                         })
 
-                        console.log(extraParameters)
+                        // console.log(vnode,parentScope,'>>>>>>>>>>',scope)
                     }
                 }
             }
@@ -551,7 +605,7 @@ function init(modules) {
                         api.appendChild(parentElm, ch.elm, before);
                     }
                     oldVnode = ch.clone();
-                }, extraParameters)
+                }, extraParameters,parentVnode.$scope);
             } else {
                 api.appendChild(parentElm, api.createTextNode(vnode.text), before);
             }
@@ -679,7 +733,7 @@ function init(modules) {
                                 api.insertBefore(parentElm, ch.elm, oldStartVnode.elm);
                             }
                             oldVnode=ch.clone();
-                        }, extraParameters)
+                        }, extraParameters,parentVnode.$scope);
                     })(newStartVnode);
 
                     newStartVnode = newCh[++newStartIdx];
@@ -695,7 +749,7 @@ function init(modules) {
                                     api.insertBefore(parentElm, ch.elm, oldStartVnode.elm);
                                 }
                                 oldVnode=ch.clone();
-                            }, extraParameters)
+                            }, extraParameters,parentVnode.$scope)
                         })(newStartVnode);
 
                     } else {
@@ -771,6 +825,7 @@ function init(modules) {
 
     //对比节点并修补
     return function patch(oldVnode, Vnode, scope, filter) {
+        scope=scope||{};
 
         var i, elm, parent;
         var insertedVnodeQueue = [];
@@ -814,7 +869,7 @@ function init(modules) {
                 Vnode.innerVnode.forEach(function (ch) {
                     createElm(ch, insertedVnodeQueue, function (ch, isRearrange) {
                         Vnode.elm = Vnode.elm.concat(ch.elm)
-                    }, extraParameters)
+                    }, extraParameters,Vnode.$scope)
 
                 })
             }
@@ -861,6 +916,14 @@ function init(modules) {
 
                 //检查两个虚拟节点是否相同
                 if (sameVnode(oldVnode, Vnode)) {
+                    //检查并传递作用域
+                    if(Object.keys(Vnode.rootScope).length){
+                        Object.keys(scope).forEach(function (key) {
+                            Vnode.$scope[key]=scope[key];
+                        })
+                    }else{
+                        Vnode.rootScope=scope;
+                    }
                     //节点修补
                     patchVnode(oldVnode, Vnode, insertedVnodeQueue, extraParameters);
                 } else {
@@ -1313,8 +1376,31 @@ function compAndDirectiveInspect() {
 
     }
 
+    //主要用于检查更新时候文本节点
+    function inspectUpdate(oldVnode, vnode) {
+        //检查两个节点是否都是文本节点
+        if(isUndef(oldVnode.sel) && isUndef(vnode.sel)){
+
+            //继承作用域
+            Object.keys(oldVnode.$scope||{}).forEach(function (key) {
+                vnode.$scope[key] = oldVnode.$scope[key];
+            });
+
+            if(oldVnode.data && vnode.data){
+                //检查是否存在文本表达式字符 并且相等
+                if( oldVnode.data.textExpString && oldVnode.data.textExpString === vnode.data.textExpString ){
+                    //数据转移
+                    Object.keys(oldVnode.data).forEach(function (key) {
+                        vnode.data[key]=oldVnode.data[key];
+                    })
+                }
+            }
+        }
+    }
+
     return {
-        init: inspectInit
+        init: inspectInit,
+        update:inspectUpdate
     }
 }
 

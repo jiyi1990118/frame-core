@@ -32,11 +32,16 @@
         //视图引擎
         var viewEngine = require('./view/exports');
 
+
+        var observer = require('../inside/lib/observer');
+
         module.exports = {
+            observer: observer,
             viewEngin: viewEngine
         }
 
     }, {
+        "../inside/lib/observer": 9,
         "./view/exports": 2
     }],
     2: [function(require, module, exports) {
@@ -393,12 +398,12 @@
                 render: function() {
 
                 },
+                rootScope: vnode.rootScope,
                 stroage: {},
                 //模板节点
                 templateVnode: vnode.clone()
 
             }
-
         }
 
         //监听创建
@@ -466,11 +471,23 @@
                                 //读取表达式返回的值
                                 if (!syntaxExample.read(function(newData) {
                                         $api.scope[propConf.key] = newData;
+
+                                        //获取当前值的watchKey
+                                        if (propConf.getWatchInfo instanceof Function) {
+                                            propConf.getWatchInfo(syntaxExample.getWatchInfo());
+                                        }
+
                                         //检查是否自动渲染
                                         if (propConf.autoRender) {
                                             //监听表达式返回的值
                                             syntaxExample.watch(function(newData) {
                                                 $api.scope[propConf.key] = newData;
+
+                                                //获取当前值的watchKey
+                                                if (propConf.getWatchInfo instanceof Function) {
+                                                    propConf.getWatchInfo(syntaxExample.getWatchInfo());
+                                                }
+
                                                 if (isRender) $this.render();
                                             })
                                         }
@@ -517,6 +534,7 @@
             //检查是否有渲染的方法
             if (conf.render instanceof Function) {
                 vnode.innerVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
+                console.log(vnode, ':::::::::::')
             }
 
             //标识当前节点是否替换
@@ -880,7 +898,8 @@
                         DelimiterRight = "}}";
 
                     var exps = [],
-                        strs = [];
+                        strs = [],
+                        expStr;
 
                     /**
                      * 获取表达式
@@ -890,7 +909,6 @@
                     (function findExp(text) {
                         var sid,
                             eid,
-                            expStr,
                             _str,
                             str = text;
 
@@ -917,7 +935,8 @@
 
                     var nowStruct = vdom.vnode(
                         undefined, {
-                            exps: exps
+                            exps: exps,
+                            textExpString: expStr
                         },
                         undefined,
                         strs.join('')
@@ -1110,16 +1129,27 @@
          * @param scope
          * @param filter
          */
-        function analysis(struct, scope, filter) {
+        function analysis(struct, scope, filter, multiple) {
             var $this = this;
 
             this.reads = [];
             this.watchs = [];
             this.scope = scope;
             this.filter = filter;
+            this.observers = [];
+            this.multiple = multiple;
 
             this.lex(struct, function(resData) {
                 $this.resData = resData.value;
+
+                //获取监听key
+                delete $this.watchInfo;
+                if (resData.keys instanceof Array) {
+                    $this.watchInfo = {
+                        observer: resData.observer,
+                        key: resData.keys.join('.')
+                    };
+                };
 
                 //触发观察
                 $this.watchs.forEach(function(fn) {
@@ -1266,9 +1296,14 @@
 
                     ob.receive(function(data) {
                         var objData = operation('Object', data);
+                        obData = observer($this.scope, $this.multiple);
+
+                        //收集监听对象
+                        $this.observers.push(obData);
+
                         callback({
                             value: objData,
-                            observer: observer(objData),
+                            observer: obData,
                             keys: [],
                             type: 'Object'
                         });
@@ -1370,7 +1405,9 @@
                                     });
                                     break;
                                 default:
-                                    obData = observer(this.scope);
+                                    obData = observer(this.scope, this.multiple);
+                                    //收集监听对象
+                                    $this.observers.push(obData);
                                     //数据读取并监听
                                     obData.readWatch(nowStruct.value, function(newData) {
                                         callback({
@@ -1386,23 +1423,34 @@
             }
         }
 
+        analysis.prototype.destroy = function() {
+            var $this = this;
+
+            //销毁监听对象
+            this.observers.forEach(function(obs) {
+                obs.destroy();
+            });
+
+            Object.keys(this).forEach(function(key) {
+                delete $this[key];
+            });
+        }
+
         /**
          * 语法结构处理类
          * @param syntaxStruct
          * @param scope
          * @param filter
          */
-        function structHandle(syntaxStruct, scope, filter) {
-
-            //语法结构
-            this.structRes = new analysis(syntaxStruct, scope, filter);
-
+        function structHandle(syntaxStruct, scope, filter, multiple) {
+            var $this = this;
             //语法过滤器
             this.filter = filter;
 
             //语法作用域
-            this.scope = scope;
-
+            this.scope = scope || {};
+            //语法结构
+            this.structRes = new analysis(syntaxStruct, this.scope, filter, multiple);
         }
 
         //数据分配
@@ -1415,6 +1463,11 @@
             this.structRes.watch(fn)
         }
 
+        //获取值的监听key
+        structHandle.prototype.getWatchInfo = function() {
+            return this.structRes.watchInfo;
+        };
+
         //表达式数据读取
         structHandle.prototype.read = function(fn) {
             return this.structRes.read(fn)
@@ -1425,8 +1478,20 @@
             return this.structRes.readWatch(fn)
         }
 
-        module.exports = function syntaxStructHandle(syntaxStruct, scope, filter) {
-            return new structHandle(syntaxStruct, scope, filter);
+        structHandle.prototype.destroy = function() {
+            var $this = this;
+            this.structRes.destroy();
+            Object.keys(this.scope).forEach(function(key) {
+                delete $this.scope[key]
+            })
+
+            Object.keys(this).forEach(function(key) {
+                delete $this[key];
+            })
+        }
+
+        module.exports = function syntaxStructHandle(syntaxStruct, scope, filter, multiple) {
+            return new structHandle(syntaxStruct, scope, filter, multiple);
         }
     }, {
         "../../../inside/lib/observer": 9
@@ -2797,6 +2862,8 @@
         //语法结构处理
         var syntaxHandle = require('./syntaxHandle');
 
+        var observer = require('../../../inside/lib/observer');
+
         //钩子类型
         var hooks = ['init', 'create', 'update', 'remove', 'destroy', 'pre', 'post'];
 
@@ -2900,7 +2967,7 @@
                 innerVnode = [],
                 $this = this;
 
-            var pros = ['$scope', 'children', 'elm', 'isShow', 'key', 'sel', 'tag', 'text'];
+            var pros = ['$scope', 'children', 'elm', 'isShow', 'key', 'sel', 'tag', 'text', 'rootScope'];
 
             //收集所有的属性
             pros.forEach(function(key) {
@@ -2908,7 +2975,6 @@
                     conf[key] = $this[key];
                 }
             })
-
 
             if (this.innerVnode instanceof Array && this.innerVnode.length) {
                 // if(this.isReplace)conf.isReplace=true;
@@ -2920,6 +2986,7 @@
             } else if (conf.elm instanceof Array) {
                 conf.elm = undefined;
             }
+
             conf.data = function(data) {
                 var tmp = {};
                 Object.keys(data).forEach(function(key) {
@@ -2927,6 +2994,15 @@
                 })
                 return tmp;
             }($this.data);
+
+
+            //检查是否文本 并克隆文本表达式
+            if (isUndef(this.sel) && this.data && this.data.exps) {
+                conf.data.exps = [];
+                Object.keys(this.data.exps).forEach(function(key) {
+                    conf.data.exps[key] = $this.data.exps[key];
+                })
+            }
 
             //继承作用域
             Object.keys($this.$scope || {}).forEach(function(key) {
@@ -2954,9 +3030,34 @@
             }
         }
 
+        //将观察的数据转换成作用域
+        $vnode.prototype.observerToScope = function(watchData, watchKey, scopeKey) {
+            var $this = this,
+                ob = observer(watchData);
+            ob.readWatch(watchKey, function(data) {
+                $this.$scope[scopeKey] = data;
+            });
+            return ob;
+        }
+
         //节点销毁
         $vnode.prototype.destroy = function(type) {
             var $this = this;
+
+            //检查是否文本
+            if (isUndef(this.sel) && this.data && this.data.exps) {
+                switch (type) {
+                    case 'elm':
+                        break;
+                    default:
+                        Object.keys(this.data.exps).forEach(function(key) {
+                            if ($this.data.exps[key] instanceof Object) {
+                                $this.data.exps[key].destroy();
+                            }
+                            delete $this.data.exps[key];
+                        })
+                }
+            }
 
             if (this.elm) {
                 if (this.elm instanceof Array) {
@@ -2984,9 +3085,11 @@
                 }
             }
 
-            Object.keys(this.$scope || {}).forEach(function(key) {
-                delete $this.$scope[key];
-            })
+            if (type !== 'elm') {
+                Object.keys(this.$scope || {}).forEach(function(key) {
+                    delete $this.$scope[key];
+                })
+            }
 
             Object.keys(this.data || {}).forEach(function(key) {
                 delete $this.data[key];
@@ -3006,6 +3109,7 @@
                 sel: sel,
                 data: data || {},
                 $scope: {},
+                rootScope: {},
                 children: children,
                 text: text,
                 elm: elm,
@@ -3137,7 +3241,7 @@
             }
 
             //根据虚拟节点创建真实dom节点
-            function createElm(vnode, insertedVnodeQueue, callback, extraParameters) {
+            function createElm(vnode, insertedVnodeQueue, callback, extraParameters, parentScope) {
                 var i,
                     isRearrange,
                     oldVnode,
@@ -3145,6 +3249,22 @@
                     initCount = cbs.init.length,
                     children = vnode.children,
                     sel = vnode.sel;
+
+                //检查并传递作用域
+                if (Object.keys(vnode.rootScope).length && extraParameters.scope !== vnode.rootScope) {
+                    Object.keys(extraParameters.scope).forEach(function(key) {
+                        vnode.$scope[key] = extraParameters.scope[key];
+                    })
+                } else {
+                    vnode.rootScope = extraParameters.scope;
+                }
+
+                //由父节点传递作用域给子级
+                if (parentScope instanceof Object) {
+                    Object.keys(parentScope).forEach(function(key) {
+                        vnode.$scope[key] = parentScope[key];
+                    })
+                }
 
                 if (isDef(sel)) {
                     // 解析选择器
@@ -3188,7 +3308,7 @@
 
                                 //检查节点是否被渲染，此处需要做元素对比
                                 if (vnode.elm && vnode.elm.length) {
-                                    patch(oldVnode, vnode);
+                                    patch(oldVnode, vnode, vnode.rootScope);
                                     //销毁对象但不销毁元素
                                     oldVnode.destroy('elm');
                                     oldVnode = vnode.clone();
@@ -3254,7 +3374,7 @@
                                                 api.appendChild(elm, ch.elm);
                                             }
                                             oldVnode = ch.clone();
-                                        }, extraParameters)
+                                        }, extraParameters, vnode.$scope);
                                     } else {
                                         api.appendChild(elm, api.createTextNode(ch));
                                     }
@@ -3266,18 +3386,27 @@
                             //文本节点
                             vnode.elm = api.createTextNode(vnode.text);
 
+                            var scope = {};
+                            Object.keys(vnode.rootScope).forEach(function(key) {
+                                scope[key] = vnode.rootScope[key];
+                            });
+                            Object.keys(vnode.$scope).forEach(function(key) {
+                                scope[key] = vnode.$scope[key];
+                            });
+
+
                             //字符串内容表达式检查
                             if (vnode.data && vnode.data.exps) {
                                 var exps = vnode.data.exps;
                                 exps.forEach(function(exp, index) {
-                                    if (exp instanceof Object) {
-                                        (exps[index] = syntaxHandle(exp, extraParameters.scope)).readWatch(function(data) {
-
+                                    if (exp instanceof Object) {;
+                                        (exps[index] = syntaxHandle(exp, [vnode.rootScope, vnode.$scope], {}, true)).readWatch(function(data) {
+                                            console.log('this is text ', data, vnode.$scope)
                                         })
                                     }
                                 })
 
-                                console.log(extraParameters)
+                                // console.log(vnode,parentScope,'>>>>>>>>>>',scope)
                             }
                         }
                     }
@@ -3333,7 +3462,7 @@
                                 api.appendChild(parentElm, ch.elm, before);
                             }
                             oldVnode = ch.clone();
-                        }, extraParameters)
+                        }, extraParameters, parentVnode.$scope);
                     } else {
                         api.appendChild(parentElm, api.createTextNode(vnode.text), before);
                     }
@@ -3464,7 +3593,7 @@
                                         api.insertBefore(parentElm, ch.elm, oldStartVnode.elm);
                                     }
                                     oldVnode = ch.clone();
-                                }, extraParameters)
+                                }, extraParameters, parentVnode.$scope);
                             })(newStartVnode);
 
                             newStartVnode = newCh[++newStartIdx];
@@ -3480,7 +3609,7 @@
                                             api.insertBefore(parentElm, ch.elm, oldStartVnode.elm);
                                         }
                                         oldVnode = ch.clone();
-                                    }, extraParameters)
+                                    }, extraParameters, parentVnode.$scope)
                                 })(newStartVnode);
 
                             } else {
@@ -3556,6 +3685,7 @@
 
             //对比节点并修补
             return function patch(oldVnode, Vnode, scope, filter) {
+                scope = scope || {};
 
                 var i, elm, parent;
                 var insertedVnodeQueue = [];
@@ -3601,7 +3731,7 @@
                         Vnode.innerVnode.forEach(function(ch) {
                             createElm(ch, insertedVnodeQueue, function(ch, isRearrange) {
                                 Vnode.elm = Vnode.elm.concat(ch.elm)
-                            }, extraParameters)
+                            }, extraParameters, Vnode.$scope)
 
                         })
                     }
@@ -3648,6 +3778,14 @@
 
                         //检查两个虚拟节点是否相同
                         if (sameVnode(oldVnode, Vnode)) {
+                            //检查并传递作用域
+                            if (Object.keys(Vnode.rootScope).length) {
+                                Object.keys(scope).forEach(function(key) {
+                                    Vnode.$scope[key] = scope[key];
+                                })
+                            } else {
+                                Vnode.rootScope = scope;
+                            }
                             //节点修补
                             patchVnode(oldVnode, Vnode, insertedVnodeQueue, extraParameters);
                         } else {
@@ -4121,8 +4259,31 @@
 
             }
 
+            //主要用于检查更新时候文本节点
+            function inspectUpdate(oldVnode, vnode) {
+                //检查两个节点是否都是文本节点
+                if (isUndef(oldVnode.sel) && isUndef(vnode.sel)) {
+
+                    //继承作用域
+                    Object.keys(oldVnode.$scope || {}).forEach(function(key) {
+                        vnode.$scope[key] = oldVnode.$scope[key];
+                    });
+
+                    if (oldVnode.data && vnode.data) {
+                        //检查是否存在文本表达式字符 并且相等
+                        if (oldVnode.data.textExpString && oldVnode.data.textExpString === vnode.data.textExpString) {
+                            //数据转移
+                            Object.keys(oldVnode.data).forEach(function(key) {
+                                vnode.data[key] = oldVnode.data[key];
+                            })
+                        }
+                    }
+                }
+            }
+
             return {
-                init: inspectInit
+                init: inspectInit,
+                update: inspectUpdate
             }
         }
 
@@ -4135,6 +4296,7 @@
         };
 
     }, {
+        "../../../inside/lib/observer": 9,
         "./componentMange": 3,
         "./directiveMange": 4,
         "./syntaxHandle": 6
@@ -4190,7 +4352,7 @@
             function recursionKey(key, callback) {
                 var nowKey;
                 //提取key字符中对象所属的第一个属性
-                key = (key || '').replace(/^\[([^.\]]+)\]|^\.?([^.\[\]]+)/, function(str, arrKey, objKey) {
+                key = (String(key) || '').replace(/^\[([^.\]]+)\]|^\.?([^.\[\]]+)/, function(str, arrKey, objKey) {
                     //匹配提取[key]或.key 这两种形式的key 并去除key外部的单引号或双引号
                     nowKey = (arrKey || objKey).match(/^(['"]?)([\s\S]+)\1$/).pop();
                     return '';
@@ -4459,6 +4621,16 @@
                 }
             };
 
+            //删除read监听
+            listenStruct.prototype.removeRead = function(fn) {
+                if (typeof fn === "function") {
+                    var index = this.listensRead.indexOf(fn);
+                    return index === -1 ? false : this.listensRead.splice(this.listens.indexOf(fn), 1)[0];
+                } else {
+                    this.listensRead = [];
+                }
+            };
+
             //添加子节点
             listenStruct.prototype.addChild = function(key, listenStruct) {
                 return this.child[key] = listenStruct;
@@ -4493,7 +4665,7 @@
                 this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set') && this.berforDefineProperty.get(this);
 
                 //销毁子节点
-                Object.keys(this.child).forEach(function(key) {
+                this.child && Object.keys(this.child).forEach(function(key) {
                     $this.child[key].destroy();
                 });
 
@@ -4636,6 +4808,21 @@
                 })
             };
 
+            //删除数据读取监听
+            observerProxy.prototype.removeRead = function(key, fn) {
+                var parentListen = this.listen;
+                recursionKey(key, function(nowKey, nextKey) {
+                    if (nowKey) {
+                        parentListen = parentListen.getChild(nowKey)
+                    }
+                    if (!(nowKey && nextKey)) {
+                        parentListen && parentListen.removeRead(fn);
+                    }
+                    return nextKey;
+                })
+            }
+
+            //监听销毁
             observerProxy.prototype.destroy = function() {
                 this.listen.destroy();
                 Object.keys(this).forEach(function(key) {
@@ -4700,6 +4887,15 @@
             };
 
             /**
+             * 移除数据读取监听
+             * @param key
+             * @param fn
+             */
+            observer.prototype.unRead = function(key, fn) {
+                observerProxyStroage[this.sourceId].removeRead(key, fn);
+            }
+
+            /**
              * 获取对应的数据
              * @param key
              */
@@ -4731,8 +4927,129 @@
                 enumerable: false
             });
 
-            return function(obj) {
-                return new observer(obj);
+
+            //多数据监听
+            function multipleOb(objs) {
+                //检查是否监听对象
+                if (objs instanceof multipleOb || objs instanceof observer) return objs;
+                objs = objs.reverse();
+
+                //存放资源数据
+                observerProxyStroage[this.sourceId = uid()] = {
+                    resource: objs,
+                    ob: objs.reduce(function(arr, val) {
+                        arr.push(new observer(val));
+                        return arr;
+                    }, [])
+                };
+            }
+
+            //数据读取
+            multipleOb.prototype.read = function(key, fn) {
+                var resData,
+                    objs = observerProxyStroage[this.sourceId];
+
+                function remove() {
+                    objs.ob.forEach(function(ob) {
+                        ob.unRead(key)
+                    })
+                }
+
+                objs.ob.forEach(function(ob) {
+                    ob.read(key, function(res) {
+                        resData = res;
+                        remove();
+                        fn.call(this, res)
+                    })
+                })
+            };
+
+            //数据监听
+            multipleOb.prototype.watch = function(watchKey, watchFn) {
+                var objs = observerProxyStroage[this.sourceId];
+                objs.ob.forEach(function(ob) {
+                    ob.watch(watchKey, watchFn);
+                });
+            };
+
+            //数据监听并读取
+            multipleOb.prototype.readWatch = function(watchKey, watchFn) {
+                var isRead,
+                    watchQueue = [],
+                    objs = observerProxyStroage[this.sourceId];
+
+                function remove(index) {
+                    var ob;
+
+                    //移除监听队列
+                    while (watchQueue.length > index) {
+                        ob = watchQueue[index];
+                        //移除队列
+                        watchQueue.pop();
+                        ob.unRead(watchKey);
+                        ob.unWatch(watchKey);
+                    }
+                }
+
+                objs.ob.forEach(function(ob, index) {
+                    if (isRead) return;
+
+                    watchQueue.push(ob);
+                    //监听数据
+                    ob.readWatch(watchKey, function(resData) {
+                        watchFn.call(this, resData);
+                        if (isRead) return;
+                        remove(index);
+                        isRead = true;
+                    });
+                });
+
+            };
+
+            //移除监听
+            multipleOb.prototype.unWatch = function(watchKey, watchFn) {
+                var objs = observerProxyStroage[this.sourceId];
+                objs.ob.forEach(function(ob) {
+                    ob.unWatch(watchKey, watchFn);
+                });
+            };
+
+            //获取对应的数据
+            multipleOb.prototype.get = function(key) {
+                var i = ~0,
+                    resData,
+                    objs = observerProxyStroage[this.sourceId],
+                    l = objs.ob.length;
+
+                while (++i < l) {
+                    if (resData = objs.ob[i].get(key)) {
+                        return resData;
+                    }
+                }
+            };
+
+            //销毁数据监听
+            multipleOb.prototype.destroy = function() {
+                var $this = this,
+                    objs = observerProxyStroage[this.sourceId];
+                objs.ob.forEach(function(ob) {
+                    ob.destroy();
+                });
+
+                //删除当前对象所有属性
+                Object.keys(this).forEach(function(key) {
+                    delete $this[key];
+                })
+
+                delete observerProxyStroage[this.sourceId];
+            };
+
+            return function(obj, multiple) {
+                if (multiple === true && obj instanceof Array) {
+                    return new multipleOb(obj);
+                } else {
+                    return new observer(obj);
+                }
             };
         }(), this);
     }, {}],

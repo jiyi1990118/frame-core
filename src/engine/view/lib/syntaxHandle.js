@@ -129,16 +129,27 @@ function operation(symbol, val1, val2, val3) {
  * @param scope
  * @param filter
  */
-function analysis(struct, scope, filter) {
+function analysis(struct, scope, filter,multiple) {
     var $this = this;
 
     this.reads = [];
     this.watchs = [];
     this.scope = scope;
     this.filter = filter;
+    this.observers=[];
+    this.multiple=multiple;
 
     this.lex(struct, function (resData) {
         $this.resData = resData.value;
+
+        //获取监听key
+        delete $this.watchInfo;
+        if(resData.keys instanceof Array){
+            $this.watchInfo={
+                observer:resData.observer,
+                key:resData.keys.join('.')
+            };
+        };
 
         //触发观察
         $this.watchs.forEach(function (fn) {
@@ -285,9 +296,14 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
 
             ob.receive(function (data) {
                 var objData = operation('Object', data);
+                obData = observer($this.scope,$this.multiple);
+
+                //收集监听对象
+                $this.observers.push(obData);
+
                 callback({
                     value: objData,
-                    observer: observer(objData),
+                    observer: obData,
                     keys: [],
                     type: 'Object'
                 });
@@ -389,7 +405,9 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
                             });
                             break;
                         default:
-                            obData = observer(this.scope);
+                            obData = observer(this.scope,this.multiple);
+                            //收集监听对象
+                            $this.observers.push(obData);
                             //数据读取并监听
                             obData.readWatch(nowStruct.value, function (newData) {
                                 callback({
@@ -405,23 +423,34 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
     }
 }
 
+analysis.prototype.destroy=function () {
+    var $this=this;
+
+    //销毁监听对象
+    this.observers.forEach(function (obs) {
+        obs.destroy();
+    });
+
+    Object.keys(this).forEach(function (key) {
+        delete $this[key];
+    });
+}
+
 /**
  * 语法结构处理类
  * @param syntaxStruct
  * @param scope
  * @param filter
  */
-function structHandle(syntaxStruct, scope, filter) {
-
-    //语法结构
-    this.structRes = new analysis(syntaxStruct, scope, filter);
-
+function structHandle(syntaxStruct, scope, filter,multiple) {
+var $this=this;
     //语法过滤器
     this.filter = filter;
 
     //语法作用域
-    this.scope = scope;
-
+    this.scope = scope||{};
+    //语法结构
+    this.structRes = new analysis(syntaxStruct, this.scope, filter,multiple);
 }
 
 //数据分配
@@ -434,6 +463,11 @@ structHandle.prototype.watch = function (fn) {
     this.structRes.watch(fn)
 }
 
+//获取值的监听key
+structHandle.prototype.getWatchInfo=function () {
+    return this.structRes.watchInfo;
+};
+
 //表达式数据读取
 structHandle.prototype.read = function (fn) {
     return this.structRes.read(fn)
@@ -444,6 +478,18 @@ structHandle.prototype.readWatch = function (fn) {
     return this.structRes.readWatch(fn)
 }
 
-module.exports = function syntaxStructHandle(syntaxStruct, scope, filter) {
-    return new structHandle(syntaxStruct, scope, filter);
+structHandle.prototype.destroy=function () {
+    var $this=this;
+    this.structRes.destroy();
+    Object.keys(this.scope).forEach(function (key) {
+        delete $this.scope[key]
+    })
+
+    Object.keys(this).forEach(function (key) {
+        delete $this[key];
+    })
+}
+
+module.exports = function syntaxStructHandle(syntaxStruct, scope, filter,multiple) {
+    return new structHandle(syntaxStruct, scope, filter,multiple);
 }

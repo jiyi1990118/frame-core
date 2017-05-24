@@ -48,7 +48,7 @@
     function recursionKey(key, callback) {
         var nowKey;
         //提取key字符中对象所属的第一个属性
-        key = (key || '').replace(/^\[([^.\]]+)\]|^\.?([^.\[\]]+)/, function (str, arrKey, objKey) {
+        key = (String(key) || '').replace(/^\[([^.\]]+)\]|^\.?([^.\[\]]+)/, function (str, arrKey, objKey) {
             //匹配提取[key]或.key 这两种形式的key 并去除key外部的单引号或双引号
             nowKey = (arrKey || objKey).match(/^(['"]?)([\s\S]+)\1$/).pop();
             return '';
@@ -317,6 +317,16 @@
         }
     };
 
+    //删除read监听
+    listenStruct.prototype.removeRead = function (fn) {
+        if (typeof fn === "function") {
+            var index = this.listensRead.indexOf(fn);
+            return index === -1 ? false : this.listensRead.splice(this.listens.indexOf(fn), 1)[0];
+        } else {
+            this.listensRead = [];
+        }
+    };
+
     //添加子节点
     listenStruct.prototype.addChild = function (key, listenStruct) {
         return this.child[key] = listenStruct;
@@ -351,7 +361,7 @@
         this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set') && this.berforDefineProperty.get(this);
 
         //销毁子节点
-        Object.keys(this.child).forEach(function (key) {
+        this.child && Object.keys(this.child).forEach(function (key) {
             $this.child[key].destroy();
         });
 
@@ -493,7 +503,22 @@
             return nextKey;
         })
     };
+    
+    //删除数据读取监听
+    observerProxy.prototype.removeRead=function (key, fn) {
+        var parentListen = this.listen;
+        recursionKey(key, function (nowKey, nextKey) {
+            if (nowKey) {
+                parentListen = parentListen.getChild(nowKey)
+            }
+            if (!(nowKey && nextKey)) {
+                parentListen && parentListen.removeRead(fn);
+            }
+            return nextKey;
+        })
+    }
 
+    //监听销毁
     observerProxy.prototype.destroy = function () {
         this.listen.destroy();
         Object.keys(this).forEach(function (key) {
@@ -558,6 +583,15 @@
     };
 
     /**
+     * 移除数据读取监听
+     * @param key
+     * @param fn
+     */
+    observer.prototype.unRead=function (key,fn) {
+        observerProxyStroage[this.sourceId].removeRead(key,fn);
+    }
+
+    /**
      * 获取对应的数据
      * @param key
      */
@@ -589,7 +623,128 @@
         enumerable: false
     });
 
-    return function (obj) {
-        return new observer(obj);
+
+    //多数据监听
+    function multipleOb(objs) {
+        //检查是否监听对象
+        if (objs instanceof multipleOb || objs instanceof observer )return objs;
+        objs=objs.reverse();
+
+        //存放资源数据
+        observerProxyStroage[this.sourceId = uid()] ={
+            resource:objs,
+            ob:objs.reduce(function (arr,val) {
+                arr.push(new observer(val));
+                return arr;
+            },[])
+        };
+    }
+
+    //数据读取
+    multipleOb.prototype.read=function (key, fn) {
+        var resData,
+            objs=observerProxyStroage[this.sourceId];
+
+        function remove() {
+            objs.ob.forEach(function (ob) {
+                ob.unRead(key)
+            })
+        }
+
+        objs.ob.forEach(function (ob) {
+            ob.read(key, function (res) {
+                resData=res;
+                remove();
+                fn.call(this,res)
+            })
+        })
+    };
+
+    //数据监听
+    multipleOb.prototype.watch=function (watchKey, watchFn) {
+        var objs=observerProxyStroage[this.sourceId];
+        objs.ob.forEach(function (ob) {
+            ob.watch(watchKey, watchFn);
+        });
+    };
+
+    //数据监听并读取
+    multipleOb.prototype.readWatch=function (watchKey, watchFn) {
+        var isRead,
+            watchQueue=[],
+            objs=observerProxyStroage[this.sourceId];
+
+        function remove(index) {
+            var ob;
+
+            //移除监听队列
+            while (watchQueue.length > index){
+                ob=watchQueue[index];
+                //移除队列
+                watchQueue.pop();
+                ob.unRead(watchKey);
+                ob.unWatch(watchKey);
+            }
+        }
+
+        objs.ob.forEach(function (ob,index) {
+            if(isRead)return;
+
+            watchQueue.push(ob);
+            //监听数据
+            ob.readWatch(watchKey, function (resData) {
+                watchFn.call(this,resData);
+                if(isRead)return;
+                remove(index);
+                isRead=true;
+            });
+        });
+
+    };
+
+    //移除监听
+    multipleOb.prototype.unWatch=function (watchKey, watchFn) {
+        var objs=observerProxyStroage[this.sourceId];
+        objs.ob.forEach(function (ob) {
+            ob.unWatch(watchKey, watchFn);
+        });
+    };
+
+    //获取对应的数据
+    multipleOb.prototype.get=function (key) {
+        var i=~0,
+            resData,
+            objs=observerProxyStroage[this.sourceId],
+            l=objs.ob.length;
+
+        while (++i< l){
+            if(resData=objs.ob[i].get(key)){
+               return resData;
+            }
+        }
+    };
+
+    //销毁数据监听
+    multipleOb.prototype.destroy=function () {
+        var $this=this,
+            objs=observerProxyStroage[this.sourceId];
+        objs.ob.forEach(function (ob) {
+            ob.destroy();
+        });
+
+        //删除当前对象所有属性
+        Object.keys(this).forEach(function (key) {
+            delete $this[key];
+        })
+
+        delete observerProxyStroage[this.sourceId];
+    };
+
+    return function (obj,multiple) {
+        if(multiple === true && obj instanceof Array){
+            return new multipleOb(obj);
+        }else{
+            return new observer(obj);
+        }
     };
 }(), this);
