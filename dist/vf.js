@@ -444,7 +444,6 @@
             //作用域处理合并
             Object.keys(extraParameters.scope = extraParameters.scope || {}).forEach(function(sKey) {
                 $api.scope[sKey] = extraParameters.scope[sKey];
-
             })
 
             //作用域处理合并
@@ -523,8 +522,6 @@
                     console.warn('指令配置中props只能为function')
                 }
             }
-
-
         }
 
         directiveClass.prototype.render = function() {
@@ -534,7 +531,6 @@
             //检查是否有渲染的方法
             if (conf.render instanceof Function) {
                 vnode.innerVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
-                console.log(vnode, ':::::::::::')
             }
 
             //标识当前节点是否替换
@@ -1021,12 +1017,17 @@
 
             this.watchCount++;
             return function(data) {
+                //记录值
                 stroage[type] = data;
+
+                //计数器
                 if (++$this.count === $this.watchCount) {
-                    $this.count--;
-                    $this.receiveStroage.forEach(function(fn) {
-                        fn(stroage)
-                    })
+                    if ($this.receiveStroage.length) {
+                        $this.count--;
+                        $this.receiveStroage.forEach(function(fn) {
+                            fn(stroage)
+                        })
+                    }
                 }
             }
         }
@@ -1034,7 +1035,10 @@
         $ob.prototype.receive = function(fn) {
             var stroage = this.stroage;
             this.receiveStroage.push(fn);
-            if (!this.watchCount) {
+
+            //检查是否加载完毕
+            if (this.watchCount === this.count) {
+                this.count--;
                 this.receiveStroage.forEach(function(fn) {
                     fn(stroage)
                 })
@@ -1062,7 +1066,7 @@
                     return +val1.value;
                     //二元运算
                 case '+':
-                    return val1.value + val2.value;
+                    return (val1.value === undefined ? '' : val1.value) + (val2.value === undefined ? '' : val2.value);
                 case '-':
                     return val1.value - val2.value;
                 case '*':
@@ -1170,6 +1174,15 @@
             this.watchs.push(fn);
         }
 
+        //移除语法观察
+        analysis.prototype.unWatch = function(fn) {
+            if (fn && this.watchs.indexOf(fn) !== -1) {
+                this.watchs.splice(this.watchs.indexOf(fn), 1)
+            } else {
+                this.watchs = [];
+            }
+        }
+
         //语法结果读取
         analysis.prototype.read = function(fn) {
             //检查返回的数据
@@ -1186,9 +1199,8 @@
             //检查返回的数据
             if (this.hasOwnProperty('resData')) {
                 fn(this.resData);
-            } else {
-                this.watchs.push(fn);
             }
+            this.watchs.push(fn);
             return this.resData;
         }
 
@@ -1242,7 +1254,6 @@
                     this.lex(nowStruct.property, ob.watch('property'), nowStruct.computed || 'noComputed');
 
                     ob.receive(function(data) {
-
                         //检查是否对象表达式
                         if (data.object.type === 'Object' && data.object.value[data.property.value].observer) {
                             callback({
@@ -1399,6 +1410,7 @@
                                     callback({
                                         value: this.filter[nowStruct.value]
                                     });
+                                    break;
                                 case 'noComputed':
                                     callback({
                                         value: nowStruct.value
@@ -1461,6 +1473,11 @@
         //表达式数据观察
         structHandle.prototype.watch = function(fn) {
             this.structRes.watch(fn)
+        }
+
+        //移除表达式数据观察
+        structHandle.prototype.unWatch = function(fn) {
+            this.structRes.unWatch(fn)
         }
 
         //获取值的监听key
@@ -3010,6 +3027,9 @@
             })
             conf.$scope = scope;
 
+            //继承中间作用域
+            conf.middleScope = this.middleScope.concat();
+
             if (this.children) {
                 this.children.forEach(function(ch) {
                     children.push(ch.clone())
@@ -3017,6 +3037,8 @@
             }
 
             conf.children = children;
+            conf.isClone = true;
+
             return new $vnode(conf);
         }
 
@@ -3057,6 +3079,16 @@
                             delete $this.data.exps[key];
                         })
                 }
+
+                //销毁文本表达式
+                ;
+                (this.data.exps || []).forEach(function(exp, index) {
+                    if (exp.structRes) {
+                        exp.destroy();
+                    }
+                    delete $this.data.exps[index];
+                });
+
             }
 
             if (this.elm) {
@@ -3109,6 +3141,7 @@
                 sel: sel,
                 data: data || {},
                 $scope: {},
+                middleScope: [],
                 rootScope: {},
                 children: children,
                 text: text,
@@ -3241,7 +3274,7 @@
             }
 
             //根据虚拟节点创建真实dom节点
-            function createElm(vnode, insertedVnodeQueue, callback, extraParameters, parentScope) {
+            function createElm(vnode, insertedVnodeQueue, callback, extraParameters, parentNode) {
                 var i,
                     isRearrange,
                     oldVnode,
@@ -3260,10 +3293,9 @@
                 }
 
                 //由父节点传递作用域给子级
-                if (parentScope instanceof Object) {
-                    Object.keys(parentScope).forEach(function(key) {
-                        vnode.$scope[key] = parentScope[key];
-                    })
+                if (parentNode instanceof Object) {
+                    vnode.middleScope.concat(parentNode.middleScope);
+                    Object.keys(parentNode.$scope || {}).length && vnode.middleScope.push(parentNode.$scope)
                 }
 
                 if (isDef(sel)) {
@@ -3308,7 +3340,7 @@
 
                                 //检查节点是否被渲染，此处需要做元素对比
                                 if (vnode.elm && vnode.elm.length) {
-                                    patch(oldVnode, vnode, vnode.rootScope);
+                                    patch(oldVnode, vnode, vnode.rootScope, extraParameters.filter, parentNode);
                                     //销毁对象但不销毁元素
                                     oldVnode.destroy('elm');
                                     oldVnode = vnode.clone();
@@ -3333,9 +3365,7 @@
                                                 vnode.elm = vnode.elm.concat(ch.elm)
                                             }
                                         }, extraParameters)
-
                                     })
-
                                 }
                         }
 
@@ -3374,7 +3404,7 @@
                                                 api.appendChild(elm, ch.elm);
                                             }
                                             oldVnode = ch.clone();
-                                        }, extraParameters, vnode.$scope);
+                                        }, extraParameters, vnode);
                                     } else {
                                         api.appendChild(elm, api.createTextNode(ch));
                                     }
@@ -3383,31 +3413,51 @@
                                 api.appendChild(elm, api.createTextNode(vnode.text));
                             }
                         } else {
-                            //文本节点
-                            vnode.elm = api.createTextNode(vnode.text);
-
-                            var scope = {};
-                            Object.keys(vnode.rootScope).forEach(function(key) {
-                                scope[key] = vnode.rootScope[key];
-                            });
-                            Object.keys(vnode.$scope).forEach(function(key) {
-                                scope[key] = vnode.$scope[key];
-                            });
-
-
                             //字符串内容表达式检查
                             if (vnode.data && vnode.data.exps) {
-                                var exps = vnode.data.exps;
-                                exps.forEach(function(exp, index) {
-                                    if (exp instanceof Object) {;
-                                        (exps[index] = syntaxHandle(exp, [vnode.rootScope, vnode.$scope], {}, true)).readWatch(function(data) {
-                                            console.log('this is text ', data, vnode.$scope)
-                                        })
-                                    }
-                                })
+                                var text,
+                                    exps = vnode.data.exps;
 
-                                // console.log(vnode,parentScope,'>>>>>>>>>>',scope)
+                                function concatTextExp(exps) {
+                                    var texts = [];
+                                    exps.forEach(function(exp, index) {
+                                        if (exp instanceof Object) {
+                                            if (exp.structRes.resData !== undefined) texts.push(exp.structRes.resData);
+                                        } else {
+                                            texts.push(exp);
+                                        }
+                                    })
+                                    return texts.join('');
+                                }
+
+                                exps.forEach(function(exp, index) {
+                                    if (exp instanceof Object) {
+                                        //收集作用域
+                                        var scopes = [vnode.rootScope].concat(vnode.middleScope);
+                                        scopes.push(vnode.$scope);
+
+                                        //表达式监听
+                                        (exps[index] = syntaxHandle(exp, scopes, {}, true)).readWatch(function(data) {
+                                            // console.log('this is text ', data, vnode.$scope);
+                                            //检查文本是否以存在 则重新合并文本内容
+                                            if (text) {
+                                                text = concatTextExp(exps);
+                                                if (vnode.text !== text) {
+                                                    api.setTextContent(vnode.elm, vnode.text = text);
+                                                }
+                                            }
+                                        });
+
+                                    } else {
+
+                                    }
+                                });
+
+                                text = vnode.text = concatTextExp(exps);
                             }
+
+                            //文本节点
+                            vnode.elm = api.createTextNode(vnode.text);
                         }
                     }
 
@@ -3462,7 +3512,7 @@
                                 api.appendChild(parentElm, ch.elm, before);
                             }
                             oldVnode = ch.clone();
-                        }, extraParameters, parentVnode.$scope);
+                        }, extraParameters, parentVnode);
                     } else {
                         api.appendChild(parentElm, api.createTextNode(vnode.text), before);
                     }
@@ -3561,20 +3611,20 @@
                     } else if (!newEndVnode) {
                         newEndVnode = newCh[--newEndIdx];
                     } else if (sameVnode(oldStartVnode, newStartVnode)) {
-                        patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue, extraParameters);
+                        patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue, extraParameters, parentVnode);
                         oldStartVnode = oldCh[++oldStartIdx];
                         newStartVnode = newCh[++newStartIdx];
                     } else if (sameVnode(oldEndVnode, newEndVnode)) {
-                        patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue, extraParameters);
+                        patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue, extraParameters, parentVnode);
                         oldEndVnode = oldCh[--oldEndIdx];
                         newEndVnode = newCh[--newEndIdx];
                     } else if (sameVnode(oldStartVnode, newEndVnode)) {
-                        patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue, extraParameters);
+                        patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue, extraParameters, parentVnode);
                         api.insertBefore(parentElm, oldStartVnode.elm, api.nextSibling(oldEndVnode.elm));
                         oldStartVnode = oldCh[++oldStartIdx];
                         newEndVnode = newCh[--newEndIdx];
                     } else if (sameVnode(oldEndVnode, newStartVnode)) {
-                        patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue, extraParameters);
+                        patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue, extraParameters, parentVnode);
                         api.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm);
                         oldEndVnode = oldCh[--oldEndIdx];
                         newStartVnode = newCh[++newStartIdx];
@@ -3593,7 +3643,7 @@
                                         api.insertBefore(parentElm, ch.elm, oldStartVnode.elm);
                                     }
                                     oldVnode = ch.clone();
-                                }, extraParameters, parentVnode.$scope);
+                                }, extraParameters, parentVnode);
                             })(newStartVnode);
 
                             newStartVnode = newCh[++newStartIdx];
@@ -3609,11 +3659,11 @@
                                             api.insertBefore(parentElm, ch.elm, oldStartVnode.elm);
                                         }
                                         oldVnode = ch.clone();
-                                    }, extraParameters, parentVnode.$scope)
+                                    }, extraParameters, parentVnode)
                                 })(newStartVnode);
 
                             } else {
-                                patchVnode(elmToMove, newStartVnode, insertedVnodeQueue, extraParameters);
+                                patchVnode(elmToMove, newStartVnode, insertedVnodeQueue, extraParameters, parentVnode);
                                 oldCh[idxInOld] = undefined;
                                 api.insertBefore(parentElm, elmToMove.elm, oldStartVnode.elm);
                             }
@@ -3635,8 +3685,10 @@
             }
 
             //虚拟节点补丁
-            function patchVnode(oldVnode, vnode, insertedVnodeQueue, extraParameters) {
+            function patchVnode(oldVnode, vnode, insertedVnodeQueue, extraParameters, parentVnode) {
                 var i, hook;
+
+                console.log(oldVnode, '>>>>>>>>>>>>>>>>>', vnode)
 
                 //修补前 触发节点中的prepatch 钩子
                 if (isDef(i = vnode.data) && isDef(hook = i.hook) && isDef(i = hook.prepatch)) {
@@ -3673,8 +3725,62 @@
                     } else if (isDef(oldVnode.text)) {
                         api.setTextContent(elm, '');
                     }
-                } else if (oldVnode.text !== vnode.text) {
-                    api.setTextContent(elm, vnode.text);
+
+                } else {
+
+                    //字符串内容表达式检查
+                    if (vnode.data && vnode.data.exps) {
+
+                        var text,
+                            exps = vnode.data.exps;
+
+                        function concatTextExp(exps) {
+                            var texts = [];
+                            exps.forEach(function(exp, index) {
+                                if (exp instanceof Object) {
+                                    if (exp.structRes.resData !== undefined) texts.push(exp.structRes.resData);
+                                } else {
+                                    texts.push(exp);
+                                }
+                            })
+                            return texts.join('');
+                        }
+
+                        vnode.rootScope = extraParameters.scope;
+
+                        //继承作用域
+                        if (parentVnode) {
+                            Object.keys(parentVnode.$scope || {}).length && vnode.middleScope.push(parentVnode.$scope)
+                        }
+
+                        //语法解析监听
+                        exps.forEach(function(exp, index) {
+                            if (exp instanceof Object) {
+                                //收集作用域
+                                var scopes = [vnode.rootScope].concat(vnode.middleScope);
+                                scopes.push(vnode.$scope);
+                                //表达式监听
+                                (exps[index] = syntaxHandle(exp, scopes, {}, true)).readWatch(function(data) {
+                                    // console.log('this is text ', data, vnode.$scope);
+                                    //检查文本是否以存在 则重新合并文本内容
+                                    if (text) {
+                                        text = concatTextExp(exps);
+                                        if (vnode.text !== text) {
+                                            api.setTextContent(vnode.elm, vnode.text = text);
+                                        }
+                                    }
+                                });
+                            }
+                        });
+
+                        text = vnode.text = concatTextExp(exps);
+                        api.setTextContent(elm, vnode.text)
+
+                    } else if (oldVnode.text !== vnode.text) {
+                        api.setTextContent(elm, vnode.text)
+                    }
+                    //销毁旧虚拟节点
+                    oldVnode.destroy('elm');
                 }
 
                 //修补后 的钩子  触发节点中的 postpatch 钩子
@@ -3684,7 +3790,7 @@
             }
 
             //对比节点并修补
-            return function patch(oldVnode, Vnode, scope, filter) {
+            return function patch(oldVnode, Vnode, scope, filter, parentVnode) {
                 scope = scope || {};
 
                 var i, elm, parent;
@@ -3714,16 +3820,24 @@
                     if (elm) {
                         if (elm instanceof Array) {
                             parent = api.parentNode(elm[0])
+
+
+                            console.log(oldVnode, Vnode, '????-----', parentVnode)
                         } else {
                             parent = api.parentNode(elm)
                         }
                     }
 
                     //检查是否有父节点
-                    if (parent) {
-                        updateChildren({
+                    if (parentVnode || parent) {
+                        if (parentVnode) {
+                            if (!parentVnode.elm) parentVnode.elm = parent;
+                        }
+                        parentVnode = parentVnode || {
                             elm: parent
-                        }, oldVnode.innerVnode, Vnode.innerVnode, insertedVnodeQueue, extraParameters);
+                        };
+                        //更新子节点
+                        updateChildren(parentVnode, oldVnode.innerVnode, Vnode.innerVnode, insertedVnodeQueue, extraParameters);
                         //移除旧元素
                         // removeVnodes(parent, [oldVnode], 0, 0);
                     } else {
@@ -3731,7 +3845,7 @@
                         Vnode.innerVnode.forEach(function(ch) {
                             createElm(ch, insertedVnodeQueue, function(ch, isRearrange) {
                                 Vnode.elm = Vnode.elm.concat(ch.elm)
-                            }, extraParameters, Vnode.$scope)
+                            }, extraParameters, Vnode)
 
                         })
                     }
@@ -4235,7 +4349,6 @@
                         handleExampleQueue.push(directorieExample);
                         //观察指令渲染
                         directorieExample.watchRender(function() {
-                            console.log('this is', vnode)
                             if (isInitCall) initCall();
                         })
                     } else {
@@ -4243,7 +4356,6 @@
                         attrs[attrName] = attrsMap[attrName].value;
                     }
                 })
-
 
                 if (handleExampleQueue.length) {
                     //根据优先级摆放处理队列
@@ -4256,34 +4368,10 @@
                 } else {
                     initCall();
                 }
-
-            }
-
-            //主要用于检查更新时候文本节点
-            function inspectUpdate(oldVnode, vnode) {
-                //检查两个节点是否都是文本节点
-                if (isUndef(oldVnode.sel) && isUndef(vnode.sel)) {
-
-                    //继承作用域
-                    Object.keys(oldVnode.$scope || {}).forEach(function(key) {
-                        vnode.$scope[key] = oldVnode.$scope[key];
-                    });
-
-                    if (oldVnode.data && vnode.data) {
-                        //检查是否存在文本表达式字符 并且相等
-                        if (oldVnode.data.textExpString && oldVnode.data.textExpString === vnode.data.textExpString) {
-                            //数据转移
-                            Object.keys(oldVnode.data).forEach(function(key) {
-                                vnode.data[key] = oldVnode.data[key];
-                            })
-                        }
-                    }
-                }
             }
 
             return {
-                init: inspectInit,
-                update: inspectUpdate
+                init: inspectInit
             }
         }
 
@@ -4471,9 +4559,8 @@
                         this.parentData = parentListen.targetData;
                         //当前节点目标数据
                         this.targetData = (this.parentData || {})[nowKey];
-
                         //标识有数据
-                        this.isData = this.parentData !== undefined;
+                        this.isData = this.targetData !== undefined;
                     }
                 } else {
                     this.targetData = parentListen;
@@ -4663,6 +4750,11 @@
                 this.topListen && (this.topListen.berforDefineProperty = this.berforDefineProperty);
                 //数据传递给前一个listen
                 this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set') && this.berforDefineProperty.get(this);
+
+                //检查数据 是否需要归原
+                if (!this.isData) {
+                    delete this.parentData[this.nowKey];
+                }
 
                 //销毁子节点
                 this.child && Object.keys(this.child).forEach(function(key) {
@@ -4980,7 +5072,6 @@
 
                 function remove(index) {
                     var ob;
-
                     //移除监听队列
                     while (watchQueue.length > index) {
                         ob = watchQueue[index];
@@ -4999,7 +5090,7 @@
                     ob.readWatch(watchKey, function(resData) {
                         watchFn.call(this, resData);
                         if (isRead) return;
-                        remove(index);
+                        remove(index + 1);
                         isRead = true;
                     });
                 });

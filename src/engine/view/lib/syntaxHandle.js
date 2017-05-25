@@ -21,12 +21,17 @@ $ob.prototype.watch = function (type) {
 
     this.watchCount++;
     return function (data) {
+        //记录值
         stroage[type] = data;
+
+        //计数器
         if (++$this.count === $this.watchCount) {
-            $this.count--;
-            $this.receiveStroage.forEach(function (fn) {
-                fn(stroage)
-            })
+            if($this.receiveStroage.length){
+                $this.count--;
+                $this.receiveStroage.forEach(function (fn) {
+                    fn(stroage)
+                })
+            }
         }
     }
 }
@@ -34,7 +39,10 @@ $ob.prototype.watch = function (type) {
 $ob.prototype.receive = function (fn) {
     var stroage = this.stroage;
     this.receiveStroage.push(fn);
-    if (!this.watchCount) {
+
+    //检查是否加载完毕
+    if (this.watchCount === this.count) {
+        this.count--;
         this.receiveStroage.forEach(function (fn) {
             fn(stroage)
         })
@@ -62,7 +70,7 @@ function operation(symbol, val1, val2, val3) {
             return +val1.value;
         //二元运算
         case '+':
-            return val1.value + val2.value;
+            return (val1.value === undefined ? '':val1.value) + (val2.value === undefined ? '':val2.value);
         case '-':
             return val1.value - val2.value;
         case '*':
@@ -170,6 +178,15 @@ analysis.prototype.watch = function (fn) {
     this.watchs.push(fn);
 }
 
+//移除语法观察
+analysis.prototype.unWatch = function (fn) {
+    if(fn && this.watchs.indexOf(fn) !== -1){
+        this.watchs.splice(this.watchs.indexOf(fn),1)
+    }else{
+        this.watchs=[];
+    }
+}
+
 //语法结果读取
 analysis.prototype.read = function (fn) {
     //检查返回的数据
@@ -186,9 +203,8 @@ analysis.prototype.readWatch = function (fn) {
     //检查返回的数据
     if (this.hasOwnProperty('resData')) {
         fn(this.resData);
-    } else {
-        this.watchs.push(fn);
     }
+    this.watchs.push(fn);
     return this.resData;
 }
 
@@ -242,7 +258,6 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
             this.lex(nowStruct.property, ob.watch('property'), nowStruct.computed || 'noComputed');
 
             ob.receive(function (data) {
-
                 //检查是否对象表达式
                 if (data.object.type === 'Object' && data.object.value[data.property.value].observer) {
                     callback({
@@ -399,6 +414,7 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
                             callback({
                                 value: this.filter[nowStruct.value]
                             });
+                            break;
                         case 'noComputed':
                             callback({
                                 value: nowStruct.value
@@ -461,6 +477,11 @@ structHandle.prototype.assign = function (key, data) {
 //表达式数据观察
 structHandle.prototype.watch = function (fn) {
     this.structRes.watch(fn)
+}
+
+//移除表达式数据观察
+structHandle.prototype.unWatch = function (fn) {
+    this.structRes.unWatch(fn)
 }
 
 //获取值的监听key

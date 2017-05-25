@@ -97,7 +97,6 @@ directiveClass.prototype.init = function () {
     //作用域处理合并
     Object.keys(extraParameters.scope = extraParameters.scope || {}).forEach(function (sKey) {
         $api.scope[sKey] = extraParameters.scope[sKey];
-
     })
 
     //作用域处理合并
@@ -130,7 +129,7 @@ directiveClass.prototype.init = function () {
                                 propConf.getWatchInfo(syntaxExample.getWatchInfo());
                             }
 
-                                //检查是否自动渲染
+                            //检查是否自动渲染
                             if (propConf.autoRender) {
                                 //监听表达式返回的值
                                 syntaxExample.watch(function (newData) {
@@ -176,8 +175,6 @@ directiveClass.prototype.init = function () {
             console.warn('指令配置中props只能为function')
         }
     }
-
-
 }
 
 directiveClass.prototype.render = function () {
@@ -187,7 +184,6 @@ directiveClass.prototype.render = function () {
     //检查是否有渲染的方法
     if (conf.render instanceof Function) {
         vnode.innerVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
-    console.log(vnode,':::::::::::')
     }
 
     //标识当前节点是否替换

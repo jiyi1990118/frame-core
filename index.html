@@ -8,9 +8,9 @@
 
 <div class="template">
     <h1>这是标题：{{pageDate.title+'---'}}sdfsd{{s}}</h1>
-    <!--<list-gird conf="gridConfs" for="gridConf in {listData:listData}.listData.data"></list-gird>-->
-    <div conf="gridConfs" for="gridConf in {listData:listData}.listData.data">---{{gridConf}}---</div>
-    <strong>内容</strong>
+    <list-gird conf="gridConfs" for="gridConf in {listData:listData}.listData.data"></list-gird>
+    <!--<div conf="gridConfs" for="gridConf in {listData:listData}.listData.data">-&#45;&#45;{{gridConf}}-&#45;&#45;</div>-->
+    <!--<strong>内容</strong>-->
 </div>
 
 <script type="text/javascript" src="dist/vf.js"></script>
@@ -208,16 +208,17 @@
                     //传递作用域
                     _vnode.scope(scope);
 
-//                    console.log(_vnode);
-
                     //观察值的变化
                     if($this.stroage.watchInfo){
+
+                        //listData子元素key
                         watchKey=$this.stroage.watchInfo.key+'['+key+']';
 
                         function watchFn(data) {
                             _vnode.$scope[$this.stroage.scopeVal]=data;
-                            console.log('!!!!!!!',data)
                         }
+
+                        //观察listData中子元素
                         $this.stroage.watchInfo.observer.watch(watchKey,watchFn);
 
                         watchRenders.push({
@@ -231,6 +232,7 @@
                 });
 
                 this.stroage.watchRenders=watchRenders;
+
                 //改变当前节点
                 return innerVnodes;
             }

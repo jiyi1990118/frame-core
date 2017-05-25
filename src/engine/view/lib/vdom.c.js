@@ -207,15 +207,6 @@ $vnode.prototype.destroy = function (type) {
                     delete $this.data.exps[key];
                 })
         }
-
-        //销毁文本表达式
-        ;(this.data.exps||[]).forEach(function (exp,index) {
-            if(exp.structRes){
-                exp.destroy();
-            }
-            delete $this.data.exps[index];
-        });
-
     }
 
     if (this.elm) {
@@ -465,7 +456,7 @@ function init(modules) {
 
                         //检查节点是否被渲染，此处需要做元素对比
                         if (vnode.elm && vnode.elm.length) {
-                            patch(oldVnode, vnode, vnode.rootScope,extraParameters.filter,parentNode);
+                            patch(oldVnode, vnode, vnode.rootScope);
                             //销毁对象但不销毁元素
                             oldVnode.destroy('elm');
                             oldVnode = vnode.clone();
@@ -552,6 +543,7 @@ function init(modules) {
                                     texts.push(exp);
                                 }
                             })
+                            console.log(exps)
                             return texts.join('');
                         }
 
@@ -563,7 +555,7 @@ function init(modules) {
 
                                 //表达式监听
                                 (exps[index] = syntaxHandle(exp, scopes, {}, true)).readWatch(function (data) {
-                                    // console.log('this is text ', data, vnode.$scope);
+                                    console.log('this is text ', data, vnode.$scope);
                                     //检查文本是否以存在 则重新合并文本内容
                                     if (text) {
                                         text = concatTextExp(exps);
@@ -733,20 +725,20 @@ function init(modules) {
             } else if (!newEndVnode) {
                 newEndVnode = newCh[--newEndIdx];
             } else if (sameVnode(oldStartVnode, newStartVnode)) {
-                patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue, extraParameters,parentVnode);
+                patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue, extraParameters);
                 oldStartVnode = oldCh[++oldStartIdx];
                 newStartVnode = newCh[++newStartIdx];
             } else if (sameVnode(oldEndVnode, newEndVnode)) {
-                patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue, extraParameters,parentVnode);
+                patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue, extraParameters);
                 oldEndVnode = oldCh[--oldEndIdx];
                 newEndVnode = newCh[--newEndIdx];
             } else if (sameVnode(oldStartVnode, newEndVnode)) {
-                patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue, extraParameters,parentVnode);
+                patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue, extraParameters);
                 api.insertBefore(parentElm, oldStartVnode.elm, api.nextSibling(oldEndVnode.elm));
                 oldStartVnode = oldCh[++oldStartIdx];
                 newEndVnode = newCh[--newEndIdx];
             } else if (sameVnode(oldEndVnode, newStartVnode)) {
-                patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue, extraParameters,parentVnode);
+                patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue, extraParameters);
                 api.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm);
                 oldEndVnode = oldCh[--oldEndIdx];
                 newStartVnode = newCh[++newStartIdx];
@@ -785,7 +777,7 @@ function init(modules) {
                         })(newStartVnode);
 
                     } else {
-                        patchVnode(elmToMove, newStartVnode, insertedVnodeQueue, extraParameters,parentVnode);
+                        patchVnode(elmToMove, newStartVnode, insertedVnodeQueue, extraParameters);
                         oldCh[idxInOld] = undefined;
                         api.insertBefore(parentElm, elmToMove.elm, oldStartVnode.elm);
                     }
@@ -807,10 +799,8 @@ function init(modules) {
     }
 
     //虚拟节点补丁
-    function patchVnode(oldVnode, vnode, insertedVnodeQueue, extraParameters,parentVnode) {
+    function patchVnode(oldVnode, vnode, insertedVnodeQueue, extraParameters) {
         var i, hook;
-
-        console.log(oldVnode,'>>>>>>>>>>>>>>>>>',vnode)
 
         //修补前 触发节点中的prepatch 钩子
         if (isDef(i = vnode.data) && isDef(hook = i.hook) && isDef(i = hook.prepatch)) {
@@ -848,7 +838,9 @@ function init(modules) {
                 api.setTextContent(elm, '');
             }
 
+            //if (oldVnode.text !== vnode.text)
         } else {
+            // api.setTextContent(elm, vnode.text);
 
             //字符串内容表达式检查
             if (vnode.data && vnode.data.exps) {
@@ -865,44 +857,99 @@ function init(modules) {
                             texts.push(exp);
                         }
                     })
+                    console.log(exps)
                     return texts.join('');
                 }
 
-                vnode.rootScope=extraParameters.scope;
 
-                //继承作用域
-                if(parentVnode){
-                    Object.keys(parentVnode.$scope || {}).length && vnode.middleScope.push(parentVnode.$scope)
-                }
+                if (vnode.isClone) {
 
-                //语法解析监听
-                exps.forEach(function (exp, index) {
-                    if (exp instanceof Object) {
-                        //收集作用域
-                        var scopes = [vnode.rootScope].concat(vnode.middleScope);
-                        scopes.push(vnode.$scope);
-                        //表达式监听
-                        (exps[index] = syntaxHandle(exp, scopes, {}, true)).readWatch(function (data) {
-                            // console.log('this is text ', data, vnode.$scope);
-                            //检查文本是否以存在 则重新合并文本内容
-                            if (text) {
-                                text = concatTextExp(exps);
-                                if (vnode.text !== text) {
-                                    api.setTextContent(vnode.elm, vnode.text = text);
+                    if(oldVnode.data.textExpString === vnode.data.textExpString){
+                        vnode.$scope=oldVnode.$scope;
+                        vnode.middleScope=oldVnode.middleScope;
+
+                         Object.keys(oldVnode.data).forEach(function (key) {
+                             vnode.data[key]=oldVnode.data[key];
+                         });
+
+
+                        exps = vnode.data.exps;
+                        exps.forEach(function (exp, index) {
+
+                            if (exp instanceof Object) {
+
+                                //检查是否表达式监听
+                                if(exp.structRes ){
+                                    exp.unWatch();
+                                }else{
+                                    //收集作用域
+                                    var scopes = [vnode.rootScope].concat(vnode.middleScope);
+                                    scopes.push(vnode.$scope);
+                                    exp = syntaxHandle(exp, scopes, {}, true)
                                 }
+
+                                //表达式监听
+                                exp.readWatch(function (data) {
+                                    console.log('this is text ', data, vnode.$scope,text);
+                                    //检查文本是否以存在 则重新合并文本内容
+                                    if (text) {
+                                        text = concatTextExp(exps);
+                                        if (vnode.text !== text) {
+                                            api.setTextContent(vnode.elm, vnode.text = text);
+                                        }
+                                    }
+
+                                });
+
+
+                            } else {
+
                             }
                         });
-                    }
-                });
 
-                text = vnode.text = concatTextExp(exps);
+                        console.log(exps,'LLLLLLLLLLLLLLLLLLLL');
+                        text = vnode.text = concatTextExp(exps);
+                        console.log('ooooo99999')
+
+                    }
+
+                } else {
+
+
+
+                    exps.forEach(function (exp, index) {
+                        if (exp instanceof Object) {
+                            //收集作用域
+                            var scopes = [vnode.rootScope].concat(vnode.middleScope);
+                            scopes.push(vnode.$scope);
+
+                            //表达式监听
+                            (exps[index] = syntaxHandle(exp, scopes, {}, true)).readWatch(function (data) {
+                                console.log('this is text ', data, vnode.$scope);
+                                //检查文本是否以存在 则重新合并文本内容
+                                if (text) {
+                                    text = concatTextExp(exps);
+                                    if (vnode.text !== text) {
+                                        api.setTextContent(vnode.elm, vnode.text = text);
+                                    }
+                                }
+
+                            });
+
+                        } else {
+
+                        }
+                    });
+
+                    text = vnode.text = concatTextExp(exps);
+                }
+
+                console.log('vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv',vnode.text)
                 api.setTextContent(elm,vnode.text)
 
             }else if (oldVnode.text !== vnode.text){
                 api.setTextContent(elm,vnode.text)
             }
-            //销毁旧虚拟节点
-            oldVnode.destroy('elm');
         }
 
         //修补后 的钩子  触发节点中的 postpatch 钩子
@@ -912,7 +959,7 @@ function init(modules) {
     }
 
     //对比节点并修补
-    return function patch(oldVnode, Vnode, scope, filter,parentVnode) {
+    return function patch(oldVnode, Vnode, scope, filter) {
         scope = scope || {};
 
         var i, elm, parent;
@@ -942,22 +989,14 @@ function init(modules) {
             if (elm) {
                 if (elm instanceof Array) {
                     parent = api.parentNode(elm[0])
-
-
-                    console.log(oldVnode, Vnode,'????-----',parentVnode)
                 } else {
                     parent = api.parentNode(elm)
                 }
             }
 
             //检查是否有父节点
-            if (parentVnode||parent) {
-                if(parentVnode){
-                    if(!parentVnode.elm)parentVnode.elm=parent;
-                }
-                parentVnode=parentVnode||{elm: parent};
-                //更新子节点
-                updateChildren(parentVnode, oldVnode.innerVnode, Vnode.innerVnode, insertedVnodeQueue, extraParameters);
+            if (parent) {
+                updateChildren({elm: parent}, oldVnode.innerVnode, Vnode.innerVnode, insertedVnodeQueue, extraParameters);
                 //移除旧元素
                 // removeVnodes(parent, [oldVnode], 0, 0);
             } else {
@@ -1448,6 +1487,7 @@ function compAndDirectiveInspect() {
                 handleExampleQueue.push(directorieExample);
                 //观察指令渲染
                 directorieExample.watchRender(function () {
+                    console.log('this is', vnode)
                     if (isInitCall) initCall();
                 })
             } else {
@@ -1455,6 +1495,7 @@ function compAndDirectiveInspect() {
                 attrs[attrName] = attrsMap[attrName].value;
             }
         })
+
 
         if (handleExampleQueue.length) {
             //根据优先级摆放处理队列
@@ -1467,10 +1508,34 @@ function compAndDirectiveInspect() {
         } else {
             initCall();
         }
+
+    }
+
+    //主要用于检查更新时候文本节点
+    function inspectUpdate(oldVnode, vnode) {
+        //检查两个节点是否都是文本节点
+        if (isUndef(oldVnode.sel) && isUndef(vnode.sel)) {
+
+            console.log(oldVnode, vnode, '------------')
+            //继承作用域
+            /*vnode.$scope = oldVnode.$scope;
+
+             //检查是否存在文本表达式字符 并且相等
+             if (oldVnode.data && vnode.data && oldVnode.data.textExpString && oldVnode.data.textExpString === vnode.data.textExpString) {
+             //数据转移
+             Object.keys(oldVnode.data).forEach(function (key) {
+             vnode.data[key] = oldVnode.data[key];
+             })
+             } else if (oldVnode.text !== vnode.text) {
+             htmlDomApi.setTextContent(oldVnode.elm, vnode.text);
+             }*/
+
+        }
     }
 
     return {
-        init: inspectInit
+        init: inspectInit,
+        update: inspectUpdate
     }
 }
 

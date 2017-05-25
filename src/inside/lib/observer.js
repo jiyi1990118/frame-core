@@ -167,9 +167,8 @@
                 this.parentData = parentListen.targetData;
                 //当前节点目标数据
                 this.targetData = (this.parentData || {})[nowKey];
-
                 //标识有数据
-                this.isData=this.parentData !== undefined;
+                this.isData=this.targetData !== undefined;
             }
         } else {
             this.targetData = parentListen;
@@ -359,6 +358,11 @@
         this.topListen && (this.topListen.berforDefineProperty = this.berforDefineProperty);
         //数据传递给前一个listen
         this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set') && this.berforDefineProperty.get(this);
+
+        //检查数据 是否需要归原
+        if(!this.isData){
+            delete this.parentData[this.nowKey];
+        }
 
         //销毁子节点
         this.child && Object.keys(this.child).forEach(function (key) {
@@ -676,7 +680,6 @@
 
         function remove(index) {
             var ob;
-
             //移除监听队列
             while (watchQueue.length > index){
                 ob=watchQueue[index];
@@ -695,7 +698,7 @@
             ob.readWatch(watchKey, function (resData) {
                 watchFn.call(this,resData);
                 if(isRead)return;
-                remove(index);
+                remove(index+1);
                 isRead=true;
             });
         });
