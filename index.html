@@ -7,9 +7,11 @@
 <body>
 
 <div class="template">
-    <h1>这是标题：{{pageDate.title+'---'}}sdfsd{{s}}</h1>
-    <list-gird conf="gridConfs" for="gridConf in {listData:listData}.listData.data"></list-gird>
+    <!--<h1>这是标题：{{pageDate.title+'-&#45;&#45;'}}sdfsd{{s|:co+'xiyuan'}}</h1>-->
+
+    <!--<list-gird conf="gridConfs" for="gridConf in {listData:listData}.listData.data"></list-gird>-->
     <!--<div conf="gridConfs" for="gridConf in {listData:listData}.listData.data">-&#45;&#45;{{gridConf}}-&#45;&#45;</div>-->
+    <div for="gridConf in [listData][0].data">---{{gridConf}}---</div>
     <!--<strong>内容</strong>-->
 </div>
 
@@ -23,7 +25,7 @@
             htmlStr = document.querySelector('.template').outerHTML;
 
         vf.viewEngin.componentMange.register('list-gird', {
-            template: '<div class="grid"><strong>grid</strong></div>',
+            template: '<div class="grid"><strong>grid{{gridConf}}</strong></div><p>o::::</p>',
             props: {
                 conf:{
                     key:'gridConf',
@@ -241,9 +243,15 @@
 
         console.log(vf.viewEngin, Date.now() - sDate);
 
-        var scope=window.scope={scope: '',test:{},pageDate:{title:'this title val'}}
+        var scope=window.scope={scope: '',test:{},pageDate:{title:'this title val'}};
 
-        console.log(vf.viewEngin.vdom.patch(document.querySelector('.template'), vf.viewEngin.render(htmlStr), scope));
+        var filter={
+            co:function (e) {
+                return [].slice.call(arguments).join('--->')+'??????';
+            }
+        }
+
+        console.log(vf.viewEngin.vdom.patch(document.querySelector('.template'), vf.viewEngin.render(htmlStr), scope,filter));
 
         function c() {
             var a=10000;

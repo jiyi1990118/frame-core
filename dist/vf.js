@@ -64,10 +64,10 @@
         var html2vdom = require('./lib/html2vdom');
 
         //组件管理
-        var compMange = require('./lib/componentMange');
+        var compMange = require('./lib/componentManage');
 
         //指令管理
-        var directiveMange = require('./lib/directiveMange');
+        var directiveMange = require('./lib/directiveManage');
 
         /**
          * 视图渲染
@@ -102,8 +102,8 @@
 
 
     }, {
-        "./lib/componentMange": 3,
-        "./lib/directiveMange": 4,
+        "./lib/componentManage": 3,
+        "./lib/directiveManage": 4,
         "./lib/html2vdom": 5,
         "./lib/syntaxHandle": 6,
         "./lib/syntaxStruct": 7,
@@ -120,6 +120,8 @@
 
         //语法结构处理
         var syntaxHandle = require('./syntaxHandle');
+
+        // var encrypt= require('../../../inside/lib/encrypt');
 
         var compStroage = {};
 
@@ -479,7 +481,8 @@
                                         //检查是否自动渲染
                                         if (propConf.autoRender) {
                                             //监听表达式返回的值
-                                            syntaxExample.watch(function(newData) {
+                                            syntaxExample.readWatch(function(newData) {
+
                                                 $api.scope[propConf.key] = newData;
 
                                                 //获取当前值的watchKey
@@ -487,7 +490,11 @@
                                                     propConf.getWatchInfo(syntaxExample.getWatchInfo());
                                                 }
 
-                                                if (isRender) $this.render();
+                                                if (isRender) {
+                                                    $this.render();
+                                                } else {
+                                                    renderTrigger();
+                                                }
                                             })
                                         }
 
@@ -1013,17 +1020,24 @@
 
         $ob.prototype.watch = function(type) {
             var $this = this,
+                loadState,
                 stroage = this.stroage;
 
             this.watchCount++;
+
+
             return function(data) {
                 //记录值
                 stroage[type] = data;
 
+                if (!loadState) {
+                    ++$this.count
+                    loadState = true;
+                }
+
                 //计数器
-                if (++$this.count === $this.watchCount) {
+                if ($this.count === $this.watchCount) {
                     if ($this.receiveStroage.length) {
-                        $this.count--;
                         $this.receiveStroage.forEach(function(fn) {
                             fn(stroage)
                         })
@@ -1038,7 +1052,6 @@
 
             //检查是否加载完毕
             if (this.watchCount === this.count) {
-                this.count--;
                 this.receiveStroage.forEach(function(fn) {
                     fn(stroage)
                 })
@@ -1113,12 +1126,13 @@
                     var fcall,
                         fags = [];
 
-                    Object.keys(val1.value).forEach(function(key) {
+                    Object.keys(val1).forEach(function(key) {
                         if (key === 'callee') {
-                            return fcall = val1.value[key]
+                            return fcall = val1[key].value
                         }
-                        fags.push(val1.value[key]);
-                    })
+                        fags.push(val1[key].value);
+                    });
+
                     return fcall.apply(this, fags);
                     //赋值运算
                 case '+=':
@@ -1204,7 +1218,6 @@
             return this.resData;
         }
 
-
         //语法结构检查
         analysis.prototype.lex = function(nowStruct, callback, isFilter) {
 
@@ -1254,6 +1267,7 @@
                     this.lex(nowStruct.property, ob.watch('property'), nowStruct.computed || 'noComputed');
 
                     ob.receive(function(data) {
+
                         //检查是否对象表达式
                         if (data.object.type === 'Object' && data.object.value[data.property.value].observer) {
                             callback({
@@ -1279,7 +1293,35 @@
                                     });
                                 }
 
+                                //检查是否数组子级元素
+                            } else if (data.object.atoms) {
+
+                                var VAL = data.object.atoms[data.property.value];
+
+                                if (VAL.observer) {
+                                    keys = VAL.keys.join('.');
+
+                                    if (_keys !== keys) {
+                                        _keys && VAL.observer.unwatch(_keys);
+                                        //数据读取并监听
+                                        VAL.observer.readWatch(_keys = keys, function(newData) {
+                                            callback({
+                                                value: newData,
+                                                observer: VAL.observer,
+                                                keys: VAL.keys.concat()
+                                            });
+                                        });
+                                    }
+                                } else {
+                                    callback(VAL)
+                                }
+
                             } else {
+
+                                callback({
+                                    value: data.object.value[data.property.value]
+                                });
+
                                 console.warn('语法对象错误!')
                             }
                         }
@@ -1290,12 +1332,13 @@
                 case 'ArrayExpression':
                     //遍历数组元素
                     nowStruct.arguments.forEach(function(args, index) {
-                        $this.lex(args, ob.watch(index))
+                        $this.lex(args, ob.watch(index));
                     })
 
                     ob.receive(function(data) {
                         callback({
-                            value: operation('Array', data)
+                            value: operation('Array', data),
+                            atoms: data
                         });
                     })
                     break;
@@ -1344,8 +1387,12 @@
 
                     if (nowStruct.arguments.length) {
                         //遍历过滤器参数
-                        nowStruct.arguments.forEach(function(args, index) {
-                            $this.lex(args, ob.watch(index))
+                        nowStruct.arguments.forEach(function(arg, index) {
+                            if (arg.value === '$') {
+                                $this.lex(nowStruct.lead, ob.watch(index));
+                            } else {
+                                $this.lex(arg, ob.watch(index));
+                            }
                         });
                     } else {
                         this.lex(nowStruct.lead, ob.watch(0));
@@ -2917,7 +2964,26 @@
                 }) : node.appendChild(child);
             },
             parentNode: function parentNode(node) {
-                return node.parentNode;
+                return (node instanceof Array ? node[0] : node).parentNode;
+            },
+            replaceChild: function(parentNode, newNode, oldNode) {
+                var Rm;
+                if (newNode instanceof Array) {
+                    var doc = document.createDocumentFragment();
+                    newNode.forEach(function(elm) {
+                        doc.appendChild(elm)
+                    })
+                    newNode = doc;
+                }
+
+                if (oldNode instanceof Array) {
+                    Rm = oldNode;
+                    oldNode = Rm.shift();
+                    Rm.forEach(function(elm) {
+                        parentNode.removeChild(elm);
+                    })
+                }
+                parentNode.replaceChild(newNode, oldNode);
             },
             nextSibling: function nextSibling(node) {
                 return node.nextSibling;
@@ -2984,7 +3050,7 @@
                 innerVnode = [],
                 $this = this;
 
-            var pros = ['$scope', 'children', 'elm', 'isShow', 'key', 'sel', 'tag', 'text', 'rootScope'];
+            var pros = ['$scope', 'children', 'elm', 'isShow', 'key', 'sel', 'tag', 'text', 'rootScope', 'isReplace', 'isComponent', 'isDirective', 'cid'];
 
             //收集所有的属性
             pros.forEach(function(key) {
@@ -3070,6 +3136,7 @@
             if (isUndef(this.sel) && this.data && this.data.exps) {
                 switch (type) {
                     case 'elm':
+                    case false:
                         break;
                     default:
                         Object.keys(this.data.exps).forEach(function(key) {
@@ -3093,35 +3160,42 @@
 
             if (this.elm) {
                 if (this.elm instanceof Array) {
-                    this.innerVnode.forEach(function(vnode, index) {
-                        delete $this.elm[index];
-                        delete $this.innerVnode[index];
-                        vnode.destroy(type);
-                    })
+                    switch (type) {
+                        case false:
+                            break;
+                        case 'elm':
+                        default:
+                            (this.innerVnode || []).forEach(function(vnode, index) {
+                                delete $this.elm[index];
+                                delete $this.innerVnode[index];
+                                vnode.destroy(type);
+                            })
+                    }
 
                 } else if (this.elm.parentNode) {
-                    //销毁子节点
-                    if (this.children) {
-                        this.children.forEach(function(ch, index) {
-                            delete $this.children[index];
-                            ch.destroy(type);
-                        })
-                    }
-
                     switch (type) {
-                        case 'elm':
+                        case false:
                             break;
+                        case 'elm':
                         default:
-                            htmlDomApi.removeChild(this.elm.parentNode, this.elm);
+                            //销毁子节点
+                            if (this.children) {
+                                this.children.forEach(function(ch, index) {
+                                    delete $this.children[index];
+                                    ch.destroy(type);
+                                })
+                            }
                     }
+                }
+
+                if (type !== 'elm') {
+                    htmlDomApi.removeChild(this.elm.parentNode, this.elm);
                 }
             }
 
-            if (type !== 'elm') {
-                Object.keys(this.$scope || {}).forEach(function(key) {
-                    delete $this.$scope[key];
-                })
-            }
+            Object.keys(this.$scope || {}).forEach(function(key) {
+                delete $this.$scope[key];
+            })
 
             Object.keys(this.data || {}).forEach(function(key) {
                 delete $this.data[key];
@@ -3265,10 +3339,18 @@
             })
 
             //创建删除的钩子
-            function createRmCb(ch, listeners) {
+            function createRmCb(ch, listeners, containerElm) {
                 return function rmCb() {
                     if (--listeners === 0) {
                         ch.destroy();
+
+                        //检查是否是innerVnode容器
+                        if (containerElm) {
+                            containerElm.elm = []
+                            containerElm.innerVnode.forEach(function(vnode) {
+                                containerElm.elm = containerElm.elm.concat(vnode.elm);
+                            })
+                        }
                     }
                 };
             }
@@ -3294,7 +3376,7 @@
 
                 //由父节点传递作用域给子级
                 if (parentNode instanceof Object) {
-                    vnode.middleScope.concat(parentNode.middleScope);
+                    // parentNode.middleScope.length && (vnode.middleScope=vnode.middleScope.concat(parentNode.middleScope));
                     Object.keys(parentNode.$scope || {}).length && vnode.middleScope.push(parentNode.$scope)
                 }
 
@@ -3344,11 +3426,14 @@
                                     //销毁对象但不销毁元素
                                     oldVnode.destroy('elm');
                                     oldVnode = vnode.clone();
-                                    console.log(vnode, '????')
                                     return
                                 } else {
                                     vnode.elm = [];
                                     vnode.innerVnode.forEach(function(ch) {
+
+                                        //收集作用域
+                                        vnode.middleScope.length && (ch.middleScope = ch.middleScope.concat(vnode.middleScope));
+                                        Object.keys(vnode.$scope).length && ch.middleScope.push(vnode.$scope)
 
                                         createElm(ch, insertedVnodeQueue, function(ch, isRearrange) {
 
@@ -3364,7 +3449,8 @@
                                             } else {
                                                 vnode.elm = vnode.elm.concat(ch.elm)
                                             }
-                                        }, extraParameters)
+                                        }, extraParameters);
+
                                     })
                                 }
                         }
@@ -3395,6 +3481,11 @@
                             if (isArray(children)) {
                                 children.forEach(function(ch) {
                                     if (ch instanceof Object) {
+
+                                        //收集作用域
+                                        vnode.middleScope.length && (ch.middleScope = ch.middleScope.concat(vnode.middleScope));
+                                        Object.keys(vnode.$scope).length && ch.middleScope.push(vnode.$scope);
+
                                         var oldVnode;
                                         createElm(ch, insertedVnodeQueue, function(ch, isRearrange) {
                                             if (isRearrange) {
@@ -3437,7 +3528,7 @@
                                         scopes.push(vnode.$scope);
 
                                         //表达式监听
-                                        (exps[index] = syntaxHandle(exp, scopes, {}, true)).readWatch(function(data) {
+                                        (exps[index] = syntaxHandle(exp, scopes, extraParameters.filter, true)).readWatch(function(data) {
                                             // console.log('this is text ', data, vnode.$scope);
                                             //检查文本是否以存在 则重新合并文本内容
                                             if (text) {
@@ -3499,9 +3590,10 @@
             }
 
             //创建新的虚拟节点
-            function addVnodes(parentVnode, before, vnodes, startIdx, endIdx, insertedVnodeQueue, extraParameters) {
+            function addVnodes(parentVnode, before, vnodes, startIdx, endIdx, insertedVnodeQueue, extraParameters, containerElm) {
                 var parentElm = parentVnode.elm;
 
+                //遍历并创建节点
                 vnodes.slice(startIdx, endIdx + 1).forEach(function(ch) {
                     if (ch instanceof Object) {
                         var oldVnode;
@@ -3512,11 +3604,29 @@
                                 api.appendChild(parentElm, ch.elm, before);
                             }
                             oldVnode = ch.clone();
+
+                            //检查是否是innerVnode容器
+                            if (containerElm) {
+                                containerElm.elm = []
+                                containerElm.innerVnode.forEach(function(vnode) {
+                                    if (vnode.elm) {
+                                        containerElm.elm = containerElm.elm.concat(vnode.elm);
+                                    }
+                                })
+                            }
+
                         }, extraParameters, parentVnode);
                     } else {
                         api.appendChild(parentElm, api.createTextNode(vnode.text), before);
                     }
                 })
+
+                if (containerElm) {
+                    containerElm.elm = []
+                    containerElm.innerVnode.forEach(function(vnode) {
+                        containerElm.elm = containerElm.elm.concat(vnode.elm);
+                    })
+                }
             }
 
             //调用销毁钩子
@@ -3546,7 +3656,7 @@
             }
 
             //删除虚拟节点
-            function removeVnodes(parentElm, vnodes, startIdx, endIdx) {
+            function removeVnodes(parentElm, vnodes, startIdx, endIdx, containerElm) {
 
                 for (; startIdx <= endIdx; ++startIdx) {
                     var i_1 = void 0,
@@ -3561,7 +3671,7 @@
 
                             //监听并删除元素
                             listeners = cbs.remove.length + 1;
-                            rm = createRmCb(ch, listeners);
+                            rm = createRmCb(ch, listeners, containerElm);
 
                             //遍历并触发model中的remove钩子
                             cbs.remove.forEach(function(removeHook) {
@@ -3581,10 +3691,25 @@
                         ch.destroy();
                     }
                 }
+
+                //检查是否是innerVnode容器
+                if (containerElm) {
+                    containerElm.elm = []
+                    containerElm.innerVnode.forEach(function(vnode) {
+                        containerElm.elm = containerElm.elm.concat(vnode.elm);
+                    })
+                }
             }
 
             //更新子元素
             function updateChildren(parentVnode, oldCh, newCh, insertedVnodeQueue, extraParameters) {
+
+                if (oldCh.isReplace) {
+                    var containerElm = newCh;
+                    newCh = newCh.innerVnode;
+                    oldCh = oldCh.innerVnode;
+                }
+
                 var parentElm = parentVnode.elm;
                 var oldStartIdx = 0,
                     newStartIdx = 0;
@@ -3601,7 +3726,6 @@
 
                 //元素对比
                 while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
-
                     if (!oldStartVnode) {
                         oldStartVnode = oldCh[++oldStartIdx]; // Vnode might have been moved left
                     } else if (!oldEndVnode) {
@@ -3673,22 +3797,18 @@
                 }
                 if (oldEndIdx === newEndIdx) return;
 
-                // console.log(oldStartIdx , oldEndIdx,oldEndIdx,newCh,newCh[3] && newCh[3].elm,newStartIdx,newEndIdx)
-
                 //处理需要新增或移除的节点
                 if (oldStartIdx > oldEndIdx) {
                     before = newCh[newEndIdx + 1] == null ? null : newCh[newEndIdx + 1].elm;
-                    addVnodes(parentVnode, before, newCh, newStartIdx, newEndIdx, insertedVnodeQueue, extraParameters);
+                    addVnodes(parentVnode, before, newCh, newStartIdx, newEndIdx, insertedVnodeQueue, extraParameters, containerElm);
                 } else if (newStartIdx > newEndIdx) {
-                    removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx);
+                    removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx, containerElm);
                 }
             }
 
             //虚拟节点补丁
             function patchVnode(oldVnode, vnode, insertedVnodeQueue, extraParameters, parentVnode) {
                 var i, hook;
-
-                console.log(oldVnode, '>>>>>>>>>>>>>>>>>', vnode)
 
                 //修补前 触发节点中的prepatch 钩子
                 if (isDef(i = vnode.data) && isDef(hook = i.hook) && isDef(i = hook.prepatch)) {
@@ -3714,7 +3834,18 @@
 
                 //检查节点中的文本
                 if (isUndef(vnode.text)) {
-                    if (isDef(oldCh) && isDef(ch)) {
+
+                    //检查元素节点是否组件 则重新渲染元素
+                    if (vnode.isComponent && vnode.isClone) {
+
+                        //清空元素
+                        vnode.elm = undefined;
+                        createElm(vnode, insertedVnodeQueue, function(ch, isRearrange) {
+                            api.replaceChild(api.parentNode(oldVnode.elm), ch.elm, oldVnode.elm);
+                        }, extraParameters);
+                        //销毁旧节点数据
+                        oldVnode.destroy();
+                    } else if (isDef(oldCh) && isDef(ch)) {
                         if (oldCh !== ch) updateChildren(vnode, oldCh, ch, insertedVnodeQueue, extraParameters);
                     } else if (isDef(ch)) {
                         if (isDef(oldVnode.text))
@@ -3760,7 +3891,8 @@
                                 var scopes = [vnode.rootScope].concat(vnode.middleScope);
                                 scopes.push(vnode.$scope);
                                 //表达式监听
-                                (exps[index] = syntaxHandle(exp, scopes, {}, true)).readWatch(function(data) {
+                                ;
+                                (exps[index] = syntaxHandle(exp, scopes, extraParameters.filter, true)).readWatch(function(data) {
                                     // console.log('this is text ', data, vnode.$scope);
                                     //检查文本是否以存在 则重新合并文本内容
                                     if (text) {
@@ -3820,9 +3952,6 @@
                     if (elm) {
                         if (elm instanceof Array) {
                             parent = api.parentNode(elm[0])
-
-
-                            console.log(oldVnode, Vnode, '????-----', parentVnode)
                         } else {
                             parent = api.parentNode(elm)
                         }
@@ -3837,7 +3966,7 @@
                             elm: parent
                         };
                         //更新子节点
-                        updateChildren(parentVnode, oldVnode.innerVnode, Vnode.innerVnode, insertedVnodeQueue, extraParameters);
+                        updateChildren(parentVnode, oldVnode, Vnode, insertedVnodeQueue, extraParameters);
                         //移除旧元素
                         // removeVnodes(parent, [oldVnode], 0, 0);
                     } else {
@@ -4280,8 +4409,8 @@
             };
         }
 
-        var compMange = require('./componentMange');
-        var directorieMange = require('./directiveMange');
+        var compManage = require('./componentManage');
+        var directorieManage = require('./directiveManage');
 
         //组件检查
         function compAndDirectiveInspect() {
@@ -4293,14 +4422,14 @@
                     attrsMap = data.attrsMap || {},
                     attrs = data.attrs = data.attrs || {},
                     handleExampleQueue = [],
-                    compClass = compMange.get(vnode.tag);
+                    compClass = compManage.get(vnode.tag);
 
                 function exapmpleQueueHandle() {
                     var compExample = handleExampleQueue.pop();
                     if (compExample) {
 
                         //检查是否指令 并销毁当前指令属性记录
-                        if (compExample instanceof directorieMange.directiveClass) {
+                        if (compExample instanceof directorieManage.directiveClass) {
                             delete attrsMap[compExample.name];
                             delete compExample.$api.templateVnode.data.attrsMap[compExample.name];
                         }
@@ -4340,7 +4469,7 @@
                 //指令检查
                 Object.keys(attrsMap).forEach(function(attrName) {
                     var directorieExample,
-                        directorieClass = directorieMange.get(attrName);
+                        directorieClass = directorieManage.get(attrName);
 
                     //检查是否是指令
                     if (directorieClass) {
@@ -4385,8 +4514,8 @@
 
     }, {
         "../../../inside/lib/observer": 9,
-        "./componentMange": 3,
-        "./directiveMange": 4,
+        "./componentManage": 3,
+        "./directiveManage": 4,
         "./syntaxHandle": 6
     }],
     9: [function(require, module, exports) {

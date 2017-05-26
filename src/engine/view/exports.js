@@ -17,10 +17,10 @@ var syntaxHandle = require('./lib/syntaxHandle');
 var html2vdom = require('./lib/html2vdom');
 
 //组件管理
-var compMange=require('./lib/componentMange');
+var compMange=require('./lib/componentManage');
 
 //指令管理
-var directiveMange=require('./lib/directiveMange');
+var directiveMange=require('./lib/directiveManage');
 
 /**
  * 视图渲染

@@ -9,6 +9,8 @@ var syntaxStruct = require('./syntaxStruct');
 //语法结构处理
 var syntaxHandle = require('./syntaxHandle');
 
+// var encrypt= require('../../../inside/lib/encrypt');
+
 var compStroage = {};
 
 //组件类

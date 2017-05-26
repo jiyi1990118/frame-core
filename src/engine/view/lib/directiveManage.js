@@ -132,7 +132,8 @@ directiveClass.prototype.init = function () {
                             //检查是否自动渲染
                             if (propConf.autoRender) {
                                 //监听表达式返回的值
-                                syntaxExample.watch(function (newData) {
+                                syntaxExample.readWatch(function (newData) {
+
                                     $api.scope[propConf.key] = newData;
 
                                     //获取当前值的watchKey
@@ -140,7 +141,11 @@ directiveClass.prototype.init = function () {
                                         propConf.getWatchInfo(syntaxExample.getWatchInfo());
                                     }
 
-                                    if (isRender) $this.render();
+                                    if (isRender){
+                                        $this.render();
+                                    }else{
+                                        renderTrigger();
+                                    }
                                 })
                             }
 

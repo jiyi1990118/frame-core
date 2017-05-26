@@ -17,17 +17,24 @@ var $ob = function () {
 
 $ob.prototype.watch = function (type) {
     var $this = this,
+        loadState,
         stroage = this.stroage;
 
     this.watchCount++;
+
+
     return function (data) {
         //记录值
         stroage[type] = data;
 
+        if(!loadState){
+            ++$this.count
+            loadState=true;
+        }
+
         //计数器
-        if (++$this.count === $this.watchCount) {
+        if ($this.count === $this.watchCount) {
             if($this.receiveStroage.length){
-                $this.count--;
                 $this.receiveStroage.forEach(function (fn) {
                     fn(stroage)
                 })
@@ -42,7 +49,6 @@ $ob.prototype.receive = function (fn) {
 
     //检查是否加载完毕
     if (this.watchCount === this.count) {
-        this.count--;
         this.receiveStroage.forEach(function (fn) {
             fn(stroage)
         })
@@ -117,12 +123,13 @@ function operation(symbol, val1, val2, val3) {
             var fcall,
                 fags = [];
 
-            Object.keys(val1.value).forEach(function (key) {
+            Object.keys(val1).forEach(function (key) {
                 if (key === 'callee') {
-                    return fcall = val1.value[key]
+                    return fcall = val1[key].value
                 }
-                fags.push(val1.value[key]);
-            })
+                fags.push(val1[key].value);
+            });
+
             return fcall.apply(this, fags);
         //赋值运算
         case '+=':
@@ -208,7 +215,6 @@ analysis.prototype.readWatch = function (fn) {
     return this.resData;
 }
 
-
 //语法结构检查
 analysis.prototype.lex = function (nowStruct, callback, isFilter) {
 
@@ -258,6 +264,7 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
             this.lex(nowStruct.property, ob.watch('property'), nowStruct.computed || 'noComputed');
 
             ob.receive(function (data) {
+
                 //检查是否对象表达式
                 if (data.object.type === 'Object' && data.object.value[data.property.value].observer) {
                     callback({
@@ -283,7 +290,35 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
                             });
                         }
 
-                    } else {
+                        //检查是否数组子级元素
+                    } else if(data.object.atoms){
+
+                        var VAL=data.object.atoms[data.property.value];
+
+                        if(VAL.observer){
+                            keys = VAL.keys.join('.');
+
+                            if (_keys !== keys) {
+                                _keys && VAL.observer.unwatch(_keys);
+                                //数据读取并监听
+                                VAL.observer.readWatch(_keys = keys, function (newData) {
+                                    callback({
+                                        value: newData,
+                                        observer: VAL.observer,
+                                        keys: VAL.keys.concat()
+                                    });
+                                });
+                            }
+                        }else{
+                            callback(VAL)
+                        }
+
+                    }else{
+
+                        callback({
+                            value: data.object.value[data.property.value]
+                        });
+
                         console.warn('语法对象错误!')
                     }
                 }
@@ -294,12 +329,13 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
         case 'ArrayExpression':
             //遍历数组元素
             nowStruct.arguments.forEach(function (args, index) {
-                $this.lex(args, ob.watch(index))
+                $this.lex(args, ob.watch(index));
             })
 
             ob.receive(function (data) {
                 callback({
-                    value: operation('Array', data)
+                    value: operation('Array', data),
+                    atoms:data
                 });
             })
             break;
@@ -348,8 +384,12 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
 
             if (nowStruct.arguments.length) {
                 //遍历过滤器参数
-                nowStruct.arguments.forEach(function (args, index) {
-                    $this.lex(args, ob.watch(index))
+                nowStruct.arguments.forEach(function (arg, index) {
+                    if(arg.value === '$'){
+                        $this.lex(nowStruct.lead, ob.watch(index));
+                    }else{
+                        $this.lex(arg, ob.watch(index));
+                    }
                 });
             } else {
                 this.lex(nowStruct.lead, ob.watch(0));
