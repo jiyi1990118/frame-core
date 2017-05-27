@@ -2,7 +2,7 @@
  * 虚拟Dom
  * Created by xiyuan on 17-5-9.
  */
-// "use strict";
+"use strict";
 
 //语法结构处理
 var syntaxHandle = require('./syntaxHandle');
@@ -35,6 +35,7 @@ var htmlDomApi = {
         }) : parentNode.insertBefore(newNode, referenceNode);
     },
     removeChild: function removeChild(node, child) {
+        if(!node)return
         child instanceof Array ? child.forEach(function (child) {
             node.removeChild(child);
         }) : node.removeChild(child);
@@ -225,17 +226,16 @@ $vnode.prototype.destroy = function (type) {
                         $this.data.exps[key].destroy();
                     }
                     delete $this.data.exps[key];
-                })
-        }
+                });
 
-        //销毁文本表达式
-        ;
-        (this.data.exps || []).forEach(function (exp, index) {
-            if (exp.structRes) {
-                exp.destroy();
-            }
-            delete $this.data.exps[index];
-        });
+                //销毁文本表达式
+                (this.data.exps || []).forEach(function (exp, index) {
+                    if (exp.structRes) {
+                        exp.destroy();
+                    }
+                    delete $this.data.exps[index];
+                });
+        };
 
     }
 
@@ -403,6 +403,19 @@ function rearrangeElm(vnodeList) {
     return elmContainer.childNodes;
 }
 
+//连接字符表达式
+function concatTextExp(exps) {
+    var texts = [];
+    exps.forEach(function (exp, index) {
+        if (exp instanceof Object) {
+            if (exp.structRes.resData !== undefined) texts.push(exp.structRes.resData);
+        } else {
+            texts.push(exp);
+        }
+    })
+    return texts.join('');
+}
+
 function init(modules) {
     var i, j, cbs = {};
     var api = htmlDomApi;
@@ -440,17 +453,29 @@ function init(modules) {
         var i,
             isRearrange,
             oldVnode,
+            rootScope,
             data = vnode.data || {},
             initCount = cbs.init.length,
             children = vnode.children, sel = vnode.sel;
 
         //检查并传递作用域
-        if (Object.keys(vnode.rootScope).length && extraParameters.scope !== vnode.rootScope) {
-            Object.keys(extraParameters.scope).forEach(function (key) {
-                vnode.$scope[key] = extraParameters.scope[key];
+        if(parentNode){
+            if(parentNode.innerScope){
+                rootScope=parentNode.innerScope;
+            }else{
+                rootScope=parentNode.rootScope;
+            }
+        }else{
+            rootScope=extraParameters.scope;
+        }
+
+        //检查是否组件内部作用域
+        if (Object.keys(vnode.rootScope).length && rootScope !== vnode.rootScope) {
+            Object.keys(rootScope).forEach(function (key) {
+                vnode.$scope[key] = rootScope[key];
             })
         } else {
-            vnode.rootScope = extraParameters.scope;
+            vnode.rootScope=rootScope;
         }
 
         //由父节点传递作用域给子级
@@ -501,7 +526,7 @@ function init(modules) {
 
                         //检查节点是否被渲染，此处需要做元素对比
                         if (vnode.elm && vnode.elm.length) {
-                            patch(oldVnode, vnode, vnode.rootScope, extraParameters.filter, parentNode);
+                            patch(oldVnode, vnode, rootScope, extraParameters.filter, parentNode);
                             //销毁对象但不销毁元素
                             oldVnode.destroy('elm');
                             oldVnode = vnode.clone();
@@ -528,7 +553,7 @@ function init(modules) {
                                     } else {
                                         vnode.elm = vnode.elm.concat(ch.elm)
                                     }
-                                }, extraParameters);
+                                }, extraParameters,vnode);
 
                             })
                         }
@@ -587,18 +612,6 @@ function init(modules) {
                     if (vnode.data && vnode.data.exps) {
                         var text,
                             exps = vnode.data.exps;
-
-                        function concatTextExp(exps) {
-                            var texts = [];
-                            exps.forEach(function (exp, index) {
-                                if (exp instanceof Object) {
-                                    if (exp.structRes.resData !== undefined) texts.push(exp.structRes.resData);
-                                } else {
-                                    texts.push(exp);
-                                }
-                            })
-                            return texts.join('');
-                        }
 
                         exps.forEach(function (exp, index) {
                             if (exp instanceof Object) {
@@ -913,7 +926,6 @@ function init(modules) {
 
             //检查元素节点是否组件 则重新渲染元素
             if (vnode.isComponent && vnode.isClone) {
-
                 //清空元素
                 vnode.elm = undefined;
                 createElm(vnode, insertedVnodeQueue, function (ch, isRearrange) {
@@ -941,19 +953,7 @@ function init(modules) {
                 var text,
                     exps = vnode.data.exps;
 
-                function concatTextExp(exps) {
-                    var texts = [];
-                    exps.forEach(function (exp, index) {
-                        if (exp instanceof Object) {
-                            if (exp.structRes.resData !== undefined) texts.push(exp.structRes.resData);
-                        } else {
-                            texts.push(exp);
-                        }
-                    })
-                    return texts.join('');
-                }
-
-                vnode.rootScope = extraParameters.scope;
+                vnode.rootScope = oldVnode.rootScope;
 
                 //继承作用域
                 if (parentVnode) {
@@ -972,7 +972,7 @@ function init(modules) {
                             //检查文本是否以存在 则重新合并文本内容
                             if (text) {
                                 text = concatTextExp(exps);
-                                if (vnode.text !== text) {
+                                if (elm.textContent !== text) {
                                     api.setTextContent(vnode.elm, vnode.text = text);
                                 }
                             }
@@ -980,8 +980,10 @@ function init(modules) {
                     }
                 });
 
-                text = vnode.text = concatTextExp(exps);
-                api.setTextContent(elm, vnode.text)
+                text = concatTextExp(exps);
+                if(elm.textContent !== text ){
+                    api.setTextContent(vnode.elm, vnode.text = text);
+                }
 
             } else if (oldVnode.text !== vnode.text) {
                 api.setTextContent(elm, vnode.text)

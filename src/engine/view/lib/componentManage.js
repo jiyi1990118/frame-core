@@ -15,8 +15,12 @@ var compStroage = {};
 
 //组件类
 function compClass(compConf, vnode, extraParameters) {
+
     //标识当前节点是组件
     vnode.isComponent = true;
+
+    //组件元素内部作用域
+    vnode.innerScope={};
 
     //组件实例配置
     this.conf = compConf;
@@ -36,24 +40,18 @@ function compClass(compConf, vnode, extraParameters) {
         render: []
     }
 
-    this.$api={
+    this.$api = {
         //作用域
-        scope:{
-
-        },
+        scope: vnode.innerScope,
         //过滤器
-        filter:{
-
-        },
+        filter: {},
         //虚拟节点
-        vnode:vnode,
+        vnode: vnode,
         //节点渲染
-        render:function () {
+        render: function () {
 
         },
-        stroage:{
-
-        }
+        stroage: {}
 
     }
 
@@ -72,12 +70,12 @@ compClass.prototype.watchRender = function (fn) {
 //实例化
 compClass.prototype.init = function () {
     var isRender,
-        $this=this,
-        $api=this.$api,
+        $this = this,
+        $api = this.$api,
         conf = this.conf,
         vnode = this.vnode,
         data = vnode.data,
-        propLoad=0,
+        propLoad = 0,
         attrsMap = data.attrsMap,
         props = conf.props,
         watchProps = [],
@@ -86,8 +84,8 @@ compClass.prototype.init = function () {
     //处理观察的属性
     function propHandle(propName, prop) {
 
-        if(!attrsMap[propName]){
-            return console.warn('组件数据属性 '+propName+' 未定义!');
+        if (!attrsMap[propName]) {
+            return console.warn('组件数据属性 ' + propName + ' 未定义!');
         }
 
         if (prop instanceof Function) {
@@ -107,10 +105,10 @@ compClass.prototype.init = function () {
             })
         }
     }
-    
+
     function renderTrigger() {
-        if(watchProps.length <= ++propLoad){
-            isRender=true;
+        if (watchProps.length <= ++propLoad) {
+            isRender = true;
             $this.render();
         }
     }
@@ -136,49 +134,69 @@ compClass.prototype.init = function () {
             //进行属性作用域数据获取
             watchProps.forEach(function (propConf) {
                 var syntaxExample,
-                    strcut=syntaxStruct(propConf.exp);
+                    strcut = syntaxStruct(propConf.exp);
 
                 //检查表达式是否错误
-                if(!strcut.errMsg){
-                    syntaxExample=syntaxHandle(strcut,extraParameters.assign,extraParameters.filter);
+                if (!strcut.errMsg) {
+
+                    //收集作用域
+                    var scopes = [vnode.rootScope].concat(vnode.middleScope);
+                    scopes.push(vnode.$scope);
+
+                    syntaxExample = syntaxHandle(strcut, scopes, extraParameters.filter, true);
 
                     //读取表达式返回的值
-                    if(!syntaxExample.read(function (newData) {
-                            $api.scope[propConf.key]=newData;
-                        //检查是否自动渲染
-                        if(propConf.autoRender){
-                            //监听表达式返回的值
-                            syntaxExample.watch(function (newData) {
-                                $api.scope[propConf.key]=newData;
-                                if(isRender)$this.render();
-                            })
-                        }
+                    if (!syntaxExample.read(function (newData) {
 
-                        //检查是否有默认数据 并渲染
-                        if(propConf.hasOwnProperty('default')){
-                            if(isRender)$this.render();
-                        }else{
-                            renderTrigger();
-                        }
+                            $api.scope[propConf.key] = newData;
 
-                    })){
+                            // console.log($api.scope,'------',vnode)
+                            //检查是否自动渲染
+                            if (propConf.autoRender) {
+                                //监听表达式返回的值
+                                syntaxExample.watch(function (newData) {
+                                    $api.scope[propConf.key] = newData;
+
+                                    //获取当前值的watchKey
+                                    if(propConf.getWatchInfo instanceof Function){
+                                        propConf.getWatchInfo(syntaxExample.getWatchInfo());
+                                    }
+
+                                    if (isRender){
+                                        $this.render();
+                                    }else{
+                                        renderTrigger();
+                                    }
+
+
+                                })
+                            }
+
+                            //检查是否有默认数据 并渲染
+                            if (propConf.hasOwnProperty('default')) {
+                                if (isRender) $this.render();
+                            } else {
+                                renderTrigger();
+                            }
+
+                        })) {
                         //检查是否有默认数据
-                        if(propConf.hasOwnProperty('default')){
-                            $api.scope[propConf.key]=propConf['default'];
+                        if (propConf.hasOwnProperty('default')) {
+                            $api.scope[propConf.key] = propConf['default'];
                             renderTrigger();
                         }
                     }
 
                     // console.log(propConf,strcut,syntaxExample)
-                }else{
-                    console.warn('表达式： '+propConf.exp+'有误！')
+                } else {
+                    console.warn('表达式： ' + propConf.exp + '有误！')
                 }
 
             })
             return this;
         }
     } else {
-        isRender=true;
+        isRender = true;
         this.render();
     }
 
@@ -186,26 +204,26 @@ compClass.prototype.init = function () {
 
 compClass.prototype.render = function () {
     var conf = this.conf,
-        vnode=this.vnode;
+        vnode = this.vnode;
 
     //检查是否有渲染的方法
     if (conf.render instanceof Function) {
-        vnode.innerVnode=conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
-    }else if(conf.template){
+        vnode.innerVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
+    } else if (conf.template) {
 
-        if(conf.isReplace || conf.isReplace === undefined){
-            conf.isReplace=true;
-            vnode.innerVnode=conf.template;
-        }else{
+        if (conf.isReplace || conf.isReplace === undefined) {
+            conf.isReplace = true;
+            vnode.innerVnode = conf.template;
+        } else {
 
         }
     }
 
     //标识当前节点是否替换
-    vnode.isReplace=conf.isReplace;
+    vnode.isReplace = conf.isReplace;
 
     //触发创建的观察
-    if(!this.isRender){
+    if (!this.isRender) {
         this.watchs.create.forEach(function (create) {
             create();
         })
@@ -216,7 +234,7 @@ compClass.prototype.render = function () {
         render();
     })
 
-    this.isRender=true;
+    this.isRender = true;
 }
 
 //组件获取

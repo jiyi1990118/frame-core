@@ -9,9 +9,14 @@
 <div class="template">
     <!--<h1>这是标题：{{pageDate.title+'-&#45;&#45;'}}sdfsd{{s|:co+'xiyuan'}}</h1>-->
 
-    <!--<list-gird conf="gridConfs" for="gridConf in {listData:listData}.listData.data"></list-gird>-->
+    <!--<list-gird conf="listData.data"></list-gird>-->
+
+
+    <list-gird conf="gridConf" for="gridConf in {listData:listData}.listData.data"></list-gird>
+
+
     <!--<div conf="gridConfs" for="gridConf in {listData:listData}.listData.data">-&#45;&#45;{{gridConf}}-&#45;&#45;</div>-->
-    <div for="gridConf in [listData][0].data">---{{gridConf}}---</div>
+    <!--<div for="gridConf in [listData][0].data">-&#45;&#45;{{gridConf}}-&#45;&#45;</div>-->
     <!--<strong>内容</strong>-->
 </div>
 
@@ -30,7 +35,7 @@
                 conf:{
                     key:'gridConf',
                     type:Object,
-                    default:{},
+//                    default:{},
                     watch:function () {
 
                     },

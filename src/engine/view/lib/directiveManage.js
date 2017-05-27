@@ -42,7 +42,7 @@ function directiveClass(directiveConf, vnode, extraParameters, directiveName) {
 
     this.$api = {
         //作用域
-        scope: directiveConf.scope = directiveConf.scope || {},
+        scope:vnode.$scope,// directiveConf.scope = directiveConf.scope || {},
         //过滤器
         filter: {},
         //虚拟节点
@@ -118,7 +118,11 @@ directiveClass.prototype.init = function () {
 
                     //检查表达式是否错误
                     if (!strcut.errMsg) {
-                        syntaxExample = syntaxHandle(strcut, extraParameters.scope, extraParameters.filter);
+                        //收集作用域
+                        var scopes = [vnode.rootScope].concat(vnode.middleScope);
+                        scopes.push(vnode.$scope);
+
+                        syntaxExample=syntaxHandle(strcut,scopes,extraParameters.filter, true);
 
                         //读取表达式返回的值
                         if (!syntaxExample.read(function (newData) {
