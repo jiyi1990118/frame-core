@@ -247,7 +247,7 @@ $vnode.prototype.destroy = function (type) {
                 case 'elm':
                 default:
                     (this.innerVnode || []).forEach(function (vnode, index) {
-                        delete $this.elm[index];
+                        if(type !== 'elm') delete $this.elm[index];
                         delete $this.innerVnode[index];
                         vnode.destroy(type);
                     })
@@ -930,9 +930,9 @@ function init(modules) {
                 vnode.elm = undefined;
                 createElm(vnode, insertedVnodeQueue, function (ch, isRearrange) {
                     api.replaceChild(api.parentNode(oldVnode.elm), ch.elm, oldVnode.elm);
+                    //销毁旧节点数据
+                    oldVnode.destroy();
                 }, extraParameters);
-                //销毁旧节点数据
-                oldVnode.destroy();
             } else if (isDef(oldCh) && isDef(ch)) {
                 if (oldCh !== ch) updateChildren(vnode, oldCh, ch, insertedVnodeQueue, extraParameters);
             } else if (isDef(ch)) {

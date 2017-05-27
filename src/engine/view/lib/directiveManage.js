@@ -136,7 +136,7 @@ directiveClass.prototype.init = function () {
                             //检查是否自动渲染
                             if (propConf.autoRender) {
                                 //监听表达式返回的值
-                                syntaxExample.readWatch(function (newData) {
+                                syntaxExample.watch(function (newData) {
 
                                     $api.scope[propConf.key] = newData;
 

@@ -503,7 +503,7 @@
                                         //检查是否自动渲染
                                         if (propConf.autoRender) {
                                             //监听表达式返回的值
-                                            syntaxExample.readWatch(function(newData) {
+                                            syntaxExample.watch(function(newData) {
 
                                                 $api.scope[propConf.key] = newData;
 
@@ -3188,7 +3188,7 @@
                         case 'elm':
                         default:
                             (this.innerVnode || []).forEach(function(vnode, index) {
-                                delete $this.elm[index];
+                                if (type !== 'elm') delete $this.elm[index];
                                 delete $this.innerVnode[index];
                                 vnode.destroy(type);
                             })
@@ -3876,9 +3876,9 @@
                         vnode.elm = undefined;
                         createElm(vnode, insertedVnodeQueue, function(ch, isRearrange) {
                             api.replaceChild(api.parentNode(oldVnode.elm), ch.elm, oldVnode.elm);
+                            //销毁旧节点数据
+                            oldVnode.destroy();
                         }, extraParameters);
-                        //销毁旧节点数据
-                        oldVnode.destroy();
                     } else if (isDef(oldCh) && isDef(ch)) {
                         if (oldCh !== ch) updateChildren(vnode, oldCh, ch, insertedVnodeQueue, extraParameters);
                     } else if (isDef(ch)) {

@@ -30,7 +30,7 @@
             htmlStr = document.querySelector('.template').outerHTML;
 
         vf.viewEngin.componentMange.register('list-gird', {
-            template: '<div class="grid"><strong>grid{{gridConf}}</strong></div><p>o::::</p>',
+            template: '<div class="grid"><strong>grid{{gridConf}}</strong>dsfsdf</div><p>o::::</p>',
             props: {
                 conf:{
                     key:'gridConf',
@@ -166,13 +166,13 @@
 
                 this.stroage.scopeKey=keyString;
                 this.stroage.scopeVal=valString;
-
                 return [
                     {
                         key:'listData',
                         exp:source_obj,
                         //获取当前表达式的观察数据信息
                         getWatchInfo:function (watchInfo) {
+                            console.log(watchInfo,'>>>')
                             $this.stroage.watchInfo=watchInfo;
                         },
                         type:[Array,Object],
