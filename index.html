@@ -20,7 +20,7 @@
     <!--<strong>内容</strong>-->
 </div>
 
-<script type="text/javascript" src="dist/vf.js"></script>
+<script type="text/javascript" src="dist/vf.js" app-config="./project/config/initConfig.js"></script>
 <script type="text/javascript">
 // :for="gridConf in gridList"
 
@@ -29,7 +29,7 @@
 //            htmlStr=document.querySelector('script[type="text/template"]').textContent;
             htmlStr = document.querySelector('.template').outerHTML;
 
-        vf.viewEngin.componentMange.register('list-gird', {
+        vf.engin.viewEngin.componentMange.register('list-gird', {
             template: '<div class="grid"><strong>grid{{gridConf}}</strong>dsfsdf</div><p>o::::</p>',
             props: {
                 conf:{
@@ -67,7 +67,7 @@
             }
         });
 
-        vf.viewEngin.componentMange.register('for', {
+        vf.engin.viewEngin.componentMange.register('for', {
             priority:100,
             scope: {
                 listData: []
@@ -126,7 +126,7 @@
             }*/
         });
 
-        vf.viewEngin.directiveMange.register('for', {
+        vf.engin.viewEngin.directiveMange.register('for', {
             priority:100,
             scope: {
                 listData: [],
@@ -246,7 +246,7 @@
         });
 
 
-        console.log(vf.viewEngin, Date.now() - sDate);
+        console.log(vf.engin.viewEngin, Date.now() - sDate);
 
         var scope=window.scope={scope: '',test:{},pageDate:{title:'this title val'}};
 
@@ -256,7 +256,7 @@
             }
         }
 
-        console.log(vf.viewEngin.vdom.patch(document.querySelector('.template'), vf.viewEngin.render(htmlStr), scope,filter));
+        console.log(vf.engin.viewEngin.vdom.patch(document.querySelector('.template'), vf.engin.viewEngin.render(htmlStr), scope,filter));
 
         function c() {
             var a=10000;

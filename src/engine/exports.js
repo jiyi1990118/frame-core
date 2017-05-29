@@ -4,13 +4,7 @@
  */
 "use strict";
 
-//视图引擎
-var viewEngine=require('./view/exports');
-
-
-var observer = require('../inside/lib/observer');
-
 module.exports = {
-    observer:observer,
-    viewEngin:viewEngine
+    //视图引擎
+    viewEngin:require('./view/exports')
 }

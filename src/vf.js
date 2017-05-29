@@ -1,14 +1,25 @@
 /**
  * Created by xiyuan on 17-5-9.
  */
-(function (vf) {
+'use strict';
+
+;(function (vf,exports) {
     if (typeof define === "function" && define.cmd) {
         define(function () {
             return vf;
         })
     } else {
-        this.vf = vf();
+        exports.vf = vf();
     }
 })(function () {
-    return require('./engine/exports');
-})
+
+    //初始化
+    require('./init/index').exec();
+
+
+
+    return {
+        lib:require('./inside/lib/exports'),
+        engin:require('./engine/exports')
+    }
+},window)
