@@ -618,6 +618,8 @@
         //虚拟Dom
         var vdom = require('./vdom');
 
+        var string = require('../../../inside/lib/string');
+
         //语法解析
         var syntaxStruct = require('./syntaxStruct');
 
@@ -838,7 +840,7 @@
                 eleStruct = [],
                 structLevel = [];
 
-            HTMLParser(htmlStr, {
+            HTMLParser(string.HTMLDecode(htmlStr), {
                 //标签节点起始
                 start: function(tagName, attrs, unary) {
                     nowStruct = vdom.vnode(
@@ -1012,6 +1014,7 @@
         };
 
     }, {
+        "../../../inside/lib/string": 40,
         "./syntaxStruct": 7,
         "./vdom": 8
     }],
@@ -1573,7 +1576,7 @@
             return new structHandle(syntaxStruct, scope, filter, multiple);
         }
     }, {
-        "../../../inside/lib/observer": 31
+        "../../../inside/lib/observer": 37
     }],
     7: [function(require, module, exports) {
         /**
@@ -4530,12 +4533,289 @@
         };
 
     }, {
-        "../../../inside/lib/observer": 31,
+        "../../../inside/lib/observer": 37,
         "./componentManage": 3,
         "./directiveManage": 4,
         "./syntaxHandle": 6
     }],
     9: [function(require, module, exports) {
+        /**
+         * Created by xiyuan on 17-5-30.
+         */
+
+        'use strict';
+
+        //路由管理器
+        var routeManage = require('./route/index');
+
+
+        function start() {
+
+            //启动路由监控
+            routeManage.watch();
+        }
+
+
+        module.exports = {
+            start: start
+        };
+    }, {
+        "./route/index": 11
+    }],
+    10: [function(require, module, exports) {
+        /**
+         * 路由执行
+         * Created by xiyuan on 17-5-30.
+         */
+        'use strict';
+
+        var routeData = require('./routeData');
+        var URL = require('../../../inside/lib/url');
+        var PATH = require('../../../inside/lib/path');
+        var insideEvent = require('../../../inside/event/insideEvent');
+
+        function exec(requestUrl, successCallback, refresh) {
+
+            //提取GET类型参数
+            var urlGetParameter = URL.toObject(requestUrl),
+                urlGetString = '',
+                nowInfoUrl = routeData.nowInfo.url,
+                routeErrorFlag = false,
+                //标识路由是否停止
+                isStop = false,
+                //提取GET参数字符
+                href = requestUrl.replace(/\?[\w\W]*/, function(str) {
+                    urlGetString = str;
+                    return '';
+                }).replace(/[\/\\]*$/, '');
+
+            //路由开始事件触发
+            insideEvent.emit('route:start', {
+                //请求的无参数url
+                url: href,
+                //请求的url
+                requestUrl: requestUrl,
+                //请求的参数
+                parameter: urlGetParameter,
+                //当前的url
+                nowUrl: nowInfoUrl,
+                //路由停止
+                stop: function() {
+                    isStop = true;
+                }
+            });
+            $configManage.routeState = 'start';
+
+
+        }
+
+
+        module.exports = exec;
+    }, {
+        "../../../inside/event/insideEvent": 21,
+        "../../../inside/lib/path": 38,
+        "../../../inside/lib/url": 42,
+        "./routeData": 13
+    }],
+    11: [function(require, module, exports) {
+        /**
+         * Created by xiyuan on 17-5-30.
+         */
+        'use strict';
+
+        var watch = require('./watch');
+
+        var redirect = require('./redirect')
+
+        module.exports = {
+            watch: watch
+        };
+    }, {
+        "./redirect": 12,
+        "./watch": 14
+    }],
+    12: [function(require, module, exports) {
+        /**
+         * 页面重定向
+         * Created by xiyuan on 17-5-30.
+         */
+
+        'use strict';
+
+        var exec = require('./exec');
+        var URL = require('../../../inside/lib/url');
+        var PATH = require('../../../inside/lib/path');
+        var routeData = require('./routeData');
+        var frameConf = require('../../../inside/config/index');
+
+        var appConf = frameConf.appConf;
+        var insideConf = frameConf.insideConf;
+
+        /**
+         * 页面重定向
+         * @param requestUrl
+         * @param arg
+         * @param isBack
+         * @param refresh
+         */
+        function redirect(requestUrl, arg, isBack, refresh) {
+            requestUrl = requestUrl.replace(/^\//, '');
+            var routeInfo,
+                argIndex = 0,
+                postArg,
+                argValue,
+                argLen = arguments.length;
+
+            while (++argIndex < argLen && argIndex < 3) {
+                argValue = arguments[argIndex];
+                switch (typeof argValue) {
+                    case 'object':
+                        postArg = argValue;
+                        break;
+                    default:
+                        isBack = !!argValue;
+                        break;
+                }
+            }
+
+            routeData.history.isBack = isBack;
+
+            //根据请求的地址执行对应的presenter
+            exec(requestUrl, function(routeInfo) {
+
+                //并检查是否和上一次路径重复
+                if (!routeInfo && !refresh) return;
+
+                requestUrl = routeInfo.path;
+
+                //检查当前模式
+                if (appConf.route.mode === 'html5') {
+                    var pageUrl = PATH.resolve(requestUrl, insideConf.rootPath);
+                    //添加新的历史记录
+                    window.history.pushState({
+                        "target": requestUrl
+                    }, null, pageUrl);
+                } else {
+                    //通知hash监听器当前跳转不需要做处理
+                    routeData.hashListener = false;
+                    URL.hash('!/' + requestUrl);
+                }
+
+            }, refresh)
+        }
+
+
+        module.exports = redirect;
+    }, {
+        "../../../inside/config/index": 16,
+        "../../../inside/lib/path": 38,
+        "../../../inside/lib/url": 42,
+        "./exec": 10,
+        "./routeData": 13
+    }],
+    13: [function(require, module, exports) {
+        /**
+         * Created by xiyuan on 17-5-30.
+         */
+        module.exports = {
+            history: {
+
+            },
+            nowInfo: {},
+            prevInfo: {}
+        }
+
+    }, {}],
+    14: [function(require, module, exports) {
+        /**
+         * Created by xiyuan on 17-5-30.
+         */
+        'use strict';
+
+        var routeData = require('./routeData');
+
+        var redirect = require('./redirect');
+
+        var PATH = require('../../../inside/lib/path');
+
+        var appConf = require('../../../inside/config/index').appConf;
+
+        var routeMode = appConf.route.mode;
+
+
+        /*监听点击事件（主要用来监控当前点击的节点是否a标签 页面跳转）*/
+        window.document.addEventListener('click', function(event) {
+            var element = event.target;
+
+            //检查当前点击是否在a标签范围内(主要作用获取a元素)
+            while (element.nodeName !== 'A') {
+                if (element === this || !(element = element.parentNode) || !element) return;
+            }
+
+            //检查是否需要进行外部跳转
+            if (element.getAttribute('target') !== null) return;
+
+            var href = element.getAttribute('href');
+
+            //检查是否返回
+            if (element.getAttribute('isBack') !== null) {
+                window.history.back();
+                routeData.history.isBack = true;
+                return;
+            }
+
+            //标识是否回退
+            routeData.history.isBack = false;
+
+            //检查是否网络绝对地址
+            if (/^(\w+:)?\/\/(\w[\w\.]*)/.test(href)) return;
+
+            //阻止默认的a标签跳转事件
+            event.preventDefault();
+
+            //获取跳转的地址
+            href = decodeURI(PATH.normalize(href.replace(/^\.?[\/\\]/, '')));
+
+            //页面重定向
+            redirect(href, {}, routeData.history.isBack);
+
+        }, false);
+
+        function watch() {
+
+            //检查当前路由模式
+            switch (routeMode) {
+                case 'html5':
+                    /*监听当窗口历史记录改变。（html5模式的地址）*/
+                    window.addEventListener('popstate', function(event) {
+                        //此处做了兼容,避免项目路径与根路径不一样
+                        $routeManage.assign(getPathNormalize(routeMode).replace($routeManage.rootIntervalPath, ''));
+                    }, false);
+                    break;
+                default:
+                    routeMode = appConf.route.mode = 'hash';
+                    /*监听当前文档hash改变。（当前hash模式的地址）*/
+                    window.addEventListener('hashchange', function(e) {
+                        //检查是否是点击跳转页面的
+                        if ($routeManage.hashListener) {
+                            $routeManage.assign(getPathNormalize(routeMode));
+                        } else {
+                            $routeManage.hashListener = true;
+                        }
+                    }, false);
+
+            }
+        };
+
+
+        module.exports = watch;
+    }, {
+        "../../../inside/config/index": 16,
+        "../../../inside/lib/path": 38,
+        "./redirect": 12,
+        "./routeData": 13
+    }],
+    15: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -4548,6 +4828,9 @@
         //框架应用配置
         var frameConf = require('../inside/config/index');
 
+        //框架引导程序
+        var boot = require('./boot/index');
+
         module.exports = {
             exec: function() {
                 //触发配置初始化
@@ -4556,34 +4839,34 @@
                 //加载url路径配置
                 frameConf.loadUrlConf(function(state) {
                     //引导启动
-                    if (state) frameConf.bootStart();
+                    if (state) boot.start();
                 });
             }
         }
     }, {
-        "../inside/config/index": 10,
-        "../inside/event/insideEvent": 15
+        "../inside/config/index": 16,
+        "../inside/event/insideEvent": 21,
+        "./boot/index": 9
     }],
-    10: [function(require, module, exports) {
+    16: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
-        var parse = require('./lib/parse')
+        var loadUrlConf = require('./lib/loadUrlConf');
 
-        //引导启动
-        function bootStart() {
-
-        }
+        var commData = require('./lib/commData');
 
 
         module.exports = {
-            loadUrlConf: parse.loadUrlConf,
-            bootStart: bootStart
+            loadUrlConf: loadUrlConf,
+            appConf: commData.appConf,
+            insideConf: commData.insideConf
         }
     }, {
-        "./lib/parse": 13
+        "./lib/commData": 17,
+        "./lib/loadUrlConf": 19
     }],
-    11: [function(require, module, exports) {
+    17: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -4595,6 +4878,11 @@
             nowUrl: '',
             fileLength: 0
         };
+
+        //框架内部配置
+        var insideConf = {
+
+        }
 
         //配置
         var appConf = {
@@ -4636,10 +4924,11 @@
 
         module.exports = {
             appConf: appConf,
-            stateData: stateData
+            stateData: stateData,
+            insideConf: insideConf
         }
     }, {}],
-    12: [function(require, module, exports) {
+    18: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -4649,7 +4938,12 @@
         var jsonp = require('../../lib/net/jsonp');
         var commData = require('./commData');
 
-        var appConf = commData.appConf,
+
+        //空方法
+        var noop = function() {
+
+            },
+            appConf = commData.appConf,
             stateData = commData.stateData;
 
         /*配置对象接口*/
@@ -4709,6 +5003,7 @@
                 if (--fileLength === 0) {
                     //加载完毕后恢复当前资源URL
                     stateData.nowUrl = nowUrl;
+                    stateData.callback();
                 }
             }
 
@@ -4726,41 +5021,119 @@
             }
         };
 
-        function getConfig(configUrl, Interface, jsonpCallback) {
+        /**
+         * 配置读取
+         * @param confArgs
+         * @param callback
+         * @param url
+         * @param parentInterface
+         */
+        function configRead(confArgs, callback, url, parentInterface) {
+            var confKey,
+                confFn,
+                fileLen = stateData.fileLength,
+                nowCallbck = stateData.callback,
+                isMasterInterface = parentInterface ? false : true;
 
-            var sconfigUrl = path.resolve(configUrl, stateData.nowUrl);
+            //当前资源URL
+            stateData.nowUrl = url;
 
-            console.log(sconfigUrl, '>>>>>>>>...', configUrl, stateData.nowUrl)
+            if (!parentInterface) {
+                parentInterface = new configIniterface();
+                stateData.interface = parentInterface;
+            }
+
+            switch (confArgs.length) {
+                case 1:
+                    confFn = confArgs[0];
+                    break;
+                case 2:
+                    confKey = confArgs[0];
+                    confFn = confArgs[1];
+                    break;
+            }
+
+            //配置回调执行
+            confFn(parentInterface);
+
+            //检查是否有新文件需要加载
+            if (fileLen !== stateData.fileLength) {
+                stateData.callback = function() {
+                    stateData.callback = nowCallbck;
+                    callback();
+                };
+            } else {
+                callback();
+            }
+
+            //后续支持设置配置Key
+        }
+
+        function getConfig(configUrl, Interface, jsonpCallback, callback) {
+
+            //记录加载文件数
+            stateData.fileLength++;
+
+            //获取当前文件的绝对地址
+            configUrl = path.resolve(configUrl, stateData.nowUrl);
+
+            //获取配置数据
+            jsonp({
+                url: configUrl,
+                jsonpCallback: jsonpCallback,
+                complete: function(data) {
+                    //检查返回的状态
+                    if (this.state) {
+                        //返回的数据处理(检查是否有多个回调)
+                        var count = 0;
+
+                        //检查是否多个jsonp切片
+                        (this.many ? [].slice.call(arguments) : [
+                            [data]
+                        ]).forEach(function(confArgs) {
+                            count++;
+                            //请求完毕后处理配置解析
+                            configRead(confArgs, function() {
+                                if (--count === 0) {
+                                    stateData.fileLength--
+                                        callback(true);
+                                }
+                            }, configUrl, Interface);
+
+                        });
+
+                    } else {
+                        log.warn('应用引导配置出错，请检查！ (' + this.option.url + ')');
+                    }
+                }
+            });
 
         }
 
 
-        module.exports = configIniterface;
+        module.exports = {
+            configRead: configRead,
+            configIniterface: configIniterface
+        };
     }, {
-        "../../lib/net/jsonp": 29,
-        "../../lib/path": 32,
-        "../../log/log": 37,
-        "./commData": 11
+        "../../lib/net/jsonp": 35,
+        "../../lib/path": 38,
+        "../../log/log": 43,
+        "./commData": 17
     }],
-    13: [function(require, module, exports) {
+    19: [function(require, module, exports) {
         'use strict';
         var log = require('../../log/log');
         var jsonp = require('../../lib/net/jsonp');
-        var confInterface = require('./initerface');
+        var confAPI = require('./initerface');
         var commData = require('./commData');
-
-        //空方法
-        var noop = function() {
-
-            },
-            appConf = commData.appConf,
-            stateData = commData.stateData;
 
         //加载url路径中配置
         function loadUrlConf(callback) {
             var configUrl,
                 configScript = document.querySelector('script[app-config]');
 
+            //检查是否设置脚本配置
             if (configScript) {
                 //获取应用配置路径
                 configUrl = configScript.getAttribute('app-config');
@@ -4772,14 +5145,15 @@
                     complete: function(data) {
                         //检查返回的状态
                         if (this.state) {
-                            //返回的数据处理(检查是否有多个回调)
-                            var count = 0;
+                            var agrs = (this.many ? [].slice.call(arguments) : [
+                                [data]
+                            ]);
+                            var count = agrs.length;
 
-                            //检查是否多个jsonp切片
-                            (this.many ? [].slice.call(arguments) : [data]).forEach(function(confArgs) {
-                                count++;
+                            //返回的数据处理(检查是否有多个回调)
+                            agrs.forEach(function(confArgs) {
                                 //请求完毕后处理配置解析
-                                configParse(confArgs, function() {
+                                confAPI.configRead(confArgs, function() {
                                     if (--count === 0 && typeof callback === "function") {
                                         callback(true);
                                     }
@@ -4796,48 +5170,15 @@
             }
         }
 
-        //配置解析
-        function configParse(confArgs, callback, url, parentInterface) {
-            var confKey,
-                confFn,
-                isMasterInterface = parentInterface ? false : true;
 
-            //当前资源URL
-            stateData.nowUrl = url;
-
-            if (!parentInterface) {
-                parentInterface = new confInterface();
-                stateData.interface = parentInterface;
-                stateData.callback = typeof callback === 'function' ? callback : noop;
-            }
-
-            switch (confArgs.length) {
-                case 1:
-                    confFn = confArgs[0];
-                    break;
-                case 2:
-                    confKey = confArgs[0];
-                    confFn = confArgs[1];
-                    break;
-            }
-
-            //配置回调
-            confFn(parentInterface);
-
-            //后续支持设置配置Key
-        }
-
-
-        module.exports = {
-            loadUrlConf: loadUrlConf
-        }
+        module.exports = loadUrlConf
     }, {
-        "../../lib/net/jsonp": 29,
-        "../../log/log": 37,
-        "./commData": 11,
-        "./initerface": 12
+        "../../lib/net/jsonp": 35,
+        "../../log/log": 43,
+        "./commData": 17,
+        "./initerface": 18
     }],
-    14: [function(require, module, exports) {
+    20: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-12-2.
          */
@@ -4875,7 +5216,7 @@
 
         module.exports = eventInterface;
     }, {}],
-    15: [function(require, module, exports) {
+    21: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -4905,6 +5246,11 @@
 
         });
 
+        /*监听路由开始*/
+        insideEvent.watch('route:start', function(event) {
+            console.log(this, event)
+        });
+
         /*页面渲染事件*/
         insideEvent.watch('page:render', function(event) {
             //代理框架外部页面渲染事件
@@ -4913,9 +5259,9 @@
 
         module.exports = insideEvent;
     }, {
-        "./eventInterface": 14
+        "./eventInterface": 20
     }],
-    16: [function(require, module, exports) {
+    22: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-11-30.
          */
@@ -4954,7 +5300,7 @@
 
 
     }, {}],
-    17: [function(require, module, exports) {
+    23: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-3-7.
          */
@@ -5091,7 +5437,7 @@
         }
 
     }, {}],
-    18: [function(require, module, exports) {
+    24: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-11-30.
          */
@@ -5192,7 +5538,7 @@
 
 
     }, {}],
-    19: [function(require, module, exports) {
+    25: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-27.
          */
@@ -5489,9 +5835,9 @@
 
 
     }, {
-        "./base64": 18
+        "./base64": 24
     }],
-    20: [function(require, module, exports) {
+    26: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-27.
          */
@@ -5504,13 +5850,13 @@
             sha256: require('./sha256'),
         }
     }, {
-        "./base64": 18,
-        "./md5": 21,
-        "./sha256": 22,
-        "./uid": 23,
-        "./utf8": 24
+        "./base64": 24,
+        "./md5": 27,
+        "./sha256": 28,
+        "./uid": 29,
+        "./utf8": 30
     }],
-    21: [function(require, module, exports) {
+    27: [function(require, module, exports) {
 
         "use strict";
 
@@ -5524,10 +5870,10 @@
             return commLib.rstr2hex(commLib.rstrexports(str2rstr_utf8(s)));
         };
     }, {
-        "./commLib": 19,
-        "./utf8": 24
+        "./commLib": 25,
+        "./utf8": 30
     }],
-    22: [function(require, module, exports) {
+    28: [function(require, module, exports) {
 
 
         var b64pad = "=";
@@ -5724,9 +6070,9 @@
 
         module.exports = sha256
     }, {
-        "./commLib": 19
+        "./commLib": 25
     }],
-    23: [function(require, module, exports) {
+    29: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-26.
          */
@@ -5740,7 +6086,7 @@
         }
 
     }, {}],
-    24: [function(require, module, exports) {
+    30: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-11-30.
          */
@@ -5778,7 +6124,7 @@
         }
 
     }, {}],
-    25: [function(require, module, exports) {
+    31: [function(require, module, exports) {
         /**
          * 内部处理库
          * Created by xiyuan on 17-5-9.
@@ -5800,20 +6146,20 @@
             platform: require('./platform')
         }
     }, {
-        "./buffer": 16,
-        "./date": 17,
-        "./encrypt/exports": 20,
-        "./json": 26,
-        "./net/exports": 28,
-        "./object": 30,
-        "./observer": 31,
-        "./path": 32,
-        "./platform": 33,
-        "./string": 34,
-        "./type": 35,
-        "./url": 36
+        "./buffer": 22,
+        "./date": 23,
+        "./encrypt/exports": 26,
+        "./json": 32,
+        "./net/exports": 34,
+        "./object": 36,
+        "./observer": 37,
+        "./path": 38,
+        "./platform": 39,
+        "./string": 40,
+        "./type": 41,
+        "./url": 42
     }],
-    26: [function(require, module, exports) {
+    32: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-3-7.
          */
@@ -5844,7 +6190,7 @@
         };
 
     }, {}],
-    27: [function(require, module, exports) {
+    33: [function(require, module, exports) {
         /**
          * Created by xiyuan on 16-12-5.
          */
@@ -6019,10 +6365,10 @@
 
         module.exports = ajax;
     }, {
-        "../json": 26,
-        "../url": 36
+        "../json": 32,
+        "../url": 42
     }],
-    28: [function(require, module, exports) {
+    34: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-27.
          */
@@ -6033,10 +6379,10 @@
             jsonp: require('./jsonp')
         }
     }, {
-        "./ajax": 27,
-        "./jsonp": 29
+        "./ajax": 33,
+        "./jsonp": 35
     }],
-    29: [function(require, module, exports) {
+    35: [function(require, module, exports) {
         'use strict';
 
         var url = require('../url');
@@ -6197,10 +6543,10 @@
 
 
     }, {
-        "../path": 32,
-        "../url": 36
+        "../path": 38,
+        "../url": 42
     }],
-    30: [function(require, module, exports) {
+    36: [function(require, module, exports) {
         'use strict';
 
         /**
@@ -6546,7 +6892,7 @@
             get: get
         }
     }, {}],
-    31: [function(require, module, exports) {
+    37: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-3-7.
          */
@@ -7301,7 +7647,7 @@
             };
         }(), this);
     }, {}],
-    32: [function(require, module, exports) {
+    38: [function(require, module, exports) {
         /**
          * 路径处理
          * Created by xiyuan on 17-3-7.
@@ -7406,9 +7752,9 @@
         }
 
     }, {
-        "./url": 36
+        "./url": 42
     }],
-    33: [function(require, module, exports) {
+    39: [function(require, module, exports) {
         (function(global) {
             'use strict';
 
@@ -8709,7 +9055,7 @@
             module.exports = parse();
         }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
     }, {}],
-    34: [function(require, module, exports) {
+    40: [function(require, module, exports) {
         'use strict';
 
         /*字符串处理（与PHP的 trim功能相同）*/
@@ -8809,7 +9155,7 @@
             escapeToRegexp: escapeToRegexp
         }
     }, {}],
-    35: [function(require, module, exports) {
+    41: [function(require, module, exports) {
         function getType(value) {
             if (isElement(value)) return 'element';
             var type = typeof(value);
@@ -8994,7 +9340,7 @@
             equals: equals,
         }
     }, {}],
-    36: [function(require, module, exports) {
+    42: [function(require, module, exports) {
         /**
          * 网址处理
          * Created by xiyuan on 17-3-7.
@@ -9124,8 +9470,8 @@
                 }
 
                 var key = ~0,
-                    l = arr.length,
-                    arr = str.split("&");
+                    arr = str.split("&"),
+                    l = arr.length;
 
                 while (++key < l) {
                     var value = arr[key].split('=');
@@ -9163,7 +9509,7 @@
         }
 
     }, {}],
-    37: [function(require, module, exports) {
+    43: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -9208,7 +9554,7 @@
             fatal: fatal
         }
     }, {}],
-    38: [function(require, module, exports) {
+    44: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-9.
          */
@@ -9237,7 +9583,7 @@
         }, window)
     }, {
         "./engine/exports": 1,
-        "./init/index": 9,
-        "./inside/lib/exports": 25
+        "./init/index": 15,
+        "./inside/lib/exports": 31
     }]
-}, {}, [38]);
+}, {}, [44]);

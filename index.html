@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>视图渲染</title>
 </head>
-<body>
+<body class>
 
 <div class="template">
     <!--<h1>这是标题：{{pageDate.title+'-&#45;&#45;'}}sdfsd{{s|:co+'xiyuan'}}</h1>-->
@@ -14,7 +14,7 @@
 
     <list-gird conf="gridConf" for="gridConf in {listData:listData}.listData.data"></list-gird>
 
-
+    <a href="./sdfsdfsd?fdsf=we&age=18">fsdfsdfsd</a>
     <!--<div conf="gridConfs" for="gridConf in {listData:listData}.listData.data">-&#45;&#45;{{gridConf}}-&#45;&#45;</div>-->
     <!--<div for="gridConf in [listData][0].data">-&#45;&#45;{{gridConf}}-&#45;&#45;</div>-->
     <!--<strong>内容</strong>-->
@@ -28,6 +28,7 @@
         var sDate = Date.now(),
 //            htmlStr=document.querySelector('script[type="text/template"]').textContent;
             htmlStr = document.querySelector('.template').outerHTML;
+
 
         vf.engin.viewEngin.componentMange.register('list-gird', {
             template: '<div class="grid"><strong>grid{{gridConf}}</strong>dsfsdf</div><p>o::::</p>',

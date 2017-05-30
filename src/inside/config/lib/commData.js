@@ -10,6 +10,11 @@ var stateData={
     fileLength:0
 };
 
+//框架内部配置
+var insideConf={
+
+}
+
 //配置
 var appConf={
     //框架系统配置
@@ -50,5 +55,6 @@ var appConf={
 
 module.exports={
     appConf:appConf,
-    stateData:stateData
+    stateData:stateData,
+    insideConf:insideConf
 }

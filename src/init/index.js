@@ -10,6 +10,9 @@ var insideEvent=require('../inside/event/insideEvent');
 //框架应用配置
 var frameConf=require('../inside/config/index');
 
+//框架引导程序
+var boot=require('./boot/index');
+
 module.exports={
     exec:function () {
         //触发配置初始化
@@ -18,7 +21,7 @@ module.exports={
         //加载url路径配置
         frameConf.loadUrlConf(function (state) {
             //引导启动
-            if(state) frameConf.bootStart();
+            if(state) boot.start();
         });
     }
 }

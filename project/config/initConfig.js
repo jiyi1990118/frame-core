@@ -7,6 +7,7 @@
 config(function($app,$appConfig){
 
     $app.include({
+        sys:'./sys/path.js',
         route:'./route/defulat.js'
     })
 

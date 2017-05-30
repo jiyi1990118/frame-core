@@ -25,6 +25,8 @@ var document = window.document;
 //虚拟Dom
 var vdom = require('./vdom');
 
+var string = require('../../../inside/lib/string');
+
 //语法解析
 var syntaxStruct = require('./syntaxStruct');
 
@@ -241,7 +243,7 @@ function str2vdom(htmlStr) {
         eleStruct = [],
         structLevel = [];
 
-    HTMLParser(htmlStr, {
+    HTMLParser(string.HTMLDecode(htmlStr), {
         //标签节点起始
         start: function (tagName, attrs, unary) {
             nowStruct = vdom.vnode(

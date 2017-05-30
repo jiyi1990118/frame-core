@@ -127,8 +127,8 @@ function toObject(str,toggle) {
         }
 
         var key=~0,
-            l=arr.length,
-            arr = str.split("&");
+            arr = str.split("&"),
+            l=arr.length;
 
         while (++key<l){
             var value = arr[key].split('=');

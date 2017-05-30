@@ -7,8 +7,13 @@ var path=require('../../lib/path');
 var jsonp=require('../../lib/net/jsonp');
 var commData=require('./commData');
 
-var appConf=commData.appConf,
-    stateData=commData.stateData;
+
+//空方法
+var noop = function () {
+
+    },
+    appConf = commData.appConf,
+    stateData = commData.stateData;
 
 /*配置对象接口*/
 function configIniterface() {
@@ -67,6 +72,7 @@ configIniterface.prototype.include = function (config) {
         if(--fileLength === 0){
             //加载完毕后恢复当前资源URL
             stateData.nowUrl = nowUrl;
+            stateData.callback();
         }
     }
 
@@ -84,13 +90,95 @@ configIniterface.prototype.include = function (config) {
     }
 };
 
-function getConfig(configUrl, Interface, jsonpCallback) {
+/**
+ * 配置读取
+ * @param confArgs
+ * @param callback
+ * @param url
+ * @param parentInterface
+ */
+function configRead(confArgs, callback, url, parentInterface) {
+    var confKey,
+        confFn,
+        fileLen=stateData.fileLength,
+        nowCallbck=stateData.callback,
+        isMasterInterface = parentInterface ? false : true;
 
-    var sconfigUrl = path.resolve(configUrl,stateData.nowUrl);
+    //当前资源URL
+    stateData.nowUrl = url;
 
-    console.log(sconfigUrl,'>>>>>>>>...',configUrl,stateData.nowUrl)
+    if (!parentInterface) {
+        parentInterface = new configIniterface();
+        stateData.interface=parentInterface;
+    }
+
+    switch (confArgs.length) {
+        case 1:
+            confFn = confArgs[0];
+            break;
+        case 2:
+            confKey = confArgs[0];
+            confFn = confArgs[1];
+            break;
+    }
+
+    //配置回调执行
+    confFn(parentInterface);
+
+    //检查是否有新文件需要加载
+    if(fileLen !== stateData.fileLength){
+        stateData.callback=function () {
+            stateData.callback=nowCallbck;
+            callback();
+        };
+    }else{
+        callback();
+    }
+
+    //后续支持设置配置Key
+}
+
+function getConfig(configUrl, Interface, jsonpCallback,callback) {
+
+    //记录加载文件数
+    stateData.fileLength++;
+
+    //获取当前文件的绝对地址
+    configUrl = path.resolve(configUrl,stateData.nowUrl);
+
+    //获取配置数据
+    jsonp({
+        url: configUrl,
+        jsonpCallback: jsonpCallback,
+        complete: function (data) {
+            //检查返回的状态
+            if (this.state) {
+                //返回的数据处理(检查是否有多个回调)
+                var count = 0;
+
+                //检查是否多个jsonp切片
+                (this.many ? [].slice.call(arguments) : [[data]]).forEach(function (confArgs) {
+                    count++;
+                    //请求完毕后处理配置解析
+                    configRead(confArgs, function () {
+                        if (--count === 0) {
+                            stateData.fileLength--
+                            callback(true);
+                        }
+                    }, configUrl,Interface);
+
+                });
+
+            } else {
+                log.warn('应用引导配置出错，请检查！ (' + this.option.url + ')');
+            }
+        }
+    });
 
 }
 
 
-module.exports=configIniterface;
+module.exports={
+    configRead:configRead,
+    configIniterface:configIniterface
+};

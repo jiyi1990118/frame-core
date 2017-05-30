@@ -27,6 +27,11 @@ insideEvent.watch('boot:start',function(event){
 
 });
 
+/*监听路由开始*/
+insideEvent.watch('route:start',function(event){
+    console.log(this,event)
+});
+
 /*页面渲染事件*/
 insideEvent.watch('page:render',function(event){
     //代理框架外部页面渲染事件
