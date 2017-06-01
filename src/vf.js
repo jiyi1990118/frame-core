@@ -20,6 +20,6 @@
 
     return {
         lib:require('./inside/lib/exports'),
-        engin:require('./engine/exports')
+        engin:require('./engine/index')
     }
 },window)

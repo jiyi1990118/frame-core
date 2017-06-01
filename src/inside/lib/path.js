@@ -59,7 +59,7 @@ function resolve(path, url) {
             if(path.charAt(0) === '/'){
                 path=URL.domain()+path;
             }else{
-                path=window.location.href + path;
+                path=dirname(window.location.href) + path;
             }
         }
     }

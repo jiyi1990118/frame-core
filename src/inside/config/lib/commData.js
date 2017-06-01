@@ -12,7 +12,7 @@ var stateData={
 
 //框架内部配置
 var insideConf={
-
+    routeList:[]
 }
 
 //配置
@@ -24,6 +24,12 @@ var appConf={
             model:'model',
             view:'view',
             presenter:'presenter'
+        },
+        //模型目录名称
+        moduleDirName:{
+            view: 'view',
+            presenter: 'presenter',
+            model: 'model'
         },
         //文件后缀标识
         fileSuffix:{
@@ -47,14 +53,33 @@ var appConf={
         //路由后缀
         suffix:'',
     },
+    pathList:[],
     //视图模板后缀
-    tplSuffix:'html',
+    tplSuffix:'.html',
     //默认视图请求方式
     viewRequire:'ajax'
 };
 
+//内部配置
+function innerConf(arg1,agr2) {
+    if(arguments.length === 1 ){
+        if(arg1 instanceof Object){
+            Object.keys(arg1).forEach(function (key) {
+                innerConf[key]=arg1[key];
+            })
+        }else{
+            return innerConf[key];
+        }
+    }else if(arguments.length === 2 ){
+        if(typeof arg1 === 'string'){
+            innerConf[arg1]=agr2;
+        }
+    }
+}
+
 module.exports={
     appConf:appConf,
     stateData:stateData,
-    insideConf:insideConf
+    insideConf:insideConf,
+    innerConf:innerConf
 }

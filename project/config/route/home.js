@@ -4,30 +4,35 @@
 route(function ($appConf) {
 
     $appConf.route('home',{
-        presenter: 'appHome@index',
+        presenter: 'HOME@index',
         view: function ($view) {
             $view({
                 layout:'',
-                suffix: 'tpl',
+                tplSuffix: 'tpl',
                 requireType: 'ajax'
             });
-            return 'appHome@index:index'
-        }
+            return 'HOME@index:index'
+        },
+        suffix:'java'
     },function ($route) {
 
-        $route.when('login',{
+        $route.when(['login{id}',{id:/\d+/}],{
             controller: 'appHome@index:login',
             view: 'appHome@index:login'
         }).when('help',{
             controller: 'appHome@index:help',
             view: 'appHome@index:help'
-        }).when('reg',{
+        }).when(/reg/,{
             controller: 'appHome@index:reg',
             view: 'appHome@index:reg'
         });
 
         //自动路由
-        $route.autoRoute('appHome');
+        $route.autoRoute({
+            presenter: 'dev.com/presenter',
+            view: 'dev.com/view',
+            suffix:'html'
+        })
     })
 
 })

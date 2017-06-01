@@ -3,6 +3,7 @@ var log = require('../../log/log');
 var jsonp = require('../../lib/net/jsonp');
 var confAPI = require('./initerface');
 var commData = require('./commData');
+var configEndHandle=require('./configEndHandle');
 
 //加载url路径中配置
 function loadUrlConf(callback) {
@@ -29,6 +30,8 @@ function loadUrlConf(callback) {
                         //请求完毕后处理配置解析
                         confAPI.configRead(confArgs, function () {
                             if (--count === 0 && typeof callback === "function") {
+                                //调用配置处理
+                                configEndHandle();
                                 callback(true);
                             }
                         }, configUrl);

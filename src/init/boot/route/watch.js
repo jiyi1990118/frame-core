@@ -3,6 +3,8 @@
  */
 'use strict';
 
+var exec=require('./exec');
+
 var routeData=require('./routeData');
 
 var redirect=require('./redirect');
@@ -52,6 +54,21 @@ window.document.addEventListener('click', function (event) {
 
 }, false);
 
+
+/*路径处理*/
+function getPathNormalize(type) {
+    var href;
+    switch (type){
+        case 'html5':
+            href = decodeURI(window.location.href.replace(routeData.rootPath, ''));
+            break;
+        case 'hash':
+            href = decodeURI(window.location.hash.replace(/\#\!\/*/, ''));
+            break;
+    }
+    return href;
+};
+
 function watch() {
 
     //检查当前路由模式
@@ -60,7 +77,7 @@ function watch() {
             /*监听当窗口历史记录改变。（html5模式的地址）*/
             window.addEventListener('popstate', function (event) {
                 //此处做了兼容,避免项目路径与根路径不一样
-                $routeManage.assign(getPathNormalize(routeMode).replace($routeManage.rootIntervalPath,''));
+                exec(getPathNormalize(routeMode).replace(routeData.rootIntervalPath,''));
             }, false);
             break;
         default:
@@ -68,10 +85,10 @@ function watch() {
             /*监听当前文档hash改变。（当前hash模式的地址）*/
             window.addEventListener('hashchange', function (e) {
                 //检查是否是点击跳转页面的
-                if($routeManage.hashListener ){
-                    $routeManage.assign(getPathNormalize(routeMode));
+                if(routeData.hashListener ){
+                    exec(getPathNormalize(routeMode));
                 }else{
-                    $routeManage.hashListener=true;
+                    routeData.hashListener=true;
                 }
             }, false);
 

@@ -3,21 +3,25 @@
  * Created by xiyuan on 17-5-30.
  */
 'use strict';
-var log=require('../../../inside/log/log')
 var routeData=require('./routeData');
 var getRouteInfo=require('./getRouteInfo');
+
+var engine=require('../../../engine/index');
+
+var log=require('../../../inside/log/log');
 var URL=require('../../../inside/lib/url');
 var PATH=require('../../../inside/lib/path');
 var frameConf=require('../../../inside/config/index');
 var insideEvent=require('../../../inside/event/insideEvent');
 
 var nowInfo=routeData.nowInfo;
+var prevInfo=routeData.prevInfo;
 var appConf=frameConf.appConf;
 
 var errorMsgs = {
     notPage: '404 Not Found【找不到对应的页面】',
-    errTmpl: '错误页面模板修改错误【缺失对应的模板或控制器】',
-    notOption: '没有找到对应的[错误]模板页面或控制器'
+    errTmpl: '错误页面错误【缺失对应的视图或presenter】',
+    notOption: '没有找到对应的[错误]视图或presenter'
 };
 
 function exec(requestUrl,successCallback,refresh) {
@@ -43,6 +47,7 @@ function exec(requestUrl,successCallback,refresh) {
         requestUrl: requestUrl,
         //请求的参数
         parameter:urlGetParameter,
+        parameterUrl:urlGetString,
         //当前的url
         nowUrl:nowInfoUrl,
         //路由停止,提供路由拦截
@@ -55,21 +60,20 @@ function exec(requestUrl,successCallback,refresh) {
     if(isStop)return;
 
     //页面地址
-    nowInfo.url = href;
+    nowInfo.url = requestUrl;
     //路径
     nowInfo.path = href;
     //真实地址
     nowInfo.realPath = requestUrl;
     //路径中的参数
     nowInfo.parameter=urlGetParameter;
-    //页面后缀
-    nowInfo.suffix = appConf.route.suffix;
+    nowInfo.parameterUrl=urlGetString;
 
     //查询路由是否存在
     var routeInfo = getRouteInfo(nowInfo),
         autoRouteData;
 
-    //检查是否
+    //检查路由是否存在
     if (!routeInfo) {
         routeErrorFlag = true;
 
@@ -84,8 +88,11 @@ function exec(requestUrl,successCallback,refresh) {
         href = 'error/msg:' + errorMsgs.notPage;
         nowInfo.path = href;
         nowInfo.url = href;
+        //页面后缀
+        nowInfo.suffix = routeInfo.suffix;
+
         //调用错误页面路由
-        if (!(routeInfo = exec(nowInfo))) {
+        if (!(routeInfo = getRouteInfo(nowInfo))) {
             log.error(errorMsgs.errTmpl);
             routeInfo = {
                 path: nowInfo.path,
@@ -99,53 +106,99 @@ function exec(requestUrl,successCallback,refresh) {
 
 
     //检查是匹配的资源是否自动路由
-    if (autoRouteData = routeInfo.data) {
-        //解析自动路由参数
-        var viewUrl,
-            controllerUrl,
-            viewConfig,
-            $info = routeInfo.info,
-            lowerUrl = $info.lowerUrl.replace($info.suffix, '').replace(/^[\/\\]*/, ''),
-            // isModule = autoRouteData.indexOf('@') > -1;
-            isModule = autoRouteData.match(/\@(?!zip)/);
-        switch (typeof autoRouteData) {
-            case 'string':
-                viewUrl = autoRouteData + (isModule ? '/' : '@') + lowerUrl;
-                viewUrl = viewUrl.replace(/\/([\w-]+)$/, ':$1');
-                controllerUrl = viewUrl;
-                break;
-            case 'function':
-                autoRouteData = autoRouteData(lowerUrl, $info.parameter);
-            case 'object':
-                viewUrl = autoRouteData.view || (autoRouteData.viewDir ? autoRouteData.viewDir + '/' + lowerUrl : '');
-                controllerUrl = autoRouteData.controller || (autoRouteData.controllerDir ? $path.normalize(autoRouteData.controllerDir + '/' + lowerUrl).replace(/\/([\w-]+)$/, ':$1') : '');
-                if (viewConfig = autoRouteData.viewConfig) {
-                    //组装视图配置回调参数
-                    viewUrl = function (suffix, requireType, url) {
-                        return function ($view) {
-                            $view({
-                                suffix: suffix,
-                                requireType: requireType
-                            });
-                            return url;
-                        }
-                    }(viewConfig.suffix, viewConfig.requireType, viewUrl)
-                }
-                break;
-        }
+    if (routeInfo.isAutoRoute) {
 
-        routeInfo = {
-            path: routeInfo.path,
-            suffix: $info.suffix,
-            parameter: $info.parameter,
-            routeConfig: {
-                view: viewUrl,
-                controller: controllerUrl
+        var suffix,
+            viewUrl,
+            presenterUrl;
+
+        autoRouteData = routeInfo.data;
+
+        if (typeof autoRouteData === 'string') {
+            //检查是否指定模块,否则直接设置当前路径为模块地址
+            if (autoRouteData.indexOf('@') !== -1) {
+                autoRouteData = autoRouteData + '@';
             }
+            viewUrl = presenterUrl = PATH.normalize(autoRouteData + '/' + routeInfo.path);
+        } else {
+            presenterUrl = autoRouteData.presenter;
+
+            if (autoRouteData.view) {
+                viewUrl = autoRouteData.view;
+            } else {
+                viewUrl = presenterUrl
+            }
+            suffix=autoRouteData.suffix;
         }
 
+        routeInfo={
+            presenter:presenterUrl,
+            view:viewUrl,
+            suffix:suffix||routeInfo.suffix
+        }
     }
 
+    if (!routeInfo.presenter) {
+        log.error('路由必须指定presenter!')
+    }
+
+    //生成最终URL路径
+    href=nowInfo.path.replace(routeInfo.suffix, '')+routeInfo.suffix+urlGetString
+
+    nowInfo.url = href;
+
+    //页面后缀
+    nowInfo.suffix = routeInfo.suffix;
+
+    //检查当前跳转路径和上页面是否同一个路径
+    if (nowInfoUrl === href && !refresh)return false;
+
+    //路由开始事件触发
+    insideEvent.emit('route:change', {
+        //请求的无参数url
+        url:href,
+        //请求的url
+        requestUrl: requestUrl,
+        //请求的参数
+        parameter:urlGetParameter,
+        //当前的url
+        nowUrl:nowInfoUrl,
+        //路由停止
+        stop:function () {
+            isStop=true;
+        }
+    });
+
+    //检查路由停止标识
+    if(isStop)return;
+
+    //检测是否返回
+    routeData.history.isBack =routeData.history.isBack ? href === prevInfo.url:routeData.history.isBack;
+
+    //路径历史更新
+    nowInfo.url = href;
+    prevInfo.url = nowInfoUrl;
+
+    //回调处理
+    typeof successCallback === 'function' && successCallback(nowInfo);
+
+    //路由成功事件触发
+    if(!routeErrorFlag){
+
+        insideEvent.emit('route:success', {
+            requestUrl: requestUrl,
+            routeInfo: nowInfo
+        });
+        routeData.routeState='success';
+
+        //赋值页面参数到全局get参数容器中
+        window.$_GET=urlGetParameter;
+    }
+
+    //页面渲染引擎执行
+    engine.exec(routeInfo,nowInfo);
+
+    return nowInfo;
 }
 
 

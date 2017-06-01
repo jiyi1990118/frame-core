@@ -49,7 +49,7 @@ function redirect(requestUrl,arg,isBack,refresh){
         //并检查是否和上一次路径重复
         if(!routeInfo  && !refresh)return;
 
-        requestUrl = routeInfo.path;
+        requestUrl = routeInfo.url;
 
         //检查当前模式
         if (appConf.route.mode === 'html5') {

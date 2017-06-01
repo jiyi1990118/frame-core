@@ -2,10 +2,11 @@
  * Created by xiyuan on 17-5-29.
  */
 'use strict';
-var log=require('../../log/log');
-var path=require('../../lib/path');
-var jsonp=require('../../lib/net/jsonp');
-var commData=require('./commData');
+var log = require('../../log/log');
+var path = require('../../lib/path');
+var jsonp = require('../../lib/net/jsonp');
+var commData = require('./commData');
+var routeConf = require('./routeConf');
 
 
 //空方法
@@ -44,11 +45,35 @@ configIniterface.prototype.system = function (config) {
             typeof tmpData.presenter === 'string' && (fileSuffix.presenter = tmpData.presenter);
         }
 
-    }else{
+    } else {
         log.warn('系统配置参类型应该是Object!');
     }
 
 };
+
+
+/*路由模式 【 # hash 与 / html5 】默认hash */
+configIniterface.prototype.routeMode = function (config) {
+    appConf.route.mode = config;
+};
+
+/*路由后缀 默认空*/
+configIniterface.prototype.routeSuffix = function (config) {
+    appConf.route.suffix = '.' + config.replace(/^\./, '');
+};
+
+/*视图模板后缀 默认html*/
+configIniterface.prototype.tplSuffix = function (config) {
+    appConf.tplSuffix = config.replace(/^\.+/, '');
+};
+
+/*视图请求方式 【 ajax 与 jsonp 】 默认ajax*/
+configIniterface.prototype.viewRequire = function (config) {
+    appConf.viewRequire = config;
+};
+
+/*路由配置*/
+configIniterface.prototype.route = routeConf;
 
 /*应用模块*/
 configIniterface.prototype.module = function (config) {
@@ -57,19 +82,29 @@ configIniterface.prototype.module = function (config) {
 
 /*应用路径配置*/
 configIniterface.prototype.path = function (config) {
+    Object.keys(config).forEach(function (key) {
+        appConf.pathList.push({
+            regExp: RegExp('^' + key + '([/@:]([\\S]*))?$'),
+            path: config[key],
+            len: key.length
+        });
+    });
 
+    //根据路径长度来排序
+    appConf.pathList = appConf.pathList.sort(function (pev, next) {
+        return next.len - pev.len;
+    });
 };
 
 /*应用配置扩展*/
 configIniterface.prototype.include = function (config) {
-    var This=this,
-        fileLength=0,
-        info = stateData,
+    var This = this,
+        fileLength = 0,
         //保存当前层级的路径
-        nowUrl=stateData.nowUrl;
+        nowUrl = stateData.nowUrl;
 
     function callback() {
-        if(--fileLength === 0){
+        if (--fileLength === 0) {
             //加载完毕后恢复当前资源URL
             stateData.nowUrl = nowUrl;
             stateData.callback();
@@ -77,15 +112,15 @@ configIniterface.prototype.include = function (config) {
     }
 
     //检查配置包含类型
-    if(config instanceof Array){
+    if (config instanceof Array) {
         config.forEach(function (confUrl) {
             fileLength++;
-            getConfig(confUrl, This,'config',callback);
+            getConfig(confUrl, This, 'config', callback);
         });
-    }else if(config instanceof Object){
+    } else if (config instanceof Object) {
         Object.keys(config).forEach(function (key) {
             fileLength++;
-            getConfig(config[key], This, key,callback);
+            getConfig(config[key], This, key, callback);
         })
     }
 };
@@ -100,16 +135,15 @@ configIniterface.prototype.include = function (config) {
 function configRead(confArgs, callback, url, parentInterface) {
     var confKey,
         confFn,
-        fileLen=stateData.fileLength,
-        nowCallbck=stateData.callback,
-        isMasterInterface = parentInterface ? false : true;
+        fileLen = stateData.fileLength,
+        nowCallbck = stateData.callback;
 
     //当前资源URL
     stateData.nowUrl = url;
 
     if (!parentInterface) {
         parentInterface = new configIniterface();
-        stateData.interface=parentInterface;
+        stateData.interface = parentInterface;
     }
 
     switch (confArgs.length) {
@@ -122,29 +156,35 @@ function configRead(confArgs, callback, url, parentInterface) {
             break;
     }
 
-    //配置回调执行
-    confFn(parentInterface);
-
-    //检查是否有新文件需要加载
-    if(fileLen !== stateData.fileLength){
-        stateData.callback=function () {
-            stateData.callback=nowCallbck;
-            callback();
-        };
-    }else{
+    //避免配置错误导致无限循环
+    try {
+        //配置回调执行
+        confFn(parentInterface, commData.innerConf);
+    }
+    catch (e) {
         callback();
+        return log.warn(e)
     }
 
+    //检查是否有新文件需要加载
+    if (fileLen !== stateData.fileLength) {
+        stateData.callback = function () {
+            stateData.callback = nowCallbck;
+            callback();
+        };
+    } else {
+        callback();
+    }
     //后续支持设置配置Key
 }
 
-function getConfig(configUrl, Interface, jsonpCallback,callback) {
+function getConfig(configUrl, Interface, jsonpCallback, callback) {
 
     //记录加载文件数
     stateData.fileLength++;
 
     //获取当前文件的绝对地址
-    configUrl = path.resolve(configUrl,stateData.nowUrl);
+    configUrl = path.resolve(configUrl, stateData.nowUrl);
 
     //获取配置数据
     jsonp({
@@ -165,10 +205,8 @@ function getConfig(configUrl, Interface, jsonpCallback,callback) {
                             stateData.fileLength--
                             callback(true);
                         }
-                    }, configUrl,Interface);
-
+                    }, configUrl, Interface);
                 });
-
             } else {
                 log.warn('应用引导配置出错，请检查！ (' + this.option.url + ')');
             }
@@ -178,7 +216,7 @@ function getConfig(configUrl, Interface, jsonpCallback,callback) {
 }
 
 
-module.exports={
-    configRead:configRead,
-    configIniterface:configIniterface
+module.exports = {
+    configRead: configRead,
+    configIniterface: configIniterface
 };
