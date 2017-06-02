@@ -10,9 +10,6 @@ function ajax(option){
     //是否同步请求
     option.async = option.async === undefined ? true : option.async ? true : false;
 
-    //请求的数据
-    // option.data= option.data?tools.objectToUrl(option.data):'';
-
     //请求类型
     option.type = (new RegExp(option.type,'ig').exec('GET,DELETE,POST,PUT,HEAD,FORM').toString() || 'GET');
 

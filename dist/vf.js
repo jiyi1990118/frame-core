@@ -34,43 +34,301 @@
 
         //资源获取
         var getSource = require('../inside/source/getSource');
+        var presenterEngine = require('./presenter/index');
 
         /**
          * 引擎运行器
          * @param routeInfo 路由信息
          * @param pathInfo 路径信息
          */
-        function enginExec(routeInfo, pathInfo) {
-            // console.log(routeInfo,pathInfo)
+        function engineExec(routeInfo, pathInfo) {
 
             //获取调度器资源
             getSource(routeInfo.presenter, {
                 mode: 'presenter'
-            }, function() {
-
+            }, function(source, info) {
+                //调度器执行
+                presenterEngine.exec(source, info, routeInfo, pathInfo);
             });
-
-
         }
-
-
-
-
-
-
 
         module.exports = {
             //视图引擎
             viewEngin: viewEngin,
             //引擎执行器
-            exec: enginExec
+            exec: engineExec
         }
 
     }, {
-        "../inside/source/getSource": 47,
-        "./view/exports": 2
+        "../inside/source/getSource": 50,
+        "./presenter/index": 2,
+        "./view/exports": 4
     }],
     2: [function(require, module, exports) {
+        /**
+         * 调度器引擎
+         * Created by xiyuan on 17-5-9.
+         */
+        "use strict";
+
+        var presenterInterface = require('./presenterInterface');
+
+        /**
+         * 调度执行
+         * @param source
+         * @param sourceInfo
+         * @param routeInfo
+         * @param pathInfo
+         */
+        function presenterExec(source, sourceInfo, routeInfo, pathInfo) {
+            // console.log('yes',source,sourceInfo,routeInfo,pathInfo)
+
+            //调度器执行
+            source.call(new presenterInterface({
+                //参数
+                parameter: pathInfo.parameter,
+                //当前模块
+                module: sourceInfo.module,
+                //当前操作(切片)
+                slice: sourceInfo.slice,
+                //当前资源地址
+                url: sourceInfo.url,
+                //当前资源路径(不包含文件 module路径、mode类型目录、文件module后缀、文件后缀)
+                pathName: sourceInfo.pathName,
+                //资源来源地址
+                origin: sourceInfo.origin
+            }, routeInfo.view));
+        }
+
+        module.exports = {
+            exec: presenterExec
+        }
+    }, {
+        "./presenterInterface": 3
+    }],
+    3: [function(require, module, exports) {
+        /**
+         * Created by xiyuan on 16-5-17.
+         */
+
+        //唯一标识生成
+        var uid = require('../../inside/lib/encrypt/uid');
+
+        var viewEngine = require('../view/exports');
+
+        var appConf = require('../../inside/config/lib/commData').appConf;
+
+        //调度器存储器
+        var presenterSource = {};
+
+        /**
+         * 数据属性设置
+         * @param obj
+         * @param key
+         */
+        function def(obj, key, val, enumerable) {
+            var conf = {
+                writable: true,
+                configurable: true,
+                enumerable: !!enumerable
+            };
+            typeof val !== 'undefined' && (conf['value'] = val);
+            Object.defineProperty(obj, key, conf);
+        }
+
+        /**
+         * 调度器接口(调度器的实现)
+         * @param parameter
+         * @param info
+         */
+        function presenterInterface(info, view) {
+            //调度器数据存储
+            presenterSource[this.__sourceId__ = uid()] = {
+                //存储视图分配的数据
+                assign: {},
+                filter: {},
+                layout: null,
+                animate: null,
+                view: view,
+                display: false,
+                layoutSource: null,
+                eleStorage: {
+                    tpls: [],
+                    blocks: {}
+                },
+                info: info
+            };
+
+            //设置资源id不可写
+            def(this, '__sourceId__');
+        }
+
+        /**
+         * 页面标题设置
+         * @param title
+         * @returns {String}
+         */
+        presenterInterface.prototype.title = function(title) {
+            if (title) {
+                window.document.title = title;
+                presenterSource[this.__sourceId__].title = title;
+            }
+            return this;
+        };
+
+        /**
+         * 视图数据分配
+         * @param key
+         * @param val
+         * @returns {presenterInterface}
+         */
+        presenterInterface.prototype.assign = function(key, val) {
+            presenterSource[this.__sourceId__].assign[key] = val;
+            return this;
+        };
+
+        /**
+         * 过滤器
+         * @param filterName
+         * @param fn
+         * @returns {*}
+         */
+        presenterInterface.prototype.filter = function(filterName, fn) {
+            presenterSource[this.__sourceId__].filter[filterName] = fn;
+            return this;
+        };
+
+        /**
+         * 控制器继承 第一个参数是控制器路径  之后参数都是需要传递的参数
+         * @param presenter
+         * @returns {presenterInterface}
+         */
+        presenterInterface.prototype.extend = function(presenter) {
+            var args = arguments,
+                i = 0,
+                l = args.length,
+                parameter = [];
+
+            while (++i < l) {
+                parameter.push(args[i]);
+            }
+
+
+            return this;
+        };
+
+        /**
+         * 页面布局
+         * @param layoutPath
+         * @returns {presenterInterface}
+         */
+        presenterInterface.prototype.layout = function(layoutPath, layoutpresenter, layoutSuffix) {
+            if (!layoutPath || typeof layoutPath !== 'string') return this;
+
+            var source = presenterSource[this.__sourceId__];
+            source.layout = layoutPath;
+            layoutSuffix = typeof layoutpresenter === 'string' && layoutpresenter;
+
+            return this;
+        };
+
+        /**
+         * 页面跳换动画模式
+         * @param animate
+         * @returns {presenterInterface}
+         */
+        presenterInterface.prototype.animate = function(animate) {
+            presenterSource[this.__sourceId__].animate = animate;
+            return this;
+        };
+
+        /**
+         * 页面展示
+         * @param view
+         * @returns {presenterInterface}
+         */
+        presenterInterface.prototype.display = function(view) {
+            var source = presenterSource[this.__sourceId__];
+
+            //检查页面是否需要渲染
+            if (view === false || source.display) {
+                source.display = true;
+                return;
+            } else if (view) {
+                source.view = view;
+            }
+            //标识页面已渲染
+            source.display = true;
+
+            var viewInfo = {
+                tplSuffix: appConf.tplSuffix,
+                requireType: appConf.viewRequire,
+                view: source.view
+            };
+
+            //解析视图参数
+            if (source.view instanceof Function) {
+                view = source.view(function(conf) {
+                    Object.keys(conf).forEach(function(key) {
+                        viewInfo[key] = conf[key];
+                    });
+                }, source.info);
+
+                if (view) viewInfo.view = view;
+            } else if (source instanceof Object) {
+                Object.keys(source).forEach(function(key) {
+                    viewInfo[key] = source[key];
+                });
+            }
+
+            viewInfo.tplSuffix = '.' + viewInfo.tplSuffix.replace(/^\./, '');
+
+            //视图资源请求
+            viewEngine.viewSourc(viewInfo, source.info, function(viewSource) {
+                console.log(viewSource);
+            });
+
+            //调用展示
+            // viewEngine.html2vdom()
+
+
+
+            return this;
+        };
+
+        /**
+         * 页面重定向
+         * @param pagePath
+         * @returns {presenterInterface}
+         */
+        presenterInterface.prototype.redirect = function(pagePath) {
+
+            return this;
+        };
+
+        /**
+         * 数据模型调用
+         * @param modelPath
+         * @returns {$modelInterface}
+         */
+        presenterInterface.prototype.model = function(modelPath) {
+
+
+        };
+
+        module.exports = presenterInterface;
+
+
+
+
+
+
+    }, {
+        "../../inside/config/lib/commData": 21,
+        "../../inside/lib/encrypt/uid": 35,
+        "../view/exports": 4
+    }],
+    4: [function(require, module, exports) {
         /**
          * 视图引擎
          * Created by xiyuan on 17-5-9.
@@ -88,6 +346,8 @@
 
         //html字符转换成虚拟DOM数据结构
         var html2vdom = require('./lib/html2vdom');
+
+        var viewSourc = require('./lib/viewSourc');
 
         //组件管理
         var compMange = require('./lib/componentManage');
@@ -126,16 +386,19 @@
         //对外提供视图销毁接口
         exports.destroy = destroy;
 
+        exports.viewSourc = viewSourc;
+
 
     }, {
-        "./lib/componentManage": 3,
-        "./lib/directiveManage": 4,
-        "./lib/html2vdom": 5,
-        "./lib/syntaxHandle": 6,
-        "./lib/syntaxStruct": 7,
-        "./lib/vdom": 8
+        "./lib/componentManage": 5,
+        "./lib/directiveManage": 6,
+        "./lib/html2vdom": 7,
+        "./lib/syntaxHandle": 8,
+        "./lib/syntaxStruct": 9,
+        "./lib/vdom": 10,
+        "./lib/viewSourc": 11
     }],
-    3: [function(require, module, exports) {
+    5: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-11.
          */
@@ -387,10 +650,10 @@
             };
         }
     }, {
-        "./syntaxHandle": 6,
-        "./syntaxStruct": 7
+        "./syntaxHandle": 8,
+        "./syntaxStruct": 9
     }],
-    4: [function(require, module, exports) {
+    6: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-15.
          */
@@ -620,10 +883,10 @@
             };
         }
     }, {
-        "./syntaxHandle": 6,
-        "./syntaxStruct": 7
+        "./syntaxHandle": 8,
+        "./syntaxStruct": 9
     }],
-    5: [function(require, module, exports) {
+    7: [function(require, module, exports) {
         /**
          * html字符转虚拟dom数据
          * Created by xiyuan on 17-5-9.
@@ -1047,11 +1310,11 @@
         };
 
     }, {
-        "../../../inside/lib/string": 43,
-        "./syntaxStruct": 7,
-        "./vdom": 8
+        "../../../inside/lib/string": 46,
+        "./syntaxStruct": 9,
+        "./vdom": 10
     }],
-    6: [function(require, module, exports) {
+    8: [function(require, module, exports) {
         /**
          * 语法结构处理
          * Created by xiyuan on 17-5-11.
@@ -1609,9 +1872,9 @@
             return new structHandle(syntaxStruct, scope, filter, multiple);
         }
     }, {
-        "../../../inside/lib/observer": 40
+        "../../../inside/lib/observer": 43
     }],
-    7: [function(require, module, exports) {
+    9: [function(require, module, exports) {
         /**
          * 语法解析
          * Created by xiyuan on 17-4-25.
@@ -2967,7 +3230,7 @@
             return syntaxStruct;
         }
     }, {}],
-    8: [function(require, module, exports) {
+    10: [function(require, module, exports) {
         /**
          * 虚拟Dom
          * Created by xiyuan on 17-5-9.
@@ -4566,12 +4829,43 @@
         };
 
     }, {
-        "../../../inside/lib/observer": 40,
-        "./componentManage": 3,
-        "./directiveManage": 4,
-        "./syntaxHandle": 6
+        "../../../inside/lib/observer": 43,
+        "./componentManage": 5,
+        "./directiveManage": 6,
+        "./syntaxHandle": 8
     }],
-    9: [function(require, module, exports) {
+    11: [function(require, module, exports) {
+        /**
+         * Created by xiyuan on 17-6-2.
+         */
+
+        var getSource = require('../../../inside/source/getSource');
+        var sourcePathNormal = require('../../../inside/source/sourcePathNormal');
+
+        function viewSourc(viewInfo, originInfo, callback) {
+
+            var viewPathInfo = sourcePathNormal(viewInfo.view, originInfo, 'view');
+
+            getSource(viewPathInfo, {
+                mode: 'view',
+                suffix: viewInfo.tplSuffix,
+                isAjax: viewInfo.requireType === 'ajax'
+            }, function(source) {
+                if (source === false) {
+                    log.error('视图文件 [' + this.responseURL + ']缺失！');
+                    return;
+                }
+                //资源回调
+                callback(source);
+            })
+        }
+
+        module.exports = viewSourc;
+    }, {
+        "../../../inside/source/getSource": 50,
+        "../../../inside/source/sourcePathNormal": 51
+    }],
+    12: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-30.
          */
@@ -4593,9 +4887,9 @@
             start: start
         };
     }, {
-        "./route/index": 12
+        "./route/index": 15
     }],
-    10: [function(require, module, exports) {
+    13: [function(require, module, exports) {
         /**
          * 路由执行
          * Created by xiyuan on 17-5-30.
@@ -4803,15 +5097,15 @@
         module.exports = exec;
     }, {
         "../../../engine/index": 1,
-        "../../../inside/config/index": 17,
-        "../../../inside/event/insideEvent": 24,
-        "../../../inside/lib/path": 41,
-        "../../../inside/lib/url": 45,
-        "../../../inside/log/log": 46,
-        "./getRouteInfo": 11,
-        "./routeData": 14
+        "../../../inside/config/index": 20,
+        "../../../inside/event/insideEvent": 27,
+        "../../../inside/lib/path": 44,
+        "../../../inside/lib/url": 48,
+        "../../../inside/log/log": 49,
+        "./getRouteInfo": 14,
+        "./routeData": 17
     }],
-    11: [function(require, module, exports) {
+    14: [function(require, module, exports) {
         /**
          * 路由信息获取
          * Created by xiyuan on 17-5-30.
@@ -4876,9 +5170,9 @@
         module.exports = getRouteInfo;
 
     }, {
-        "../../../inside/config/index": 17
+        "../../../inside/config/index": 20
     }],
-    12: [function(require, module, exports) {
+    15: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-30.
          */
@@ -4892,10 +5186,10 @@
             watch: watch
         };
     }, {
-        "./redirect": 13,
-        "./watch": 15
+        "./redirect": 16,
+        "./watch": 18
     }],
-    13: [function(require, module, exports) {
+    16: [function(require, module, exports) {
         /**
          * 页面重定向
          * Created by xiyuan on 17-5-30.
@@ -4968,13 +5262,13 @@
 
         module.exports = redirect;
     }, {
-        "../../../inside/config/index": 17,
-        "../../../inside/lib/path": 41,
-        "../../../inside/lib/url": 45,
-        "./exec": 10,
-        "./routeData": 14
+        "../../../inside/config/index": 20,
+        "../../../inside/lib/path": 44,
+        "../../../inside/lib/url": 48,
+        "./exec": 13,
+        "./routeData": 17
     }],
-    14: [function(require, module, exports) {
+    17: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-30.
          */
@@ -4987,7 +5281,7 @@
         }
 
     }, {}],
-    15: [function(require, module, exports) {
+    18: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-30.
          */
@@ -5088,13 +5382,13 @@
 
         module.exports = watch;
     }, {
-        "../../../inside/config/index": 17,
-        "../../../inside/lib/path": 41,
-        "./exec": 10,
-        "./redirect": 13,
-        "./routeData": 14
+        "../../../inside/config/index": 20,
+        "../../../inside/lib/path": 44,
+        "./exec": 13,
+        "./redirect": 16,
+        "./routeData": 17
     }],
-    16: [function(require, module, exports) {
+    19: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -5123,11 +5417,11 @@
             }
         }
     }, {
-        "../inside/config/index": 17,
-        "../inside/event/insideEvent": 24,
-        "./boot/index": 9
+        "../inside/config/index": 20,
+        "../inside/event/insideEvent": 27,
+        "./boot/index": 12
     }],
-    17: [function(require, module, exports) {
+    20: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -5142,10 +5436,10 @@
             insideConf: commData.insideConf
         }
     }, {
-        "./lib/commData": 18,
-        "./lib/loadUrlConf": 21
+        "./lib/commData": 21,
+        "./lib/loadUrlConf": 24
     }],
-    18: [function(require, module, exports) {
+    21: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -5173,7 +5467,7 @@
                     view: 'view',
                     presenter: 'presenter'
                 },
-                //模型目录名称
+                //模块目录名称
                 moduleDirName: {
                     view: 'view',
                     presenter: 'presenter',
@@ -5181,12 +5475,12 @@
                 },
                 //文件后缀标识
                 fileSuffix: {
-                    view: 'view',
-                    presenter: 'presenter',
-                    model: 'model'
+                    view: '.view',
+                    presenter: '.presenter',
+                    model: '.model'
                 },
                 //默认的视图或调度器器及模型 /切片
-                default: {
+                moduleDefault: {
                     view: 'index',
                     model: 'index',
                     presenter: 'index',
@@ -5232,7 +5526,7 @@
             innerConf: innerConf
         }
     }, {}],
-    19: [function(require, module, exports) {
+    22: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-31.
          */
@@ -5393,10 +5687,10 @@
 
         module.exports = configEndHandle;
     }, {
-        "../../../inside/config/lib/commData": 18,
-        "../../../inside/lib/string": 43
+        "../../../inside/config/lib/commData": 21,
+        "../../../inside/lib/string": 46
     }],
-    20: [function(require, module, exports) {
+    23: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -5425,6 +5719,8 @@
             var systemConfig = appConf.system,
                 fileCallback = systemConfig.fileCallback,
                 fileSuffix = systemConfig.fileSuffix,
+                moduleDirName = systemConfig.moduleDirName,
+                moduleDefault = systemConfig.moduleDefault,
                 tmpData;
 
             //检查配置
@@ -5439,9 +5735,26 @@
 
                 //检查文件后缀
                 if (typeof(tmpData = config.fileSuffix) === 'object') {
-                    typeof tmpData.model === 'string' && (fileSuffix.model = tmpData.model);
-                    typeof tmpData.view === 'string' && (fileSuffix.view = tmpData.view);
-                    typeof tmpData.presenter === 'string' && (fileSuffix.presenter = tmpData.presenter);
+                    typeof tmpData.model === 'string' && (fileSuffix.model = '.' + tmpData.model.replace(/^\./, ''));
+                    typeof tmpData.view === 'string' && (fileSuffix.view = '.' + tmpData.view.replace(/^\./, ''));
+                    typeof tmpData.presenter === 'string' && (fileSuffix.presenter = '.' + tmpData.presenter.replace(/^\./, ''));
+                }
+
+                //模块目录名称
+                if (typeof(tmpData = config.moduleDirName) === 'object') {
+                    typeof tmpData.model === 'string' && (moduleDirName.model = tmpData.model);
+                    typeof tmpData.view === 'string' && (moduleDirName.view = tmpData.view);
+                    typeof tmpData.presenter === 'string' && (moduleDirName.presenter = tmpData.presenter);
+                }
+
+                //默认的视图或调度器器及模型 /切片
+                if (typeof(tmpData = config.moduleDefault) === 'object') {
+                    typeof tmpData.model === 'string' && (moduleDefault.model = tmpData.model);
+                    typeof tmpData.view === 'string' && (moduleDefault.view = tmpData.view);
+                    typeof tmpData.presenter === 'string' && (moduleDefault.presenter = tmpData.presenter);
+                    typeof tmpData.modelSlice === 'string' && (moduleDefault.modelSlice = tmpData.modelSlice);
+                    typeof tmpData.viewSlice === 'string' && (moduleDefault.viewSlice = tmpData.viewSlice);
+                    typeof tmpData.presenterSlice === 'string' && (moduleDefault.presenterSlice = tmpData.presenterSlice);
                 }
 
             } else {
@@ -5596,7 +5909,7 @@
 
                         //检查是否多个jsonp切片
                         (this.many ? [].slice.call(arguments) : [
-                            [data]
+                            [].slice.call(arguments)
                         ]).forEach(function(confArgs) {
                             count++;
                             //请求完毕后处理配置解析
@@ -5621,13 +5934,13 @@
             configIniterface: configIniterface
         };
     }, {
-        "../../lib/net/jsonp": 38,
-        "../../lib/path": 41,
-        "../../log/log": 46,
-        "./commData": 18,
-        "./routeConf": 22
+        "../../lib/net/jsonp": 41,
+        "../../lib/path": 44,
+        "../../log/log": 49,
+        "./commData": 21,
+        "./routeConf": 25
     }],
-    21: [function(require, module, exports) {
+    24: [function(require, module, exports) {
         'use strict';
         var log = require('../../log/log');
         var jsonp = require('../../lib/net/jsonp');
@@ -5653,7 +5966,7 @@
                         //检查返回的状态
                         if (this.state) {
                             var agrs = (this.many ? [].slice.call(arguments) : [
-                                [data]
+                                [].slice.call(arguments)
                             ]);
                             var count = agrs.length;
 
@@ -5682,13 +5995,13 @@
 
         module.exports = loadUrlConf
     }, {
-        "../../lib/net/jsonp": 38,
-        "../../log/log": 46,
-        "./commData": 18,
-        "./configEndHandle": 19,
-        "./initerface": 20
+        "../../lib/net/jsonp": 41,
+        "../../log/log": 49,
+        "./commData": 21,
+        "./configEndHandle": 22,
+        "./initerface": 23
     }],
-    22: [function(require, module, exports) {
+    25: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-31.
          */
@@ -5794,9 +6107,9 @@
 
         module.exports = routeConf;
     }, {
-        "./commData": 18
+        "./commData": 21
     }],
-    23: [function(require, module, exports) {
+    26: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-12-2.
          */
@@ -5834,7 +6147,7 @@
 
         module.exports = eventInterface;
     }, {}],
-    24: [function(require, module, exports) {
+    27: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -5877,9 +6190,9 @@
 
         module.exports = insideEvent;
     }, {
-        "./eventInterface": 23
+        "./eventInterface": 26
     }],
-    25: [function(require, module, exports) {
+    28: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-11-30.
          */
@@ -5918,7 +6231,7 @@
 
 
     }, {}],
-    26: [function(require, module, exports) {
+    29: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-3-7.
          */
@@ -6055,7 +6368,7 @@
         }
 
     }, {}],
-    27: [function(require, module, exports) {
+    30: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-11-30.
          */
@@ -6156,7 +6469,7 @@
 
 
     }, {}],
-    28: [function(require, module, exports) {
+    31: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-27.
          */
@@ -6453,9 +6766,9 @@
 
 
     }, {
-        "./base64": 27
+        "./base64": 30
     }],
-    29: [function(require, module, exports) {
+    32: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-27.
          */
@@ -6468,13 +6781,13 @@
             sha256: require('./sha256'),
         }
     }, {
-        "./base64": 27,
-        "./md5": 30,
-        "./sha256": 31,
-        "./uid": 32,
-        "./utf8": 33
+        "./base64": 30,
+        "./md5": 33,
+        "./sha256": 34,
+        "./uid": 35,
+        "./utf8": 36
     }],
-    30: [function(require, module, exports) {
+    33: [function(require, module, exports) {
 
         "use strict";
 
@@ -6488,10 +6801,10 @@
             return commLib.rstr2hex(commLib.rstrexports(str2rstr_utf8(s)));
         };
     }, {
-        "./commLib": 28,
-        "./utf8": 33
+        "./commLib": 31,
+        "./utf8": 36
     }],
-    31: [function(require, module, exports) {
+    34: [function(require, module, exports) {
 
 
         var b64pad = "=";
@@ -6688,9 +7001,9 @@
 
         module.exports = sha256
     }, {
-        "./commLib": 28
+        "./commLib": 31
     }],
-    32: [function(require, module, exports) {
+    35: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-26.
          */
@@ -6704,7 +7017,7 @@
         }
 
     }, {}],
-    33: [function(require, module, exports) {
+    36: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-11-30.
          */
@@ -6742,7 +7055,7 @@
         }
 
     }, {}],
-    34: [function(require, module, exports) {
+    37: [function(require, module, exports) {
         /**
          * 内部处理库
          * Created by xiyuan on 17-5-9.
@@ -6764,20 +7077,20 @@
             platform: require('./platform')
         }
     }, {
-        "./buffer": 25,
-        "./date": 26,
-        "./encrypt/exports": 29,
-        "./json": 35,
-        "./net/exports": 37,
-        "./object": 39,
-        "./observer": 40,
-        "./path": 41,
-        "./platform": 42,
-        "./string": 43,
-        "./type": 44,
-        "./url": 45
+        "./buffer": 28,
+        "./date": 29,
+        "./encrypt/exports": 32,
+        "./json": 38,
+        "./net/exports": 40,
+        "./object": 42,
+        "./observer": 43,
+        "./path": 44,
+        "./platform": 45,
+        "./string": 46,
+        "./type": 47,
+        "./url": 48
     }],
-    35: [function(require, module, exports) {
+    38: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-3-7.
          */
@@ -6808,7 +7121,7 @@
         };
 
     }, {}],
-    36: [function(require, module, exports) {
+    39: [function(require, module, exports) {
         /**
          * Created by xiyuan on 16-12-5.
          */
@@ -6820,9 +7133,6 @@
         function ajax(option) {
             //是否同步请求
             option.async = option.async === undefined ? true : option.async ? true : false;
-
-            //请求的数据
-            // option.data= option.data?tools.objectToUrl(option.data):'';
 
             //请求类型
             option.type = (new RegExp(option.type, 'ig').exec('GET,DELETE,POST,PUT,HEAD,FORM').toString() || 'GET');
@@ -6983,10 +7293,10 @@
 
         module.exports = ajax;
     }, {
-        "../json": 35,
-        "../url": 45
+        "../json": 38,
+        "../url": 48
     }],
-    37: [function(require, module, exports) {
+    40: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-27.
          */
@@ -6997,10 +7307,10 @@
             jsonp: require('./jsonp')
         }
     }, {
-        "./ajax": 36,
-        "./jsonp": 38
+        "./ajax": 39,
+        "./jsonp": 41
     }],
-    38: [function(require, module, exports) {
+    41: [function(require, module, exports) {
         'use strict';
 
         var url = require('../url');
@@ -7161,10 +7471,10 @@
 
 
     }, {
-        "../path": 41,
-        "../url": 45
+        "../path": 44,
+        "../url": 48
     }],
-    39: [function(require, module, exports) {
+    42: [function(require, module, exports) {
         'use strict';
 
         /**
@@ -7510,7 +7820,7 @@
             get: get
         }
     }, {}],
-    40: [function(require, module, exports) {
+    43: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-3-7.
          */
@@ -8265,7 +8575,7 @@
             };
         }(), this);
     }, {}],
-    41: [function(require, module, exports) {
+    44: [function(require, module, exports) {
         /**
          * 路径处理
          * Created by xiyuan on 17-3-7.
@@ -8370,9 +8680,9 @@
         }
 
     }, {
-        "./url": 45
+        "./url": 48
     }],
-    42: [function(require, module, exports) {
+    45: [function(require, module, exports) {
         (function(global) {
             'use strict';
 
@@ -9673,7 +9983,7 @@
             module.exports = parse();
         }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
     }, {}],
-    43: [function(require, module, exports) {
+    46: [function(require, module, exports) {
         'use strict';
 
         /*字符串处理（与PHP的 trim功能相同）*/
@@ -9773,7 +10083,7 @@
             escapeToRegexp: escapeToRegexp
         }
     }, {}],
-    44: [function(require, module, exports) {
+    47: [function(require, module, exports) {
         function getType(value) {
             if (isElement(value)) return 'element';
             var type = typeof(value);
@@ -9958,7 +10268,7 @@
             equals: equals,
         }
     }, {}],
-    45: [function(require, module, exports) {
+    48: [function(require, module, exports) {
         /**
          * 网址处理
          * Created by xiyuan on 17-3-7.
@@ -10127,7 +10437,7 @@
         }
 
     }, {}],
-    46: [function(require, module, exports) {
+    49: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -10172,8 +10482,9 @@
             fatal: fatal
         }
     }, {}],
-    47: [function(require, module, exports) {
+    50: [function(require, module, exports) {
         /**
+         * 资源获取 （model view presenter ...）
          * Created by xiyuan on 17-6-1.
          */
 
@@ -10185,54 +10496,107 @@
         var PATH = require('../lib/path');
         var appConf = require('../config/lib/commData').appConf;
 
-        //资源获取
+        /**
+         * 资源获取
+         * @param url
+         * @param option
+         * @param callback
+         */
         function getSource(url, option, callback) {
+
             //模式目录名称
-            var sliceName,
-                modePath = appConf.system.moduleDirName[option.mode];
+            var sliceName = appConf.system.moduleDefault[option.mode + 'Slice'],
+                modePath = appConf.system.moduleDirName[option.mode],
+                info = {
+                    //当前模块
+                    module: '',
+                    //当前操作(切片)
+                    slice: '',
+                    //当前资源地址
+                    url: '',
+                    //当前资源路径(不包含文件 module路径、mode类型目录、文件module后缀、文件后缀)
+                    pathName: '',
+                    //资源目录
+                    mode: modePath,
+                    //资源来源地址
+                    origin: ''
+                };
 
-            //匹配配置中的path
-            var i = ~0,
-                pathInfo,
-                pl = appConf.pathList.length;
+            if (typeof url === 'string') {
 
-            while (++i < pl) {
-                pathInfo = appConf.pathList[i];
-                if (pathInfo.regExp.test(url)) {
-                    url = url.replace(pathInfo.regExp, function(str, $1, $2) {
-                        return pathInfo.path + '/' + $2;
-                    });
-                    break;
+                //匹配配置中的path
+                var i = ~0,
+                    module,
+                    location,
+                    pathInfo,
+                    pl = appConf.pathList.length;
+
+                while (++i < pl) {
+                    pathInfo = appConf.pathList[i];
+                    if (pathInfo.regExp.test(url)) {
+                        url = url.replace(pathInfo.regExp, function(str, $1) {
+                            return pathInfo.path + '/' + ($1 || '');
+                        });
+                        break;
+                    }
                 }
+
+                //检查当前模块
+                location = url.indexOf('@');
+                if (location !== -1) {
+                    //提取模块地址
+                    module = info.module = PATH.normalize(url.slice(0, location));
+                    //替换模块
+                    url = url.slice(location + 1);
+                }
+
+                //获取资源切片
+                url = url.replace(/:([^:]*)$/, function(str, $1) {
+                    sliceName = $1;
+                    return '';
+                });
+
+                //当前资源路径(不包含文件 module路径、mode类型目录、文件module后缀、文件后缀)
+                info.pathName = url;
+                //切片
+                info.slice = sliceName;
+                //路径
+                url = (module ? module + '/' + modePath + '/' : '') + url;
+            } else if (url instanceof Object) {
+                info = url;
+                url = info.url;
             }
 
-            //替换模块
-            url = url.replace('@', '/' + modePath + '/');
-
-            //获取资源切片
-            url = PATH.normalize(url.replace(/:([^:]*)$/, function(str, $1) {
-                sliceName = $1;
-                return '';
-            }));
-
-
-            console.log(url, '???', sliceName)
-
             if (option.isAjax) {
-                url.replace(':', '/');
+                ajax({
+                    type: 'get',
+                    url: url + '/' + sliceName + (option.suffix || appConf.tplSuffix),
+                    success: function(strSource) {
+                        callback(strSource)
+                    },
+                    error: function() {
+                        callback(false);
+                    }
+                });
+
             } else {
                 jsonp({
-                    url: url,
-                    jsonpCallback: sliceName,
+                    url: url + appConf.system.fileSuffix[option.mode] + '.js',
+                    jsonpCallback: appConf.system.fileCallback[option.mode],
                     complete: function(data) {
+                        //获取资源真实地址
+                        info.url = this.option.url;
                         //检查返回的状态
                         if (this.state) {
                             //检查是否多个jsonp切片
-                            (this.many ? [].slice.call(arguments) : [
-                                [data]
-                            ]).forEach(function(confArgs) {
+                            var sourceMap = (this.many ? [].slice.call(arguments) : [
+                                [].slice.call(arguments)
+                            ]).reduce(function(map, source) {
+                                map[source[0]] = source[1];
+                                return map;
+                            }, {});
 
-                            });
+                            callback(sourceMap[sliceName], info)
 
                         } else {
                             log.error(option.mode + '文件【' + this.option.url + '】不存在!');
@@ -10241,23 +10605,107 @@
                 })
             }
 
-
-
-
-
-
         }
-
 
         module.exports = getSource;
     }, {
-        "../config/lib/commData": 18,
-        "../lib/net/ajax": 36,
-        "../lib/net/jsonp": 38,
-        "../lib/path": 41,
-        "../log/log": 46
+        "../config/lib/commData": 21,
+        "../lib/net/ajax": 39,
+        "../lib/net/jsonp": 41,
+        "../lib/path": 44,
+        "../log/log": 49
     }],
-    48: [function(require, module, exports) {
+    51: [function(require, module, exports) {
+        /**
+         * 转换真实资源路径
+         * Created by xiyuan on 17-6-1.
+         */
+
+        var PATH = require('../lib/path');
+        var appConf = require('../config/lib/commData').appConf;
+
+        /**
+         * 转换真实资源路径
+         * @param url
+         * @param originInfo
+         * @param modeType
+         */
+        function sourcePathNormal(url, originInfo, modeType) {
+            var first = url.charAt(0),
+                moduleDirName = appConf.system.moduleDirName[modeType],
+                sliceName = appConf.system.moduleDefault[modeType + 'Slice'],
+
+                sourceInfo = {
+                    //当前模块
+                    module: '',
+                    //当前操作(切片)
+                    slice: '',
+                    //当前资源地址
+                    url: '',
+                    //当前资源路径(不包含文件 module路径、mode类型目录、文件module后缀、文件后缀)
+                    pathName: '',
+                    //资源目录
+                    mode: moduleDirName,
+                    //资源来源地址
+                    origin: originInfo,
+
+                };
+
+            //匹配配置中的path
+            var i = ~0,
+                module,
+                location,
+                pathInfo,
+                pl = appConf.pathList.length;
+
+            while (++i < pl) {
+                pathInfo = appConf.pathList[i];
+                if (pathInfo.regExp.test(url)) {
+                    url = url.replace(pathInfo.regExp, function(str, $1) {
+                        return pathInfo.path + '/' + ($1 || '');
+                    });
+                    break;
+                }
+            }
+
+            //检查当前模块
+            location = url.indexOf('@');
+            if (location !== -1) {
+                if (location === 0) {
+                    module = originInfo.module;
+                } else {
+                    //提取模块地址
+                    module = sourceInfo.module = PATH.normalize(url.slice(0, location));
+                }
+                //替换模块
+                url = url.slice(location + 1);
+            } else if (url.charAt(0) === '/' || url.charAt(0) === '.') {
+                module = '';
+            } else {
+                module = originInfo.module;
+            }
+
+            //获取资源切片
+            url = url.replace(/:([^:]*)$/, function(str, $1) {
+                sliceName = $1;
+                return '';
+            });
+
+            //当前资源路径(不包含文件 module路径、mode类型目录、文件module后缀、文件后缀)
+            sourceInfo.pathName = url;
+            //切片
+            sourceInfo.slice = sliceName;
+            //url
+            sourceInfo.url = PATH.normalize((module ? module + '/' + moduleDirName + '/' : '') + url);
+            return sourceInfo;
+        }
+
+        module.exports = sourcePathNormal;
+    }, {
+        "../config/lib/commData": 21,
+        "../lib/path": 44
+    }],
+    52: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-9.
          */
@@ -10286,7 +10734,7 @@
         }, window)
     }, {
         "./engine/index": 1,
-        "./init/index": 16,
-        "./inside/lib/exports": 34
+        "./init/index": 19,
+        "./inside/lib/exports": 37
     }]
-}, {}, [48]);
+}, {}, [52]);

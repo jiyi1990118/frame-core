@@ -22,7 +22,7 @@ function loadUrlConf(callback) {
             complete: function (data) {
                 //检查返回的状态
                 if (this.state) {
-                    var agrs=(this.many ? [].slice.call(arguments) : [[data]]);
+                    var agrs=(this.many ? [].slice.call(arguments) : [[].slice.call(arguments)]);
                     var count =agrs.length;
 
                     //返回的数据处理(检查是否有多个回调)

@@ -16,6 +16,8 @@ var syntaxHandle = require('./lib/syntaxHandle');
 //html字符转换成虚拟DOM数据结构
 var html2vdom = require('./lib/html2vdom');
 
+var viewSourc=require('./lib/viewSourc');
+
 //组件管理
 var compMange=require('./lib/componentManage');
 
@@ -52,4 +54,6 @@ exports.render = render;
 
 //对外提供视图销毁接口
 exports.destroy=destroy;
+
+exports.viewSourc=viewSourc;
 

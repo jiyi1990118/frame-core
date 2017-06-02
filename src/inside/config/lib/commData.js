@@ -25,7 +25,7 @@ var appConf={
             view:'view',
             presenter:'presenter'
         },
-        //模型目录名称
+        //模块目录名称
         moduleDirName:{
             view: 'view',
             presenter: 'presenter',
@@ -33,12 +33,12 @@ var appConf={
         },
         //文件后缀标识
         fileSuffix:{
-            view: 'view',
-            presenter: 'presenter',
-            model: 'model'
+            view: '.view',
+            presenter: '.presenter',
+            model: '.model'
         },
         //默认的视图或调度器器及模型 /切片
-        default:{
+        moduleDefault:{
             view:'index',
             model:'index',
             presenter:'index',

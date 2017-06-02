@@ -26,6 +26,8 @@ configIniterface.prototype.system = function (config) {
     var systemConfig = appConf.system,
         fileCallback = systemConfig.fileCallback,
         fileSuffix = systemConfig.fileSuffix,
+        moduleDirName = systemConfig.moduleDirName,
+        moduleDefault=systemConfig.moduleDefault,
         tmpData;
 
     //检查配置
@@ -40,9 +42,26 @@ configIniterface.prototype.system = function (config) {
 
         //检查文件后缀
         if (typeof (tmpData = config.fileSuffix) === 'object') {
-            typeof tmpData.model === 'string' && (fileSuffix.model = tmpData.model);
-            typeof tmpData.view === 'string' && (fileSuffix.view = tmpData.view);
-            typeof tmpData.presenter === 'string' && (fileSuffix.presenter = tmpData.presenter);
+            typeof tmpData.model === 'string' && (fileSuffix.model = '.'+tmpData.model.replace(/^\./,''));
+            typeof tmpData.view === 'string' && (fileSuffix.view = '.'+tmpData.view.replace(/^\./,''));
+            typeof tmpData.presenter === 'string' && (fileSuffix.presenter = '.'+tmpData.presenter.replace(/^\./,''));
+        }
+
+        //模块目录名称
+        if (typeof (tmpData = config.moduleDirName) === 'object') {
+            typeof tmpData.model === 'string' && (moduleDirName.model = tmpData.model);
+            typeof tmpData.view === 'string' && (moduleDirName.view = tmpData.view);
+            typeof tmpData.presenter === 'string' && (moduleDirName.presenter = tmpData.presenter);
+        }
+
+        //默认的视图或调度器器及模型 /切片
+        if (typeof (tmpData = config.moduleDefault) === 'object') {
+            typeof tmpData.model === 'string' && (moduleDefault.model = tmpData.model);
+            typeof tmpData.view === 'string' && (moduleDefault.view = tmpData.view);
+            typeof tmpData.presenter === 'string' && (moduleDefault.presenter = tmpData.presenter);
+            typeof tmpData.modelSlice === 'string' && (moduleDefault.modelSlice = tmpData.modelSlice);
+            typeof tmpData.viewSlice === 'string' && (moduleDefault.viewSlice = tmpData.viewSlice);
+            typeof tmpData.presenterSlice === 'string' && (moduleDefault.presenterSlice = tmpData.presenterSlice);
         }
 
     } else {
@@ -197,7 +216,7 @@ function getConfig(configUrl, Interface, jsonpCallback, callback) {
                 var count = 0;
 
                 //检查是否多个jsonp切片
-                (this.many ? [].slice.call(arguments) : [[data]]).forEach(function (confArgs) {
+                (this.many ? [].slice.call(arguments) : [[].slice.call(arguments)]).forEach(function (confArgs) {
                     count++;
                     //请求完毕后处理配置解析
                     configRead(confArgs, function () {

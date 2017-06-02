@@ -34,4 +34,14 @@ config('sys',function($app,$innerConfig){
 
     /*视图请求方式 【 ajax 与 jsonp 】 默认ajax*/
     $app.viewRequire('ajax');
+
+    //设置系统参数
+    $app.system({
+        //文件后缀标识
+        fileSuffix:{
+            view: '.view',
+            presenter: '.presenter',
+            model: '.model'
+        }
+    })
 })

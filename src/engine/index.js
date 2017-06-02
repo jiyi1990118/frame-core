@@ -9,34 +9,27 @@ var viewEngin=require('./view/exports');
 
 //资源获取
 var getSource=require('../inside/source/getSource');
+var presenterEngine=require('./presenter/index');
 
 /**
  * 引擎运行器
  * @param routeInfo 路由信息
  * @param pathInfo 路径信息
  */
-function enginExec(routeInfo,pathInfo) {
-    // console.log(routeInfo,pathInfo)
+function engineExec(routeInfo,pathInfo) {
 
     //获取调度器资源
     getSource(routeInfo.presenter, {
         mode:'presenter'
-    },function () {
-
+    },function (source,info) {
+        //调度器执行
+        presenterEngine.exec(source,info,routeInfo,pathInfo);
     });
-
-
 }
-
-
-
-
-
-
 
 module.exports = {
     //视图引擎
     viewEngin:viewEngin,
     //引擎执行器
-    exec:enginExec
+    exec:engineExec
 }

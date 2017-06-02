@@ -5,10 +5,9 @@ route(function ($appConf) {
 
     $appConf.route('home',{
         presenter: 'HOME@index',
-        view: function ($view) {
+        view: function ($view,parameter) {
             $view({
-                layout:'',
-                tplSuffix: 'tpl',
+                tplSuffix: 'html',
                 requireType: 'ajax'
             });
             return 'HOME@index:index'
