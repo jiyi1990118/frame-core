@@ -9,7 +9,7 @@ var insideEvent=new eventInterface();
 
 /*监听配置初始化开始*/
 insideEvent.watch('config:init',function(){
-    console.log('yes')
+    // console.log('yes')
 });
 
 /*监听配置加载*/

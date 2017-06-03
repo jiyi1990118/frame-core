@@ -57,7 +57,7 @@ function sourcePathNormal(url,originInfo,modeType) {
             module=originInfo.module;
         }else{
             //提取模块地址
-            module=sourceInfo.module=PATH.normalize(url.slice(0,location));
+            module=PATH.normalize(url.slice(0,location));
         }
         //替换模块
         url=url.slice(location+1);
@@ -73,6 +73,8 @@ function sourcePathNormal(url,originInfo,modeType) {
         return '';
     });
 
+    //module模块地址
+    sourceInfo.module=module;
     //当前资源路径(不包含文件 module路径、mode类型目录、文件module后缀、文件后缀)
     sourceInfo.pathName=url;
     //切片

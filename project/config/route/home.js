@@ -28,8 +28,8 @@ route(function ($appConf) {
 
         //自动路由
         $route.autoRoute({
-            presenter: 'dev.com/presenter',
-            view: 'dev.com/view',
+            presenter: 'HOME',
+            view: 'HOME',
             suffix:'html'
         })
     })

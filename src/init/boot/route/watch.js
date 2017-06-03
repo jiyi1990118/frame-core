@@ -11,6 +11,8 @@ var redirect=require('./redirect');
 
 var PATH=require('../../../inside/lib/path');
 
+var getPathNormalize=require('./pathConvert').getNowPath;
+
 var appConf=require('../../../inside/config/index').appConf;
 
 var routeMode=appConf.route.mode;
@@ -53,21 +55,6 @@ window.document.addEventListener('click', function (event) {
     redirect(href,{},routeData.history.isBack);
 
 }, false);
-
-
-/*路径处理*/
-function getPathNormalize(type) {
-    var href;
-    switch (type){
-        case 'html5':
-            href = decodeURI(window.location.href.replace(routeData.rootPath, ''));
-            break;
-        case 'hash':
-            href = decodeURI(window.location.hash.replace(/\#\!\/*/, ''));
-            break;
-    }
-    return href;
-};
 
 function watch() {
 

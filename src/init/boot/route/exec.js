@@ -5,11 +5,11 @@
 'use strict';
 var routeData=require('./routeData');
 var getRouteInfo=require('./getRouteInfo');
+var getRoutePathInfo=require('./pathConvert').getRoutePathInfo;
 
 var engine=require('../../../engine/index');
 
 var log=require('../../../inside/log/log');
-var URL=require('../../../inside/lib/url');
 var PATH=require('../../../inside/lib/path');
 var frameConf=require('../../../inside/config/index');
 var insideEvent=require('../../../inside/event/insideEvent');
@@ -26,18 +26,16 @@ var errorMsgs = {
 
 function exec(requestUrl,successCallback,refresh) {
 
+    var pathInfo=getRoutePathInfo(requestUrl);
+
     //提取GET类型参数
-    var urlGetParameter = URL.toObject(requestUrl),
-        urlGetString = '',
+    var urlGetParameter =pathInfo.parameter,
+        urlGetString = pathInfo.parameterUrl,
         nowInfoUrl = nowInfo.url,
+        href=pathInfo.path,
         routeErrorFlag = false,
         //标识路由是否停止
-        isStop=false,
-        //提取GET参数字符
-        href = requestUrl.replace(/\?[\w\W]*/, function (str) {
-            urlGetString = str;
-            return '';
-        }).replace(/[\/\\]*$/, '');
+        isStop=false;
 
     //路由开始事件触发
     insideEvent.emit('route:start', {
@@ -89,7 +87,7 @@ function exec(requestUrl,successCallback,refresh) {
         nowInfo.path = href;
         nowInfo.url = href;
         //页面后缀
-        nowInfo.suffix = routeInfo.suffix;
+        nowInfo.suffix = appConf.route.suffix;
 
         //调用错误页面路由
         if (!(routeInfo = getRouteInfo(nowInfo))) {
@@ -115,35 +113,60 @@ function exec(requestUrl,successCallback,refresh) {
         autoRouteData = routeInfo.data;
 
         if (typeof autoRouteData === 'string') {
-            //检查是否指定模块,否则直接设置当前路径为模块地址
-            if (autoRouteData.indexOf('@') !== -1) {
-                autoRouteData = autoRouteData + '@';
-            }
+
+            //检查是否网络绝对地址
+            if(!/^(\w+:)?\/\/(\w[\w\.]*)/.test(autoRouteData)){
+                //检查是否指定模块,否则直接设置当前路径为模块地址
+                if (autoRouteData.indexOf('@') === -1) {
+                    autoRouteData = autoRouteData + '@';
+                }
+            };
             viewUrl = presenterUrl = PATH.normalize(autoRouteData + '/' + routeInfo.path);
         } else {
             presenterUrl = autoRouteData.presenter;
 
+            //检查是否网络绝对地址
+            if(!/^(\w+:)?\/\/(\w[\w\.]*)/.test(presenterUrl)){
+                //检查是否指定模块,否则直接设置当前路径为模块地址
+                if ( presenterUrl.indexOf('@') === -1) {
+                    presenterUrl = presenterUrl + '@';
+                }
+            }
+
             if (autoRouteData.view) {
                 viewUrl = autoRouteData.view;
+
+                //检查是否网络绝对地址
+                if(!/^(\w+:)?\/\/(\w[\w\.]*)/.test(presenterUrl)){
+                    if ( viewUrl.indexOf('@') === -1) {
+                        viewUrl = viewUrl + '@';
+                    }
+                }
             } else {
                 viewUrl = presenterUrl
             }
             suffix=autoRouteData.suffix;
         }
 
+        //去掉路径后缀
+        routeInfo.path=routeInfo.path.replace(RegExp('\.?'+(suffix||routeInfo.suffix)+'$'),'');
+
         routeInfo={
-            presenter:presenterUrl,
-            view:viewUrl,
+            presenter: PATH.normalize(presenterUrl + '/' + routeInfo.path),
+            view: PATH.normalize(viewUrl + '/' + routeInfo.path),
             suffix:suffix||routeInfo.suffix
         }
+
     }
 
     if (!routeInfo.presenter) {
         log.error('路由必须指定presenter!')
     }
 
+    nowInfo.path=nowInfo.path.replace(RegExp('\.?'+routeInfo.suffix+'$'),'');
+
     //生成最终URL路径
-    href=nowInfo.path.replace(routeInfo.suffix, '')+routeInfo.suffix+urlGetString
+    href=nowInfo.path+('.'+routeInfo.suffix.replace(/^\./,''))+urlGetString
 
     nowInfo.url = href;
 

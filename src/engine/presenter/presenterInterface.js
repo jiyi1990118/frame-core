@@ -9,6 +9,8 @@ var viewEngine=require('../view/exports');
 
 var appConf=require('../../inside/config/lib/commData').appConf;
 
+var layoutEngine=require('../layout/index');
+
 //调度器存储器
 var presenterSource={};
 
@@ -38,15 +40,9 @@ function presenterInterface(info,view) {
         //存储视图分配的数据
         assign: {},
         filter:{},
-        layout: null,
         animate: null,
         view: view,
         display: false,
-        layoutSource:null,
-        eleStorage:{
-            tpls:[],
-            blocks:{}
-        },
         info: info
     };
 
@@ -101,8 +97,6 @@ presenterInterface.prototype.extend = function (presenter) {
     while (++i < l) {
         parameter.push(args[i]);
     }
-
-
     return this;
 };
 
@@ -111,13 +105,13 @@ presenterInterface.prototype.extend = function (presenter) {
  * @param layoutPath
  * @returns {presenterInterface}
  */
-presenterInterface.prototype.layout = function (layoutPath,layoutpresenter,layoutSuffix) {
-    if(!layoutPath || typeof layoutPath !== 'string')return this;
-
+presenterInterface.prototype.layout = function (layoutPath) {
     var source=presenterSource[this.__sourceId__];
-    source.layout=layoutPath;
-    layoutSuffix = typeof layoutpresenter === 'string' && layoutpresenter;
-
+    if(source.info.isLayout)return;
+    //标识使用layout
+    source.useLayout=true;
+    //layout渲染
+    layoutEngine.layout(layoutPath,source.info,presenterExec);
     return this;
 };
 
@@ -164,24 +158,20 @@ presenterInterface.prototype.display = function (view) {
         },source.info);
 
         if(view)viewInfo.view=view;
-    }else if(source instanceof Object){
+    }else if(source.view instanceof Object){
         Object.keys(source).forEach(function (key) {
             viewInfo[key]=source[key];
         });
     }
 
+    //格式化视图模板后缀
     viewInfo.tplSuffix='.'+viewInfo.tplSuffix.replace(/^\./,'');
 
     //视图资源请求
-    viewEngine.viewSourc(viewInfo,source.info,function (viewSource) {
-        console.log(viewSource);
+    viewEngine.viewSourc(viewInfo, source.info ,function (viewSource) {
+        //结合layout来渲染
+        layoutEngine.display(viewSource,source);
     });
-
-    //调用展示
-    // viewEngine.html2vdom()
-
-
-
     return this;
 };
 
@@ -205,7 +195,44 @@ presenterInterface.prototype.model = function (modelPath) {
 
 };
 
-module.exports=presenterInterface;
+
+/**
+ * 调度执行
+ * @param source
+ * @param sourceInfo
+ * @param pathInfo
+ * @param view
+ */
+function presenterExec(source,sourceInfo,pathInfo,view) {
+
+    if(!source){
+        log.error('presenter ['+  sourceInfo.url +']中缺失'+sourceInfo.slice+'操作(切片)');
+        return;
+    }
+
+    //调度器执行
+    source.call(new presenterInterface({
+        //是否布局
+        isLayout:sourceInfo.isLayout,
+        //参数
+        parameter:pathInfo.parameter,
+        //当前模块
+        module:sourceInfo.module,
+        //当前操作(切片)
+        slice:sourceInfo.slice,
+        //当前资源地址
+        url:sourceInfo.url,
+        //当前资源路径(不包含文件 module路径、mode类型目录、文件module后缀、文件后缀)
+        pathName:sourceInfo.pathName,
+        //资源来源地址
+        origin:sourceInfo.origin
+    },view));
+}
+
+module.exports={
+    presenterExec:presenterExec,
+    interface:presenterInterface
+};
 
 
 

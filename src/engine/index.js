@@ -23,7 +23,7 @@ function engineExec(routeInfo,pathInfo) {
         mode:'presenter'
     },function (source,info) {
         //调度器执行
-        presenterEngine.exec(source,info,routeInfo,pathInfo);
+        presenterEngine.exec(source,info,pathInfo,routeInfo.view);
     });
 }
 

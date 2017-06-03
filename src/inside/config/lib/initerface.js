@@ -76,6 +76,11 @@ configIniterface.prototype.routeMode = function (config) {
     appConf.route.mode = config;
 };
 
+/*默认的路由*/
+configIniterface.prototype.defaultUrl = function (config) {
+    appConf.route.defaultUrl = config;
+};
+
 /*路由后缀 默认空*/
 configIniterface.prototype.routeSuffix = function (config) {
     appConf.route.suffix = '.' + config.replace(/^\./, '');

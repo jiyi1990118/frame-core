@@ -3,12 +3,12 @@
  */
 
 presenter('index',function () {
-    var title='这是第一个调度器页面!'
+    window.title='这是第一个调度器页面!'
 
-    this.title(title);
+    this.title(window.title);
 
-    this.assign('title',title);
+    this.assign('window',window);
 
-    this.display();
+    this.layout('@layout:default').display();
 
 });

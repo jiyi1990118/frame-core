@@ -27,10 +27,13 @@ config('sys',function($app,$innerConfig){
     $app.routeMode('hash');
 
     /*路由后缀 默认空*/
-    $app.routeSuffix('.html');
+    $app.routeSuffix('.vf');
 
     /*视图模板后缀 默认html*/
-    $app.tplSuffix('.tpl');
+    $app.tplSuffix('.html');
+
+    //默认的路由
+    $app.defaultUrl('home/index');
 
     /*视图请求方式 【 ajax 与 jsonp 】 默认ajax*/
     $app.viewRequire('ajax');

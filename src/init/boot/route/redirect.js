@@ -45,7 +45,6 @@ function redirect(requestUrl,arg,isBack,refresh){
 
     //根据请求的地址执行对应的presenter
     exec(requestUrl, function (routeInfo) {
-
         //并检查是否和上一次路径重复
         if(!routeInfo  && !refresh)return;
 

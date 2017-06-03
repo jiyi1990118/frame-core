@@ -52,6 +52,8 @@ var appConf={
         mode:'hash',
         //路由后缀
         suffix:'',
+        //默认路由
+        defaultUrl:null
     },
     pathList:[],
     //视图模板后缀

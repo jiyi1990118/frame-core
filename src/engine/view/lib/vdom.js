@@ -635,10 +635,8 @@ function init(modules) {
 
                             }
                         });
-
                         text = vnode.text = concatTextExp(exps);
                     }
-
                     //文本节点
                     vnode.elm = api.createTextNode(vnode.text);
                 }
@@ -677,7 +675,7 @@ function init(modules) {
 
         //触发model中的create 钩子
         cbs.init.forEach(function (initHook) {
-            initHook(vnode, initCreate, extraParameters)
+            initHook(vnode, initCreate, extraParameters,parentNode)
         })
     }
 
@@ -999,22 +997,36 @@ function init(modules) {
     }
 
     //对比节点并修补
-    return function patch(oldVnode, Vnode, scope, filter, parentVnode) {
-        scope = scope || {};
+    return function patch(oldVnode, Vnode, option , parentVnode,callback) {
+        option = option || {};
 
-        var i, elm, parent;
+        var i, elm, parent,nextElm;
         var insertedVnodeQueue = [];
 
         var extraParameters = {
-            scope: scope,
-            filter: filter || {}
+            scope: option.scope||{},
+            filter: option.filter || {},
+            //layout 视图
+            layoutInfo:option.layoutInfo,
+            //presenter 视图
+            nowLayoutInfo:option.nowLayoutInfo
+        }
+
+        //检查是否有旧节点
+        if(oldVnode){
+            //检查并转换dom元素为虚拟Dom
+            if (!isVnode(oldVnode)) {
+                oldVnode = emptyNodeAt(oldVnode);
+            }
+            elm = oldVnode.elm;
+            parent = api.parentNode(elm);
+            nextElm=api.nextSibling(elm);
+        }else{
+            nextElm=null;
+            parent=document.createDocumentFragment();
         }
 
 
-        //检查并转换dom元素为虚拟Dom
-        if (!isVnode(oldVnode)) {
-            oldVnode = emptyNodeAt(oldVnode);
-        }
 
         //检查是否innerVnode内部节点替换
         if (Vnode.isReplace) {
@@ -1058,9 +1070,6 @@ function init(modules) {
         } else {
             if (Vnode instanceof Array) {
 
-                elm = oldVnode.elm;
-                parent = api.parentNode(elm);
-
                 //创建新节点
                 Vnode.forEach(function (Vnode) {
 
@@ -1071,13 +1080,13 @@ function init(modules) {
                             rearrangePatch(ch, oldVnode, parent);
                         } else {
                             //新增节点到父元素容器中
-                            api.insertBefore(parent, Vnode.elm, api.nextSibling(elm));
+                            api.insertBefore(parent, Vnode.elm, nextElm);
                         }
                         oldVnode = ch.clone();
                     }, extraParameters);
                 })
 
-                if (parent !== null) {
+                if ( oldVnode && parent !== null) {
                     //移除旧元素
                     removeVnodes(parent, [oldVnode], 0, 0);
                 }
@@ -1107,8 +1116,6 @@ function init(modules) {
                     //节点修补
                     patchVnode(oldVnode, Vnode, insertedVnodeQueue, extraParameters);
                 } else {
-                    elm = oldVnode.elm;
-                    parent = api.parentNode(elm);
 
                     //创建新节点
                     createElm(Vnode, insertedVnodeQueue, function (ch, isRearrange) {
@@ -1120,7 +1127,7 @@ function init(modules) {
                                 //新增节点到父元素容器中
                                 api.insertBefore(parent, Vnode.elm, api.nextSibling(elm));
                                 //移除旧元素
-                                removeVnodes(parent, [oldVnode], 0, 0);
+                                if( oldVnode)removeVnodes(parent, [oldVnode], 0, 0);
                             }
                             _oldVnode = ch.clone();
                         }
@@ -1138,6 +1145,11 @@ function init(modules) {
         //触发model中的post钩子
         cbs.post.forEach(function (postHook) {
             postHook();
+        });
+
+        //检查是否有回调
+        if(callback instanceof Function)callback(parent,function (newParent) {
+            parent=newParent
         })
 
         return Vnode;
@@ -1469,9 +1481,12 @@ var directorieManage = require('./directiveManage');
 //组件检查
 function compAndDirectiveInspect() {
 
-    function inspectInit(vnode, initCall, extraParameters) {
+    function inspectInit(vnode, initCall, extraParameters,parentNode) {
         var compExample,
             isInitCall,
+            isLayoutElm,
+            layoutElmInfo,
+            layoutStroage,
             data = vnode.data,
             attrsMap = data.attrsMap || {},
             attrs = data.attrs = data.attrs || {},
@@ -1506,6 +1521,36 @@ function compAndDirectiveInspect() {
             }
         }
 
+        //检查并提取 layout-block layout-main
+        if(extraParameters.layoutInfo){
+            layoutStroage=extraParameters.layoutInfo;
+            //收集layout元素
+            switch (vnode.tag){
+                case 'layout-block':
+                    isLayoutElm=true;
+                    var blockName=attrsMap.loaction?attrsMap.loaction.value:vnode.data.attrsMap.location.value
+                    layoutStroage.blockMap[blockName]={
+                        vnode:vnode,
+                        parentNode:parentNode
+                    };
+                    break;
+                case 'layout-main':
+                    isLayoutElm=true;
+                    layoutStroage.main={
+                        vnode:vnode,
+                        parentNode:parentNode
+                    };
+                    break;
+            }
+
+            //重新格式化当前layout节点
+            if(isLayoutElm){
+                vnode.isReplace =true;
+                vnode.innerVnode=vnode.children;
+            }
+
+        }
+
         //组件检查
         if (compClass) {
             compExample = compClass(vnode, extraParameters);
@@ -1538,7 +1583,7 @@ function compAndDirectiveInspect() {
                 //如果不是指令则写入属性
                 attrs[attrName] = attrsMap[attrName].value;
             }
-        })
+        });
 
         if (handleExampleQueue.length) {
             //根据优先级摆放处理队列

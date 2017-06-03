@@ -80,6 +80,7 @@ function getSource(url,option,callback) {
     }else if(url instanceof Object){
         info=url;
         url=info.url;
+        sliceName=info.slice;
     }
 
     if(option.isAjax){

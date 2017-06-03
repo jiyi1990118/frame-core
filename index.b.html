@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>视图渲染</title>
+</head>
+<body class>
+
+<div class="template">
+    <!--<h1>这是标题：{{pageDate.title+'-&#45;&#45;'}}sdfsd{{s|:co+'xiyuan'}}</h1>-->
+
+    <!--<list-gird conf="listData.data"></list-gird>-->
+
+
+    <list-gird conf="gridConf" for="gridConf in {listData:listData}.listData.data"></list-gird>
+
+    <a href="home.java?fdsf=we&age=18">fsdfsdfsd</a>
+    <!--<div conf="gridConfs" for="gridConf in {listData:listData}.listData.data">-&#45;&#45;{{gridConf}}-&#45;&#45;</div>-->
+    <!--<div for="gridConf in [listData][0].data">-&#45;&#45;{{gridConf}}-&#45;&#45;</div>-->
+    <!--<strong>内容</strong>-->
+</div>
+
+<script type="text/javascript" src="dist/vf.js" app-config="./project/config/initConfig.js"></script>
+<script type="text/javascript">
+// :for="gridConf in gridList"
+
+    window.addEventListener('load', function () {
+        var sDate = Date.now(),
+//            htmlStr=document.querySelector('script[type="text/template"]').textContent;
+            htmlStr = document.querySelector('.template').outerHTML;
+
+
+        vf.engin.viewEngin.componentMange.register('list-gird', {
+            template: '<div class="grid"><strong>grid{{gridConf}}</strong>dsfsdf</div><p>o::::</p>',
+            props: {
+                conf:{
+                    key:'gridConf',
+                    type:Object,
+//                    default:{},
+                    watch:function () {
+
+                    },
+                    autoRender:true
+                },
+            },
+            isReplace: true,
+            data: function () {
+                var sortOrders = {}
+                this.columns.forEach(function (key) {
+                    sortOrders[key] = 1
+                })
+                return {
+                    sortKey: '',
+                    sortOrders: sortOrders
+                }
+            },
+            filters: {},
+            hook: {
+                init: function () {
+
+                },
+                create: function () {
+
+                },
+                destroy: function () {
+
+                }
+            }
+        });
+
+        vf.engin.viewEngin.componentMange.register('for', {
+            priority:100,
+            scope: {
+                listData: []
+            },
+            props: {
+                exp: function (expStr) {
+
+                    var reg = /^\s*(?:(?:\(\s*([a-z\$_]+[\w\$]*)\s*(?:\,\s*([a-z\$_]+[\w\$]*))?\s*\))|([a-z\$_]+[\w\.\$]*))\s*in\s+([a-z\$_]+.*)\s*$/i,
+                        matchRes = expStr.match(reg);
+
+                    if (!matchRes)return;
+
+                    //匹配的值
+                    var block_val = matchRes[1],
+                        block_key = matchRes[2],
+                        alone_val = matchRes[3],
+                        source_obj = matchRes[4],
+                        keyString,
+                        valString;
+
+                    //检查是否有key/index
+                    if (block_key) {
+                        keyString = block_val;
+                        valString = block_key;
+                    } else {
+                        valString = block_val || alone_val;
+                    }
+
+
+                    return [
+                        {
+                            key:'listData',
+                            exp:source_obj,
+                            type:[Array,Object],
+                            default:function () {
+                                return []
+                            },
+                            watch:function () {
+
+                            },
+                            autoRender:true
+                        }
+                    ]
+                }
+            },
+            /*render: function (vnode, scope) {
+                var $this = this,
+                    innerVnodes = [];
+
+                scope.listData.forEach(function (val, key) {
+                    innerVnodes.push($this.render(vnode, {}))
+                })
+
+                this.vnode=innerVnodes;
+                return
+            }*/
+        });
+
+        vf.engin.viewEngin.directiveMange.register('for', {
+            priority:100,
+            scope: {
+                listData: [],
+                test:'ooo'
+            },
+            //是否需要等待当前指令或组件加载后渲染后续指令与组件
+            loadRender:true,
+            //是否停止当前节点后续指令与组件渲染
+            stopRender:true,
+            //是替换当前节点
+            isReplace:true,
+            //属性作用域
+            props: function (expStr) {
+
+                //提取表达式
+                var reg = /^\s*(?:(?:\(\s*([a-z\$_]+[\w\$]*)\s*(?:\,\s*([a-z\$_]+[\w\$]*))?\s*\))|([a-z\$_]+[\w\.\$]*))\s*in\s+(.+)\s*$/i,
+                    matchRes = expStr.match(reg),
+                    $this=this;
+
+                if (!matchRes)return;
+
+                //匹配的值
+                var block_val = matchRes[1],
+                    block_key = matchRes[2],
+                    alone_val = matchRes[3],
+                    source_obj = matchRes[4],
+                    keyString,
+                    valString;
+
+                //检查是否有key/index
+                if (block_key) {
+                    keyString = block_val;
+                    valString = block_key;
+                } else {
+                    valString = block_val || alone_val;
+                }
+
+                this.stroage.scopeKey=keyString;
+                this.stroage.scopeVal=valString;
+                return [
+                    {
+                        key:'listData',
+                        exp:source_obj,
+                        //获取当前表达式的观察数据信息
+                        getWatchInfo:function (watchInfo) {
+                            console.log(watchInfo,'>>>')
+                            $this.stroage.watchInfo=watchInfo;
+                        },
+                        type:[Array,Object],
+                        default:[
+
+                        ],
+                        autoRender:true
+                    }
+                ]
+            },
+            event:{
+
+            },
+            render: function (vnode, scope) {
+                var $this=this,
+                    watchRenders=[],
+                    innerVnodes = [];
+
+                //移除上一次for循环的子数据监听
+                if(this.stroage.watchRenders instanceof Array){
+                    this.stroage.watchRenders.forEach(function (info) {
+                        info.ob.unWatch(info.key,info.fn);
+                    })
+                    delete this.stroage.watchRenders;
+                }
+
+                //遍历for循环的数据
+                scope.listData.forEach(function (val, key) {
+                    var scope={},
+                        watchKey,
+                    //节点克隆
+                    _vnode=$this.templateVnode.clone();
+
+                    scope[$this.stroage.scopeVal]=val;
+
+                    if($this.stroage.scopeKey){
+                        scope[$this.stroage.scopeKey]=key;
+                    }
+
+                    //传递作用域
+                    _vnode.scope(scope);
+
+                    //观察值的变化
+                    if($this.stroage.watchInfo){
+
+                        //listData子元素key
+                        watchKey=$this.stroage.watchInfo.key+'['+key+']';
+
+                        function watchFn(data) {
+                            _vnode.$scope[$this.stroage.scopeVal]=data;
+                        }
+
+                        //观察listData中子元素
+                        $this.stroage.watchInfo.observer.watch(watchKey,watchFn);
+
+                        watchRenders.push({
+                            fn:watchFn,
+                            key:watchKey,
+                            ob:$this.stroage.watchInfo.observer
+                        })
+                    }
+                    //节点收集
+                    innerVnodes.push(_vnode)
+                });
+
+                this.stroage.watchRenders=watchRenders;
+
+                //改变当前节点
+                return innerVnodes;
+            }
+        });
+
+
+        console.log(vf.engin.viewEngin, Date.now() - sDate);
+
+        var scope=window.scope={scope: '',test:{},pageDate:{title:'this title val'}};
+
+        var filter={
+            co:function (e) {
+                return [].slice.call(arguments).join('--->')+'??????';
+            }
+        }
+
+        console.log(vf.engin.viewEngin.vdom.patch(document.querySelector('.template'), vf.engin.viewEngin.render(htmlStr), {
+            scope:scope,
+            filter:filter
+        }));
+
+        function c() {
+            var a=10000;
+
+
+            while(a--){
+
+                a%2?scope.listData={data:[1,2,3]}:scope.listData={data:[1,2,3,1,2,3,4,5,2,3,4,2,3,2,3,2,1]}
+            }
+
+
+        }
+
+
+//        setTimeout(c,10000)
+
+    })
+
+</script>
+<script type="text/template">
+    <div class="grid-table">
+        <div class="grid-table-left-wrap">
+            <div class="grid-table-left">
+                <div class="grid-header-group">
+                    <ul class="grid-header-row">
+                        <li $-for=" actionData in gridConf.leftColsModel">
+                            <template config="actionData.titleConfig|colHeaderHandle:[$,actionData.name]"></template>
+                        </li>
+                    </ul>
+                </div>
+                <div class="grid-row-group" $-on:mouseout="eventManage.bodyMouseout"
+                     $-render="eles|setContainer:[$,'leftContainer']">
+                    <ul class="grid-body-row" $-for="(rowKey ,rowData ) in gridListData"
+                        $-on:click="eventManage.rowClick(rowKey,rowData)"
+                        $-on:mouseover="eventManage.rowHover(rowKey,rowData)"
+                        $-class="{row-hover:gridConf.rowHoverIndex == rowKey }">
+                        <li $-for="(actionKey , actionData) in gridConf.leftColsModel">
+                            <template
+                                    config="actionData.listConfig|colDataHandle:[$,rowData,rowKey,actionData.field,gridListData,eles]"></template>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="grid-table-right-wrap">
+            <div class="grid-table-right">
+                <div class="grid-header-group">
+                    <ul class="grid-header-row">
+                        <li class="content-center" $-class="{desc:colModel.order == 'desc',asc:colModel.order == 'asc'}"
+                            $-on:click="eventManage.headerClick(colKey,colModel)"
+                            $-for=" ( colKey , colModel ) in gridConf.colsModel">
+                            <strong $-if="!colModel.titleConfig.template">{{colModel.titleConfig.content ||colModel.name
+                                ||""}}</strong>
+                            <template config="colModel.titleConfig"></template>
+                            <span $-if="colModel.order" $-show="gridConf.orderIndex == colKey "><i
+                                    class="iconfont icon-down-copy-asc"></i><i
+                                    class="iconfont icon-down-copy-desc"></i></span></li>
+                    </ul>
+                </div>
+                <div class="grid-row-group" $-on:mouseout="eventManage.bodyMouseout"
+                     $-render="eles|setContainer:[$,'rightContainer']">
+                    <ul class="grid-body-row" $-for="(rowKey , rowData) in gridListData"
+                        $-on:click="eventManage.rowClick(rowKey,rowData)"
+                        $-on:mouseover="eventManage.rowHover(rowKey,rowData)"
+                        $-class="{row-hover:gridConf.rowHoverIndex == rowKey }">
+                        <li $-for=" ( colKey , colModel ) in gridConf.colsModel"
+                            $-render="eventManage.render(rowKey,colKey)">
+                            <template
+                                    config="colModel.listConfig|colDataHandle:[$,rowData,rowKey,colModel.field,gridListData,eles]"></template>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="grid-empty" $-if="gridListData|rowsEmpty:[$,loading]">
+        <h3><i class="iconfont icon-tttt"></i>暂无数据</h3>
+    </div>
+    <div class="grid-loading" $-class="{}" $-if="!!loading"><p><span class="loading-spinners dots"></span>
+        <p>加载中<span class="loading-spinners"></span></p>
+    </div>
+    <div class="grid-footer">
+        <ul>
+            <li class="footer-left">
+                <ul class="grid-paging-left">
+                    <li $-on:click="eventManage.pageTurn(1)" $-class="{disabled:gridConf.pageNumber == 1}">首页</li>
+                </ul>
+                <ul class="grid-paging-center">
+                    <li $-on:click="eventManage.pageTurn(gridConf.pageNumber-1)"
+                        $-class="{disabled:gridConf.pageNumber == 1}"><i class="iconfont icon-left"></i></li>
+                    <li $-on:click="eventManage.pageTurn(pagingTag)" $-class="{focus:gridConf.pageNumber == pagingTag}"
+                        $-for="pagingTag in pagingListTag"><span>{{pagingTag}}</span></li>
+                    <li $-on:click="eventManage.pageTurn(gridConf.pageNumber+1)"
+                        $-class="{disabled:gridConf.pageNumber == pageCount}"><i class="iconfont icon-right"></i></li>
+                </ul>
+                <ul class="grid-paging-right">
+                    <li $-on:click="eventManage.pageTurn(pageCount)"
+                        $-class="{disabled:gridConf.pageNumber == pageCount}">
+                        尾页
+                    </li>
+                </ul>
+                <div class=toPage>第<input type="text" $-model="searchVal" $-valid="pageCount|searchValid"
+                                          name="pageNumber">页
+                    <button $-on:click="searchVal|toPage:[$,pageCount]" class="page-search">确定</button>
+                    共<strong>{{pageCount}}</strong>页
+                </div>
+            </li>
+            <li class="footer-right"><span class="split">每页</span>
+                <ul>
+                    <li $-for="size in gridConf.pageSizeList">
+                        <button $-on:click="eventManage.pageSize(size)" $-class="{focus:gridConf.pageSize == size}">
+                            {{size}}条
+                        </button>
+                    </li>
+                </ul>
+                <span>共<strong>{{dataCount}}</strong>条</span></li>
+        </ul>
+    </div>
+</script>
+</body>
+</html>
