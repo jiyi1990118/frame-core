@@ -128,6 +128,12 @@ directiveClass.prototype.init = function () {
                         if (!syntaxExample.read(function (newData) {
                             $api.scope[propConf.key] = newData;
 
+                            //监听当前语法
+                            if(propConf.watch instanceof Function){
+                                propConf.watch.apply(this,arguments);
+                                syntaxExample.watch(propConf.watch )
+                            }
+
                             //获取当前值的watchKey
                             if(propConf.getWatchInfo instanceof Function){
                                 propConf.getWatchInfo(syntaxExample.getWatchInfo());
@@ -156,9 +162,8 @@ directiveClass.prototype.init = function () {
                             //检查是否有默认数据 并渲染
                             if (propConf.hasOwnProperty('default')) {
                                 if (isRender) $this.render();
-                            } else {
-                                renderTrigger();
                             }
+                            renderTrigger();
 
                         })) {
 

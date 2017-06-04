@@ -2,6 +2,8 @@
  * Created by xiyuan on 16-5-17.
  */
 
+"use strict";
+
 //唯一标识生成
 var uid=require('../../inside/lib/encrypt/uid');
 
@@ -10,6 +12,10 @@ var viewEngine=require('../view/exports');
 var appConf=require('../../inside/config/lib/commData').appConf;
 
 var layoutEngine=require('../layout/index');
+
+var modelEngine=require('../model/index');
+
+var sourcePathNormal=require('../../inside/source/sourcePathNormal');
 
 //调度器存储器
 var presenterSource={};
@@ -39,6 +45,7 @@ function presenterInterface(info,view) {
     presenterSource[this.__sourceId__=uid()]={
         //存储视图分配的数据
         assign: {},
+        assignReal:{},
         filter:{},
         animate: null,
         view: view,
@@ -70,7 +77,32 @@ presenterInterface.prototype.title = function (title) {
  * @returns {presenterInterface}
  */
 presenterInterface.prototype.assign = function (key, val) {
-    presenterSource[this.__sourceId__].assign[key]=val;
+    var source=presenterSource[this.__sourceId__];
+
+    //检查此key之前是否存在model数据类型中
+    if(source.assignReal[key] ){
+
+        //检查与当前数据是否同源，否则移除监听
+        if(source.assignReal[key] !== val){
+            source.assignReal[key].unWatch()
+        }else{
+            return this;
+        }
+    }
+
+    //检查当前数据是否model数据
+    if(val instanceof modelEngine.modelExample){
+
+        //记录到assign真实数据中
+        source.assignReal[key]=val;
+
+        val.watch(function (resData) {
+            source.assign[key]=resData;
+        },true)
+
+    }else{
+        source.assign[key]=val;
+    }
     return this;
 };
 
@@ -191,10 +223,10 @@ presenterInterface.prototype.redirect = function (pagePath) {
  * @returns {$modelInterface}
  */
 presenterInterface.prototype.model = function (modelPath) {
-
-
+    var source=presenterSource[this.__sourceId__];
+    var pathInfo=sourcePathNormal(modelPath,source.info,'model');
+    return new modelEngine.modelExample(pathInfo);
 };
-
 
 /**
  * 调度执行

@@ -360,7 +360,7 @@
         this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set') && this.berforDefineProperty.get(this);
 
         //检查数据 是否需要归原
-        if(!this.isData){
+        if(!this.isData && this.parentData){
             delete this.parentData[this.nowKey];
         }
 
@@ -602,6 +602,19 @@
     observer.prototype.get = function (key) {
         key = typeof key === "string" ? key : '';
         return observerProxyStroage[this.sourceId].get(key);
+    };
+
+    /**
+     * 设置对应的数据
+     * @param key
+     * @param data
+     */
+    observer.prototype.write = function (key, data) {
+        if(arguments.length === 1){
+            data=key;
+            key='';
+        }
+        return observerProxyStroage[this.sourceId].set(key, data);
     };
 
     /**

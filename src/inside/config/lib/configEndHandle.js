@@ -31,6 +31,23 @@ function configEndHandle() {
 
     //路由字典
     insideConf.routeMaps = routeMaps;
+
+    //启动合并自定义配置 开启可用配置
+    var customConf=commData.customConf,
+        useConf=commData.customUseConf,
+        commConf=customConf.comm;
+
+    Object.keys(commConf).forEach(function (key) {
+        useConf[key]=commConf[key];
+    });
+
+    commData.appConf.loadConfMode.forEach(function (mode) {
+        if(customConf[mode] instanceof  Object){
+            Object.keys(customConf[mode]).forEach(function (key) {
+                useConf[key]= customConf[mode][key];
+            })
+        }
+    })
 }
 
 //路由格式化

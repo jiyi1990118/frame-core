@@ -1,0 +1,406 @@
+//dataGrid最外层盒子
+.list-grid{
+  font-size: 14px;
+  font-family: PingFangSC-Regular;
+  margin-left:5px;//后期可以去掉
+
+
+  //++++++++公共部分样式++++++++
+  //阴影样式
+  .box-shadow(){
+    -moz-box-shadow: 1px 1px 1px #cbced1; /* 老的 Firefox */
+    box-shadow: 1px 1px 1px #cbced1;
+  }
+  //dataGrid左,右边盒子公共部分样式
+  .grid-table-left-right(){
+    display:table;
+    //操作图标样式
+    .icon-fenlei{
+      color: #c0cada;
+    }
+  }
+
+  //dataGrid表格头部
+  .grid-header-group() {
+    width: 100%;
+    display: table-header-group;
+    -moz-user-select: none;
+    /*火狐*/
+    -webkit-user-select: none;
+    /*webkit浏览器*/
+    -ms-user-select: none;
+    /*IE10*/
+    -khtml-user-select: none;
+    /*早期浏览器*/
+    user-select: none;
+    //dataGrid头部样式中的ul
+    >ul.grid-header-row {
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      display: table-row;
+      //background-color: #ffffff;
+      background-color: #fcffff;
+      //dataGrid头部样式中的ul下的li
+      >li {
+        @li-height: 39px;
+        padding:0px 12px;
+        overflow: hidden;
+        height: @li-height;
+        white-space: nowrap;
+        display: table-cell;
+        position: relative;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+        border-bottom: 2px solid #1a921b;;
+        font-family: "Microsoft YaHei";
+        font-size: 14px;
+        //排序图标颜色
+        // 升序
+        @sort-asc: #AAAFB2;
+        //降序
+        @sort-desc:#567ED2;
+        &.asc,&.desc{
+          cursor: pointer;
+        }
+        strong{
+          font-weight: normal;
+        }
+        span {
+          top:0;
+          height: 100%;
+          padding-left: 2px;
+          position: absolute;
+          vertical-align: middle;
+          //弹性布局
+          display:inline-flex;
+          //让两个三角图标垂直排列
+          flex-direction:column;
+          >.iconfont{
+            font-size:12px !important;
+            cursor:pointer;
+          }
+          //升序排列
+          .icon-down-copy-asc {
+            display:inline-flex;
+            margin-top:8px;
+            &::before{
+              height:10px;
+            }
+          }
+          //降序排列
+          .icon-down-copy-desc {
+            display:inline-flex;
+            &::before{
+              height:10px;
+            }
+          }
+        }
+        &.asc span{
+          .icon-down-copy-asc{
+            color: @sort-asc;
+          }
+          .icon-down-copy-desc{
+            color: @sort-desc;
+          }
+        }
+        &.desc span{
+          .icon-down-copy-asc{
+            color: @sort-desc;
+          }
+          .icon-down-copy-desc{
+            color: @sort-asc;
+          }
+        }
+      }
+    }
+  }
+
+  //dataGrid表格中间内容
+  .grid-row-group() {
+    width: 100%;
+    display: table-row-group;
+    .cube();
+    >ul.grid-body-row {
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      display: table-row;
+      font-size: 14px;
+      cursor: pointer;
+      background: #f6f8fa;
+      &:nth-child(even){
+        background: #ffffff;
+      }
+      >li{
+        vertical-align: middle;
+        text-align: center;
+        display: table-cell;
+        border-bottom: 1px solid #e5ebf4;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 0px 12px;
+        height:42px;
+        position:relative; /*这个是关键*/
+        z-index:2;
+        &:hover{
+          z-index:3;
+          background:none; /*没有这个在IE中不可用*/
+        }
+      }
+
+      //鼠标选中
+      &.row-hover {
+        background-color: #e6ffd3;
+      }
+    }
+  }
+
+  //右边盒子滚动条
+  .right-wrap-scroll-bar(){
+    //表格右侧内容X轴滚动条默认底色颜色
+    &::-webkit-scrollbar-track{
+      background-color: #e4e8ea;
+      border-radius: 10px;
+    }
+    //表格右侧内容X轴滚动条鼠标初始化颜色
+    &::-webkit-scrollbar-thumb{
+      background-color: rgba(160, 162, 161, 0.9);
+      border-radius: 10px;
+    }
+    //表格右侧内容X轴滚动条鼠标划过颜色
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(162, 160, 158, 0.79);
+      border-radius: 10px;
+    }
+    //表格右侧内容X轴滚动条鼠标点击颜色
+    &::-webkit-scrollbar-thumb:active {
+      background-color: rgba(84, 86, 87, 0.76);
+      border-radius: 10px;
+    }
+    //表格右侧内容X轴滚动条高度
+    &::-webkit-scrollbar{
+      height:10px;
+    }
+  }
+
+  //++++++++公共部分样式++++++++
+
+  //阴影样式
+  .box-shadow();
+  width: 99%;  //---------表格宽度，用户可修改
+  background-color: #ffffff;
+  border-top: 1px solid #e5ebf4;
+  //表格样式
+  >.grid-table {
+    width: 100%;
+    display:flex;//弹性盒子
+    //dataGrid左边盒子样式
+    >.grid-table-left-wrap{
+      .grid-table-left{
+        //dataGrid左,右边盒子公共部分样式
+        .grid-table-left-right();
+        //dataGrid表格头部
+        >.grid-header-group{
+          .grid-header-group();
+        }
+        //dataGrid表格中间内容
+        >.grid-row-group{
+          .grid-row-group();
+        }
+      }
+    }
+
+
+
+    //dataGrid右边盒子样式
+    >.grid-table-right-wrap{
+      overflow-y:hidden;
+      overflow-x:auto;
+      width:100%;
+      .grid-table-right{
+        //dataGrid左,右边盒子公共部分样式
+        .grid-table-left-right();
+        width:100%;
+        //dataGrid表格头部
+        >.grid-header-group{
+          .grid-header-group();
+        }
+        //dataGrid表格中间内容
+        >.grid-row-group{
+          .grid-row-group();
+        }
+      }
+      //右边盒子滚动条
+      .right-wrap-scroll-bar();
+    }
+  }
+
+  //表格底部样式
+  >.grid-footer {
+    width: 100%;
+    padding: 10px;
+    background: #ffffff;
+    >ul {
+      display: flex;
+      color: #A2B3CE;
+      justify-content: space-between;
+      font-size: 14px;
+      @btnSize:34px;
+      >li {
+        strong{
+          padding: 0 3px;
+        }
+        &.footer-left{
+          display: flex;
+          .textNoSelect();
+          .grid-paging-left,.grid-paging-center,.grid-paging-right{
+            display: flex;
+            height:@btnSize;
+            background: #FFFFFF;
+            border-radius: 5px;
+            border: 1px solid #E5EBF4;
+            >li{
+              padding: 0;
+              margin: 0;
+              cursor: pointer;
+              width: @btnSize + 2px;
+              //height: @btnSize;
+
+              font-size: 14px;
+              font-weight: normal;
+              text-align: center;
+              vertical-align: middle;
+              justify-content: center;
+              align-items: center;
+              display: flex;
+              &:active{
+                background-color: #f5fbf8;
+              }
+              &.focus{
+                color: #fff;
+                background: #26B7AE;
+              }
+              &.disabled{
+                color: #d2d2d2;
+                pointer-events: none;
+                background-color: #f3f3f3;
+              }
+            }
+
+          }
+          .grid-paging-center{
+            >li:not(:first-child){
+              border-left:solid 1px #E5EBF4;
+            }
+          }
+          .grid-paging-left,.grid-paging-right{
+            li{
+              width: auto;
+              padding: 0 10px;
+              i{
+                font-size: 12px;
+              }
+            }
+          }
+          .grid-paging-center,.grid-paging-right{
+            margin-left: 10px;
+            li:first-child{
+              //border-left: solid 1px #c3d6c8;
+            }
+          }
+          .toPage{
+            padding-left: 20px;
+            input[name="pageNumber"]{
+              width: 45px;
+              height: 32px;
+              font-size: 14px;
+              color: #7d7d7d;
+              border: 1px solid #E5EBF4;
+              border-radius: 5px;
+              vertical-align: middle;
+              margin: 0 5px;
+              &.err{
+                border-color:red;
+              }
+            }
+            span.split{
+              padding-left: 10px;
+            }
+            .page-search{
+              margin:0 5px;
+              padding: 0 8px;
+              height:32px;
+              vertical-align: middle;
+              background: #26B7AE;
+              border: none;
+              border-radius: 5px;
+              i{
+                color: #14983a;
+                font-size: 20px;
+              }
+              color: #FFFFFF;
+            }
+          }
+        }
+
+        &.footer-right{
+          padding-right: 20px;
+          ul{
+            display: inline-flex;
+          }
+          li{
+            padding-left: 10px;
+          }
+          button{
+            color: #9BADCA;
+            height: @btnSize;
+            border-radius: 5px;
+            padding: 0 8px;
+            background-color: white;
+            border:solid 1px #E5EBF4;
+            &.focus{
+              color: white;
+              border: none;
+              background-color: #26B7AE;
+            }
+          }
+          >span{
+            padding-left: 10px;
+          }
+        }
+      }
+    }
+  }
+
+
+  .grid-empty{
+    height:200px;
+    color:#dedede;
+    display: flex;
+    font-size: 18px;
+    align-items: center;
+    justify-content: center;
+    h3{
+      font-weight: 100;
+    }
+    i{
+      font-size: 24px;
+    }
+  }
+
+  //grid数据加载样式
+  .grid-loading{
+    color: #bdbbbb;
+    text-align: center;
+    height:200px;
+    display: flex;
+    font-size: 18px;
+    align-items: center;
+    justify-content: center;
+  }
+}

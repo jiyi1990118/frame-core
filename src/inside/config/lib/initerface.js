@@ -7,6 +7,9 @@ var path = require('../../lib/path');
 var jsonp = require('../../lib/net/jsonp');
 var commData = require('./commData');
 var routeConf = require('./routeConf');
+var componentMange=require('./../../../engine/view/lib/componentManage');
+var directiveManage=require('./../../../engine/view/lib/directiveManage');
+var serverEngine=require('./../../../engine/server/index');
 
 
 //空方法
@@ -104,7 +107,34 @@ configIniterface.prototype.module = function (config) {
 
 };
 
-/*应用路径配置*/
+/**
+ * 自定义配置
+ * @param key
+ * @param conf
+ * @param mode
+ */
+configIniterface.prototype.custom = function (conf,mode) {
+    var customConf=commData.customConf;
+
+    //检查是否设置模式
+    if(typeof mode !== 'string')mode='comm';
+
+    customConf[mode]=commData.customConf[mode]||{};
+
+    //配置收集
+    Object.keys(conf).forEach(function (key) {
+        customConf[mode][key]=conf[key];
+    })
+};
+
+//加载配置模式
+configIniterface.prototype.loadConfMode =function (mode) {
+    [].slice.call(arguments).forEach(function (mode) {
+        commData.appConf.loadConfMode.push(mode)
+    });
+};
+
+    /*应用路径配置*/
 configIniterface.prototype.path = function (config) {
     Object.keys(config).forEach(function (key) {
         appConf.pathList.push({
@@ -119,6 +149,15 @@ configIniterface.prototype.path = function (config) {
         return next.len - pev.len;
     });
 };
+
+//组件注册
+configIniterface.prototype.component=componentMange.register;
+
+//指令注册
+configIniterface.prototype.directive=directiveManage.register;
+
+//服务注册
+configIniterface.prototype.server=serverEngine.serverRegister;
 
 /*应用配置扩展*/
 configIniterface.prototype.include = function (config) {

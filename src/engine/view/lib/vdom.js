@@ -68,7 +68,7 @@ var htmlDomApi = {
         parentNode.replaceChild(newNode, oldNode);
     },
     nextSibling: function nextSibling(node) {
-        return node.nextSibling;
+        return node && node.nextSibling;
     },
     tagName: function tagName(elm) {
         return elm.tagName;
@@ -1068,6 +1068,7 @@ function init(modules) {
 
             //常规情况
         } else {
+
             if (Vnode instanceof Array) {
 
                 //创建新节点
@@ -1103,8 +1104,8 @@ function init(modules) {
                 for (i = 0; i < cbs.pre.length; ++i)
                     cbs.pre[i]();
 
-                //检查两个虚拟节点是否相同
-                if (sameVnode(oldVnode, Vnode)) {
+                //检查是否有旧节点 并 检查两个虚拟节点是否相同
+                if (oldVnode && sameVnode(oldVnode, Vnode)) {
                     //检查并传递作用域
                     if (Object.keys(Vnode.rootScope).length) {
                         Object.keys(scope).forEach(function (key) {
@@ -1558,6 +1559,7 @@ function compAndDirectiveInspect() {
             handleExampleQueue.push(compExample);
             //观察组件渲染
             compExample.watchRender(function () {
+
                 initCall();
                 isInitCall = true;
             })

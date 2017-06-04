@@ -17,9 +17,9 @@
     require('./init/index').exec();
 
 
-
     return {
         lib:require('./inside/lib/exports'),
-        engin:require('./engine/index')
+        engin:require('./engine/index'),
+        getConf:require('./inside/config/index').getCoustomConf
     }
 },window)

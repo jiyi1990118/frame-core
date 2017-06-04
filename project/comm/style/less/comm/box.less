@@ -1,0 +1,25 @@
+.box-display(@box){
+  display:@box;
+  display:~`"-moz-@{box}"`;
+  display:~`"-webkit-@{box}"`;
+  display:~`"-ms-@{box}"`;
+
+}
+
+.box-pack(@loaction){
+  -webkit-box-pack:@loaction;
+  -moz-box-pack:@loaction;
+  -webkit-box-align:@loaction;
+  -moz-box-align:@loaction;
+  -ms-box-align:@loaction;
+}
+
+
+
+.box-shadow(@style){
+  box-shadow: @style;
+  -o-box-shadow: @style;
+  -moz-box-shadow: @style;
+  -webkit-box-shadow: @style;
+  -ms-box-shadow: @style;
+}

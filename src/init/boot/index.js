@@ -67,8 +67,6 @@ function start() {
                     "target": requestUrl
                 }, null, pageUrl);
             } else {
-                //通知hash监听器当前跳转不需要做处理
-                routeData.hashListener = false;
                 URL.hash('!/' + requestUrl);
             }
 

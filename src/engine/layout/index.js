@@ -29,7 +29,7 @@ var layoutStroage = {
 }
 
 //视图渲染
-function render(flg) {
+function render() {
 
     var pageContainer = document.body;
 
@@ -58,8 +58,9 @@ function render(flg) {
             parentVnode = pageContainer.parentNode,
             presenterBlockMap = layoutStroage.presenter.source.layoutInfo.blockMap;
 
+
         //检查布局主体是否存在
-        if (layoutStroage.main) {
+        if (layoutStroage.vnode && layoutStroage.main) {
 
             //替换layout-block
             Object.keys(presenterBlockMap).forEach(function (key) {
@@ -103,7 +104,7 @@ function render(flg) {
             });
 
             //获取layout-main 真实元素
-            mainElm = pageContainer.vnode.elm[0];
+            mainElm = [].concat(pageContainer.vnode.elm)[0];
 
             if (parentVnode) {
                 //获取 layout-main 元素在父节点内部的位置
@@ -113,8 +114,9 @@ function render(flg) {
                 [].splice.apply(parentVnode.children, [location, 1].concat(layoutStroage.presenter.vnode));
             }
 
+            // console.log(mainElm.parentNode, containerElm, mainElm,pageContainer)
             //插入presenter 视图
-            domApi.insertBefore(mainElm.parentNode, containerElm, mainElm)
+            domApi.insertBefore(mainElm.parentNode||document.body, containerElm, mainElm)
 
             //销毁旧的 layout-main 子元素
             pageContainer.vnode.innerVnode.forEach(function (vnode) {
@@ -232,12 +234,14 @@ function display(viewSource, presenterSource) {
             //检查是否存在布局信息 并销毁
             if (layoutStroage.vnode) {
                 //销毁旧布局的布局块级节点
-                Object.keys(layoutStroage.blockMap).forEach(function (blockInfo) {
-                    blockInfo.vnode.destroy();
+                Object.keys(layoutStroage.blockMap).forEach(function (key) {
+                    layoutStroage.blockMap[key].vnode.destroy();
                 });
 
                 //销毁旧的布局
-                layoutStroage.vnode.vnode.destroy();
+                [].concat(layoutStroage.vnode.vnode).forEach(function (vnode) {
+                    vnode.destroy();
+                });
 
                 //清空之前标识
                 layoutStroage.vnode = null;

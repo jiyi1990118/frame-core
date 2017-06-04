@@ -1,0 +1,89 @@
+//组件加载动画
+.plugins-loading{
+  top:0;
+  left:0;
+  width:100%;
+  opacity: 1;
+  z-index: 0;
+  position: absolute;
+  .transition(opacity 0.8s linear);
+  &.end{
+    z-index: 9;
+    opacity: 0;
+  }
+  &.close{
+    opacity: 0;
+    z-index: 0;
+    display: none;
+  }
+
+  >div{
+    height:6rem;
+  }
+
+  @loadingBg:#d1d1d2;
+  @loadingWidth:0.6rem;
+
+  .loader,
+  .loader:before,
+  .loader:after {
+    background: @loadingBg;
+    -webkit-animation: load1 1s infinite ease-in-out;
+    animation: load1 1s infinite ease-in-out;
+    width: @loadingWidth;
+    height: 3rem;
+  }
+  .loader:before,
+  .loader:after {
+    position: absolute;
+    top: 0;
+    content: '';
+  }
+  .loader:before {
+    left: -1.5rem;
+  }
+  .loader {
+    text-indent: -9999rem;
+    margin: 15% auto;
+    position: relative;
+    font-size: 11px;
+    -webkit-animation-delay: 0.16s;
+    animation-delay: 0.16s;
+  }
+  .loader:after {
+    left: 1.5rem;
+    -webkit-animation-delay: 0.32s;
+    animation-delay: 0.32s;
+  }
+  @-webkit-keyframes load1 {
+    0%,
+    80%,
+    100% {
+      box-shadow: 0 0 @loadingBg;
+      height: 3rem;
+    }
+    40% {
+      box-shadow: 0 -2rem @loadingBg;
+      height: 4rem;
+    }
+  }
+  @keyframes load1 {
+    0%,
+    80%,
+    100% {
+      box-shadow: 0 0 @loadingBg;
+      height: 3rem;
+    }
+    40% {
+      box-shadow: 0 -2em @loadingBg;
+      height: 4rem;
+    }
+  }
+
+  .loadin-text{
+    color: #d1d1d2;
+    font-size: 1.4rem;
+    text-align: center;
+  }
+
+}

@@ -15,6 +15,16 @@ var insideConf={
     routeList:[]
 }
 
+//自定义配置
+var customConf={
+    comm:{
+
+    }
+}
+
+//自定义使用的配置
+var customUseConf={};
+
 //配置
 var appConf={
     //框架系统配置
@@ -59,7 +69,9 @@ var appConf={
     //视图模板后缀
     tplSuffix:'.html',
     //默认视图请求方式
-    viewRequire:'ajax'
+    viewRequire:'ajax',
+    //加载配置模式
+    loadConfMode:[]
 };
 
 //内部配置
@@ -83,5 +95,7 @@ module.exports={
     appConf:appConf,
     stateData:stateData,
     insideConf:insideConf,
-    innerConf:innerConf
+    innerConf:innerConf,
+    customConf:customConf,
+    customUseConf:customUseConf
 }

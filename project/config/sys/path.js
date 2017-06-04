@@ -4,7 +4,7 @@
 sys(function ($app,$innerConfig) {
 
     var rootPath=$innerConfig.rootPath,
-        appPath=rootPath+'/project';
+        appPath=rootPath+'/project/app';
 
     /*应用路径配置*/
     $app.path({

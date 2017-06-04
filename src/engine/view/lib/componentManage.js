@@ -45,6 +45,8 @@ function compClass(compConf, vnode, extraParameters) {
         scope: vnode.innerScope,
         //过滤器
         filter: {},
+        //模板
+        template:compConf.template,
         //虚拟节点
         vnode: vnode,
         //节点渲染
@@ -150,7 +152,17 @@ compClass.prototype.init = function () {
 
                             $api.scope[propConf.key] = newData;
 
-                            // console.log($api.scope,'------',vnode)
+                            //监听当前语法
+                            if(propConf.watch instanceof Function){
+                                propConf.watch.apply(this,arguments);
+                                syntaxExample.watch(propConf.watch )
+                            }
+
+                            //获取当前值的watchKey
+                            if(propConf.getWatchInfo instanceof Function){
+                                propConf.getWatchInfo(syntaxExample.getWatchInfo());
+                            }
+
                             //检查是否自动渲染
                             if (propConf.autoRender) {
                                 //监听表达式返回的值
@@ -168,16 +180,14 @@ compClass.prototype.init = function () {
                                         renderTrigger();
                                     }
 
-
                                 })
                             }
 
                             //检查是否有默认数据 并渲染
                             if (propConf.hasOwnProperty('default')) {
                                 if (isRender) $this.render();
-                            } else {
-                                renderTrigger();
                             }
+                            renderTrigger();
 
                         })) {
                         //检查是否有默认数据
@@ -187,7 +197,6 @@ compClass.prototype.init = function () {
                         }
                     }
 
-                    // console.log(propConf,strcut,syntaxExample)
                 } else {
                     console.warn('表达式： ' + propConf.exp + '有误！')
                 }
@@ -208,7 +217,7 @@ compClass.prototype.render = function () {
 
     //检查是否有渲染的方法
     if (conf.render instanceof Function) {
-        vnode.innerVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
+        vnode.innerVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope)||conf.template;
     } else if (conf.template) {
 
         if (conf.isReplace || conf.isReplace === undefined) {

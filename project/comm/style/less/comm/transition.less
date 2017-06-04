@@ -1,0 +1,113 @@
+.backface-visibility(@show){
+  -webkit-backface-visibility: @show;
+  -moz-backface-visibility: @show;
+  -ms-backface-visibility: @show;
+  backface-visibility: @show;
+}
+
+.perspective(@val){
+  -webkit-perspective: @val;
+  -moz-perspective: @val;
+  -ms-perspective: @val;
+  perspective: @val;
+}
+
+.filter(@style){
+  -webkit-filter: @style;
+  -moz-filter: @style;
+  -ms-filter: @style;
+  filter: @style;
+}
+
+.cube() {
+  .backface-visibility(hidden);
+  .perspective(1000);
+}
+
+//开启GPU加速
+.GPU(){
+  -webkit-transform: translateZ(0);
+  -moz-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  -o-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/*css3 过渡*/
+.transition(@transition){
+  transition: @transition;
+  -moz-transition: @transition;
+  -webkit-transition: @transition;
+  -o-transition: @transition;
+  .cube();
+}
+
+/*CSS 2D 3D 转换*/
+.transform(@transform){
+  transform:@transform;
+  -ms-transform:@transform;
+  -moz-transform:@transform;
+  -webkit-transform:@transform;
+  -o-transform:@transform;
+  //.cube();
+}
+
+/* 设置旋转元素的基点位置 */
+.transform-origin(@transform-origin){
+  transform-origin:@transform-origin;
+  -ms-transform-origin:@transform-origin;
+  -webkit-transform-origin:@transform-origin;
+  -moz-transform-origin:@transform-origin;
+  -o-transform-origin:@transform-origin;
+}
+
+/**
+* animation
+*/
+/*.keyframes (@prefix,@name,@content) when (@prefix=def) {
+  @keyframes @name {
+    @content();
+  }
+}
+.keyframes (@prefix,@name,@content) when (@prefix=moz) {
+  @-moz-keyframes @name {
+    @content();
+  }
+}
+.keyframes (@prefix,@name,@content) when (@prefix=o) {
+  @-o-keyframes @name {
+    @content();
+  }
+}
+.keyframes (@prefix,@name,@content) when (@prefix=webkit) {
+  @-webkit-keyframes  @name{
+    @content();
+  }
+}
+.keyframes (@prefix,@name,@content) when (@prefix=all) {
+  .keyframes(moz,@name,@content);
+  .keyframes(o,@name,@content);
+  .keyframes(webkit,@name,@content);
+  .keyframes(def,@name,@content);
+}*/
+.animation(@name,@val){
+  animation: @name @val;
+  -moz-animation: @name @val;	/* Firefox */
+  -webkit-animation: @name @val;	/* Safari 和 Chrome */
+  -o-animation: @name @val;
+}
+
+.keyframes (@name,@content) {
+  @keyframes @name {
+    @content();
+  }
+  @-webkit-keyframes  @name{
+    @content();
+  }
+  @-moz-keyframes @name {
+    @content();
+  }
+  @-o-keyframes @name {
+    @content();
+  }
+}

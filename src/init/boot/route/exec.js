@@ -148,8 +148,8 @@ function exec(requestUrl,successCallback,refresh) {
             suffix=autoRouteData.suffix;
         }
 
-        //去掉路径后缀
-        routeInfo.path=routeInfo.path.replace(RegExp('\.?'+(suffix||routeInfo.suffix)+'$'),'');
+        //去掉路径后缀 并重写切片路径
+        routeInfo.path=routeInfo.path.replace(RegExp('\.?'+(suffix||routeInfo.suffix)+'$'),'').replace(/\/([\w-]+)$/, ':$1');
 
         routeInfo={
             presenter: PATH.normalize(presenterUrl + '/' + routeInfo.path),
@@ -172,7 +172,6 @@ function exec(requestUrl,successCallback,refresh) {
 
     //页面后缀
     nowInfo.suffix = routeInfo.suffix;
-
     //检查当前跳转路径和上页面是否同一个路径
     if (nowInfoUrl === href && !refresh)return false;
 

@@ -8,15 +8,21 @@ config(function($app,$innerConfig){
 
     //设置配置内部配置
     $innerConfig({
-        rootPath:location.pathname
+        rootPath:location.pathname.match(/[^?#]*\//)[0]
     });
-
-    console.log(vf)
 
     $app.include({
         sys:'./sys/path.js',
-        route:'./route/defulat.js'
-    })
+        route:'./route/defulat.js',
+        devCustom:'./custom/dev.js',
+        proCustom:'./custom/pro.js',
+        apiMap:'./custom/apiMap.js',
+        server:'./server/index.js',
+        components:'../comm/component/index.js'
+    });
+
+    //加载配置模式
+    $app.loadConfMode('dev');
 
 });
 

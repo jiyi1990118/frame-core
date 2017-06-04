@@ -1,0 +1,1017 @@
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-stroke-width: 0.2px;
+  -moz-osx-font-smoothing: grayscale;
+}
+.no-select-text {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.pointer {
+  cursor: pointer;
+}
+.content-center {
+  text-align: center;
+}
+/*css3 过渡*/
+/*CSS 2D 3D 转换*/
+/* 设置旋转元素的基点位置 */
+/**
+* animation
+*/
+/*.keyframes (@prefix,@name,@content) when (@prefix=def) {
+  @keyframes @name {
+    @content();
+  }
+}
+.keyframes (@prefix,@name,@content) when (@prefix=moz) {
+  @-moz-keyframes @name {
+    @content();
+  }
+}
+.keyframes (@prefix,@name,@content) when (@prefix=o) {
+  @-o-keyframes @name {
+    @content();
+  }
+}
+.keyframes (@prefix,@name,@content) when (@prefix=webkit) {
+  @-webkit-keyframes  @name{
+    @content();
+  }
+}
+.keyframes (@prefix,@name,@content) when (@prefix=all) {
+  .keyframes(moz,@name,@content);
+  .keyframes(o,@name,@content);
+  .keyframes(webkit,@name,@content);
+  .keyframes(def,@name,@content);
+}*/
+.plugins-loading {
+  top: 0;
+  left: 0;
+  width: 100%;
+  opacity: 1;
+  z-index: 0;
+  position: absolute;
+  transition: opacity 0.8s linear;
+  -moz-transition: opacity 0.8s linear;
+  -webkit-transition: opacity 0.8s linear;
+  -o-transition: opacity 0.8s linear;
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  -ms-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  -moz-perspective: 1000;
+  -ms-perspective: 1000;
+  perspective: 1000;
+}
+.plugins-loading.end {
+  z-index: 9;
+  opacity: 0;
+}
+.plugins-loading.close {
+  opacity: 0;
+  z-index: 0;
+  display: none;
+}
+.plugins-loading > div {
+  height: 6rem;
+}
+.plugins-loading .loader,
+.plugins-loading .loader:before,
+.plugins-loading .loader:after {
+  background: #d1d1d2;
+  -webkit-animation: load1 1s infinite ease-in-out;
+  animation: load1 1s infinite ease-in-out;
+  width: 0.6rem;
+  height: 3rem;
+}
+.plugins-loading .loader:before,
+.plugins-loading .loader:after {
+  position: absolute;
+  top: 0;
+  content: '';
+}
+.plugins-loading .loader:before {
+  left: -1.5rem;
+}
+.plugins-loading .loader {
+  text-indent: -9999rem;
+  margin: 15% auto;
+  position: relative;
+  font-size: 11px;
+  -webkit-animation-delay: 0.16s;
+  animation-delay: 0.16s;
+}
+.plugins-loading .loader:after {
+  left: 1.5rem;
+  -webkit-animation-delay: 0.32s;
+  animation-delay: 0.32s;
+}
+@-webkit-keyframes load1 {
+  0%,
+  80%,
+  100% {
+    box-shadow: 0 0 #d1d1d2;
+    height: 3rem;
+  }
+  40% {
+    box-shadow: 0 -2rem #d1d1d2;
+    height: 4rem;
+  }
+}
+@keyframes load1 {
+  0%,
+  80%,
+  100% {
+    box-shadow: 0 0 #d1d1d2;
+    height: 3rem;
+  }
+  40% {
+    box-shadow: 0 -2em #d1d1d2;
+    height: 4rem;
+  }
+}
+.plugins-loading .loadin-text {
+  color: #d1d1d2;
+  font-size: 1.4rem;
+  text-align: center;
+}
+/*! normalize.css v4.1.1 | MIT License | github.com/necolas/normalize.css */
+/**
+ * 1. Change the default font family in all browsers (opinionated).
+ * 2. Prevent adjustments of font size after orientation changes in IE and iOS.
+ */
+html {
+  font-family: "STHeitiSC-Medium","Hiragino Sans GB","Hiragino Sans GB W3",\5b8b\4f53;
+  font-size: 14px;
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+/**
+ * Remove the margin in all browsers (opinionated).
+ */
+body {
+  margin: 0;
+}
+/* HTML5 display definitions
+   ========================================================================== */
+/**
+ * Add the correct display in IE 9-.
+ * 1. Add the correct display in Edge, IE, and Firefox.
+ * 2. Add the correct display in IE.
+ */
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+main,
+menu,
+nav,
+section,
+summary {
+  /* 1 */
+  display: block;
+}
+/**
+ * Add the correct display in IE 9-.
+ */
+audio,
+canvas,
+progress,
+video {
+  display: inline-block;
+}
+/**
+ * Add the correct display in iOS 4-7.
+ */
+audio:not([controls]) {
+  display: none;
+  height: 0;
+}
+/**
+ * Add the correct vertical alignment in Chrome, Firefox, and Opera.
+ */
+progress {
+  vertical-align: baseline;
+}
+/**
+ * Add the correct display in IE 10-.
+ * 1. Add the correct display in IE.
+ */
+template,
+[hidden] {
+  display: none;
+}
+/* Links
+   ========================================================================== */
+/**
+ * 1. Remove the gray background on active links in IE 10.
+ * 2. Remove gaps in links underline in iOS 8+ and Safari 8+.
+ */
+a {
+  background-color: transparent;
+  /* 1 */
+  -webkit-text-decoration-skip: objects;
+  /* 2 */
+}
+/**
+ * Remove the outline on focused links when they are also active or hovered
+ * in all browsers (opinionated).
+ */
+a:active,
+a:hover {
+  outline-width: 0;
+}
+/* Text-level semantics
+   ========================================================================== */
+/**
+ * 1. Remove the bottom border in Firefox 39-.
+ * 2. Add the correct text decoration in Chrome, Edge, IE, Opera, and Safari.
+ */
+abbr[title] {
+  border-bottom: none;
+  /* 1 */
+  text-decoration: underline;
+  /* 2 */
+  text-decoration: underline dotted;
+  /* 2 */
+}
+/**
+ * Prevent the duplicate application of `bolder` by the next rule in Safari 6.
+ */
+b,
+strong {
+  font-weight: inherit;
+}
+/**
+ * Add the correct font weight in Chrome, Edge, and Safari.
+ */
+b,
+strong {
+  font-weight: bolder;
+}
+/**
+ * Add the correct font style in Android 4.3-.
+ */
+dfn {
+  font-style: italic;
+}
+/**
+ * Correct the font size and margin on `h1` elements within `section` and
+ * `article` contexts in Chrome, Firefox, and Safari.
+ */
+h1 {
+  font-size: 2em;
+}
+/**
+ * Add the correct background and color in IE 9-.
+ */
+mark {
+  background-color: #ff0;
+  color: #000;
+}
+/**
+ * Add the correct font size in all browsers.
+ */
+small {
+  font-size: 80%;
+}
+/**
+ * Prevent `sub` and `sup` elements from affecting the line height in
+ * all browsers.
+ */
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+sub {
+  bottom: -0.25em;
+}
+sup {
+  top: -0.5em;
+}
+/* Embedded content
+   ========================================================================== */
+/**
+ * Remove the border on images inside links in IE 10-.
+ */
+img {
+  border-style: none;
+}
+/**
+ * Hide the overflow in IE.
+ */
+svg:not(:root) {
+  overflow: hidden;
+}
+/* Grouping content
+   ========================================================================== */
+/**
+ * 1. Correct the inheritance and scaling of font size in all browsers.
+ * 2. Correct the odd `em` font sizing in all browsers.
+ */
+code,
+kbd,
+pre,
+samp {
+  font-family: monospace, monospace;
+  /* 1 */
+  font-size: 1em;
+  /* 2 */
+}
+/**
+ * Add the correct margin in IE 8.
+ */
+figure {
+  margin: 1em 40px;
+}
+/**
+ * 1. Add the correct box sizing in Firefox.
+ * 2. Show the overflow in Edge and IE.
+ */
+hr {
+  box-sizing: content-box;
+  /* 1 */
+  height: 0;
+  /* 1 */
+  overflow: visible;
+  /* 2 */
+}
+/* Forms
+   ========================================================================== */
+/**
+ * 1. Change font properties to `inherit` in all browsers (opinionated).
+ * 2. Remove the margin in Firefox and Safari.
+ */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  /* 1 */
+  margin: 0;
+  /* 2 */
+}
+/**
+ * Restore the font weight unset by the previous rule.
+ */
+optgroup {
+  font-weight: bold;
+}
+/**
+ * Show the overflow in IE.
+ * 1. Show the overflow in Edge.
+ */
+button,
+input {
+  /* 1 */
+  overflow: visible;
+}
+/**
+ * Remove the inheritance of text transform in Edge, Firefox, and IE.
+ * 1. Remove the inheritance of text transform in Firefox.
+ */
+button,
+select {
+  /* 1 */
+  text-transform: none;
+}
+/**
+ * 1. Prevent a WebKit bug where (2) destroys native `audio` and `video`
+ *    controls in Android 4.
+ * 2. Correct the inability to style clickable types in iOS and Safari.
+ */
+button,
+html [type="button"],
+[type="reset"],
+[type="submit"] {
+  -webkit-appearance: button;
+  /* 2 */
+}
+/**
+ * Remove the inner border and padding in Firefox.
+ */
+button::-moz-focus-inner,
+[type="button"]::-moz-focus-inner,
+[type="reset"]::-moz-focus-inner,
+[type="submit"]::-moz-focus-inner {
+  border-style: none;
+  padding: 0;
+}
+/**
+ * Restore the focus styles unset by the previous rule.
+ */
+button:-moz-focusring,
+[type="button"]:-moz-focusring,
+[type="reset"]:-moz-focusring,
+[type="submit"]:-moz-focusring {
+  outline: 1px dotted ButtonText;
+}
+/**
+ * Change the border, margin, and padding in all browsers (opinionated).
+ */
+fieldset {
+  border: 1px solid #c0c0c0;
+  margin: 0 2px;
+  padding: 0.35em 0.625em 0.75em;
+}
+/**
+ * 1. Correct the text wrapping in Edge and IE.
+ * 2. Correct the color inheritance from `fieldset` elements in IE.
+ * 3. Remove the padding so developers are not caught out when they zero out
+ *    `fieldset` elements in all browsers.
+ */
+legend {
+  box-sizing: border-box;
+  /* 1 */
+  color: inherit;
+  /* 2 */
+  display: table;
+  /* 1 */
+  max-width: 100%;
+  /* 1 */
+  padding: 0;
+  /* 3 */
+  white-space: normal;
+  /* 1 */
+}
+/**
+ * Remove the default vertical scrollbar in IE.
+ */
+textarea {
+  overflow: auto;
+}
+/**
+ * 1. Add the correct box sizing in IE 10-.
+ * 2. Remove the padding in IE 10-.
+ */
+[type="checkbox"],
+[type="radio"] {
+  box-sizing: border-box;
+  /* 1 */
+  padding: 0;
+  /* 2 */
+}
+/**
+ * Correct the cursor style of increment and decrement buttons in Chrome.
+ */
+[type="number"]::-webkit-inner-spin-button,
+[type="number"]::-webkit-outer-spin-button {
+  height: auto;
+}
+/**
+ * 1. Correct the odd appearance in Chrome and Safari.
+ * 2. Correct the outline style in Safari.
+ */
+[type="search"] {
+  -webkit-appearance: textfield;
+  /* 1 */
+  outline-offset: -2px;
+  /* 2 */
+}
+/**
+ * Remove the inner padding and cancel buttons in Chrome and Safari on OS X.
+ */
+[type="search"]::-webkit-search-cancel-button,
+[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+/**
+ * Correct the text style of placeholders in Chrome, Edge, and Safari.
+ */
+::-webkit-input-placeholder {
+  color: inherit;
+  opacity: 0.54;
+}
+/**
+ * 1. Correct the inability to style clickable types in iOS and Safari.
+ * 2. Change font properties to `inherit` in Safari.
+ */
+::-webkit-file-upload-button {
+  -webkit-appearance: button;
+  /* 1 */
+  font: inherit;
+  /* 2 */
+}
+* {
+  margin: 0;
+  padding: 0;
+  outline: none;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
+  -webkit-tap-highlight-color: transparent;
+}
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+ul {
+  list-style: none;
+}
+input {
+  padding-left: 0.2rem;
+}
+input,
+select,
+textarea,
+button {
+  border-radius: 0;
+}
+a {
+  text-decoration: none;
+}
+button {
+  cursor: pointer;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+dd {
+  margin-left: 20px;
+}
+.list-grid {
+  font-size: 14px;
+  font-family: PingFangSC-Regular;
+  margin-left: 5px;
+  -moz-box-shadow: 1px 1px 1px #cbced1;
+  /* 老的 Firefox */
+  box-shadow: 1px 1px 1px #cbced1;
+  width: 99%;
+  background-color: #ffffff;
+  border-top: 1px solid #e5ebf4;
+}
+.list-grid > .grid-table {
+  width: 100%;
+  display: flex;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left {
+  display: table;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left .icon-fenlei {
+  color: #c0cada;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group {
+  width: 100%;
+  display: table-header-group;
+  -moz-user-select: none;
+  /*火狐*/
+  -webkit-user-select: none;
+  /*webkit浏览器*/
+  -ms-user-select: none;
+  /*IE10*/
+  -khtml-user-select: none;
+  /*早期浏览器*/
+  user-select: none;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  display: table-row;
+  background-color: #fcffff;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row > li {
+  padding: 0px 12px;
+  overflow: hidden;
+  height: 39px;
+  white-space: nowrap;
+  display: table-cell;
+  position: relative;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  border-bottom: 2px solid #1a921b;
+  font-family: "Microsoft YaHei";
+  font-size: 14px;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row > li.asc,
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row > li.desc {
+  cursor: pointer;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row > li strong {
+  font-weight: normal;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row > li span {
+  top: 0;
+  height: 100%;
+  padding-left: 2px;
+  position: absolute;
+  vertical-align: middle;
+  display: inline-flex;
+  flex-direction: column;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row > li span > .iconfont {
+  font-size: 12px !important;
+  cursor: pointer;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row > li span .icon-down-copy-asc {
+  display: inline-flex;
+  margin-top: 8px;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row > li span .icon-down-copy-asc::before {
+  height: 10px;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row > li span .icon-down-copy-desc {
+  display: inline-flex;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row > li span .icon-down-copy-desc::before {
+  height: 10px;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row > li.asc span .icon-down-copy-asc {
+  color: #aaafb2;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row > li.asc span .icon-down-copy-desc {
+  color: #567ed2;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row > li.desc span .icon-down-copy-asc {
+  color: #567ed2;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-header-group > ul.grid-header-row > li.desc span .icon-down-copy-desc {
+  color: #aaafb2;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-row-group {
+  width: 100%;
+  display: table-row-group;
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  -ms-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  -moz-perspective: 1000;
+  -ms-perspective: 1000;
+  perspective: 1000;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-row-group > ul.grid-body-row {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  display: table-row;
+  font-size: 14px;
+  cursor: pointer;
+  background: #f6f8fa;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-row-group > ul.grid-body-row:nth-child(even) {
+  background: #ffffff;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-row-group > ul.grid-body-row > li {
+  vertical-align: middle;
+  text-align: center;
+  display: table-cell;
+  border-bottom: 1px solid #e5ebf4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0px 12px;
+  height: 42px;
+  position: relative;
+  /*这个是关键*/
+  z-index: 2;
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-row-group > ul.grid-body-row > li:hover {
+  z-index: 3;
+  background: none;
+  /*没有这个在IE中不可用*/
+}
+.list-grid > .grid-table > .grid-table-left-wrap .grid-table-left > .grid-row-group > ul.grid-body-row.row-hover {
+  background-color: #e6ffd3;
+}
+.list-grid > .grid-table > .grid-table-right-wrap {
+  overflow-y: hidden;
+  overflow-x: auto;
+  width: 100%;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right {
+  display: table;
+  width: 100%;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right .icon-fenlei {
+  color: #c0cada;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group {
+  width: 100%;
+  display: table-header-group;
+  -moz-user-select: none;
+  /*火狐*/
+  -webkit-user-select: none;
+  /*webkit浏览器*/
+  -ms-user-select: none;
+  /*IE10*/
+  -khtml-user-select: none;
+  /*早期浏览器*/
+  user-select: none;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  display: table-row;
+  background-color: #fcffff;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row > li {
+  padding: 0px 12px;
+  overflow: hidden;
+  height: 39px;
+  white-space: nowrap;
+  display: table-cell;
+  position: relative;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  border-bottom: 2px solid #1a921b;
+  font-family: "Microsoft YaHei";
+  font-size: 14px;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row > li.asc,
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row > li.desc {
+  cursor: pointer;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row > li strong {
+  font-weight: normal;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row > li span {
+  top: 0;
+  height: 100%;
+  padding-left: 2px;
+  position: absolute;
+  vertical-align: middle;
+  display: inline-flex;
+  flex-direction: column;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row > li span > .iconfont {
+  font-size: 12px !important;
+  cursor: pointer;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row > li span .icon-down-copy-asc {
+  display: inline-flex;
+  margin-top: 8px;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row > li span .icon-down-copy-asc::before {
+  height: 10px;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row > li span .icon-down-copy-desc {
+  display: inline-flex;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row > li span .icon-down-copy-desc::before {
+  height: 10px;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row > li.asc span .icon-down-copy-asc {
+  color: #aaafb2;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row > li.asc span .icon-down-copy-desc {
+  color: #567ed2;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row > li.desc span .icon-down-copy-asc {
+  color: #567ed2;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-header-group > ul.grid-header-row > li.desc span .icon-down-copy-desc {
+  color: #aaafb2;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-row-group {
+  width: 100%;
+  display: table-row-group;
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  -ms-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  -moz-perspective: 1000;
+  -ms-perspective: 1000;
+  perspective: 1000;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-row-group > ul.grid-body-row {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  display: table-row;
+  font-size: 14px;
+  cursor: pointer;
+  background: #f6f8fa;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-row-group > ul.grid-body-row:nth-child(even) {
+  background: #ffffff;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-row-group > ul.grid-body-row > li {
+  vertical-align: middle;
+  text-align: center;
+  display: table-cell;
+  border-bottom: 1px solid #e5ebf4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0px 12px;
+  height: 42px;
+  position: relative;
+  /*这个是关键*/
+  z-index: 2;
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-row-group > ul.grid-body-row > li:hover {
+  z-index: 3;
+  background: none;
+  /*没有这个在IE中不可用*/
+}
+.list-grid > .grid-table > .grid-table-right-wrap .grid-table-right > .grid-row-group > ul.grid-body-row.row-hover {
+  background-color: #e6ffd3;
+}
+.list-grid > .grid-table > .grid-table-right-wrap::-webkit-scrollbar-track {
+  background-color: #e4e8ea;
+  border-radius: 10px;
+}
+.list-grid > .grid-table > .grid-table-right-wrap::-webkit-scrollbar-thumb {
+  background-color: rgba(160, 162, 161, 0.9);
+  border-radius: 10px;
+}
+.list-grid > .grid-table > .grid-table-right-wrap::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(162, 160, 158, 0.79);
+  border-radius: 10px;
+}
+.list-grid > .grid-table > .grid-table-right-wrap::-webkit-scrollbar-thumb:active {
+  background-color: rgba(84, 86, 87, 0.76);
+  border-radius: 10px;
+}
+.list-grid > .grid-table > .grid-table-right-wrap::-webkit-scrollbar {
+  height: 10px;
+}
+.list-grid > .grid-footer {
+  width: 100%;
+  padding: 10px;
+  background: #ffffff;
+}
+.list-grid > .grid-footer > ul {
+  display: flex;
+  color: #A2B3CE;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.list-grid > .grid-footer > ul > li strong {
+  padding: 0 3px;
+}
+.list-grid > .grid-footer > ul > li.footer-left {
+  display: flex;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-left,
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-center,
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-right {
+  display: flex;
+  height: 34px;
+  background: #FFFFFF;
+  border-radius: 5px;
+  border: 1px solid #E5EBF4;
+}
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-left > li,
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-center > li,
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-right > li {
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  width: 36px;
+  font-size: 14px;
+  font-weight: normal;
+  text-align: center;
+  vertical-align: middle;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-left > li:active,
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-center > li:active,
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-right > li:active {
+  background-color: #f5fbf8;
+}
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-left > li.focus,
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-center > li.focus,
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-right > li.focus {
+  color: #fff;
+  background: #26B7AE;
+}
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-left > li.disabled,
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-center > li.disabled,
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-right > li.disabled {
+  color: #d2d2d2;
+  pointer-events: none;
+  background-color: #f3f3f3;
+}
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-center > li:not(:first-child) {
+  border-left: solid 1px #E5EBF4;
+}
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-left li,
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-right li {
+  width: auto;
+  padding: 0 10px;
+}
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-left li i,
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-right li i {
+  font-size: 12px;
+}
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-center,
+.list-grid > .grid-footer > ul > li.footer-left .grid-paging-right {
+  margin-left: 10px;
+}
+.list-grid > .grid-footer > ul > li.footer-left .toPage {
+  padding-left: 20px;
+}
+.list-grid > .grid-footer > ul > li.footer-left .toPage input[name="pageNumber"] {
+  width: 45px;
+  height: 32px;
+  font-size: 14px;
+  color: #7d7d7d;
+  border: 1px solid #E5EBF4;
+  border-radius: 5px;
+  vertical-align: middle;
+  margin: 0 5px;
+}
+.list-grid > .grid-footer > ul > li.footer-left .toPage input[name="pageNumber"].err {
+  border-color: red;
+}
+.list-grid > .grid-footer > ul > li.footer-left .toPage span.split {
+  padding-left: 10px;
+}
+.list-grid > .grid-footer > ul > li.footer-left .toPage .page-search {
+  margin: 0 5px;
+  padding: 0 8px;
+  height: 32px;
+  vertical-align: middle;
+  background: #26B7AE;
+  border: none;
+  border-radius: 5px;
+  color: #FFFFFF;
+}
+.list-grid > .grid-footer > ul > li.footer-left .toPage .page-search i {
+  color: #14983a;
+  font-size: 20px;
+}
+.list-grid > .grid-footer > ul > li.footer-right {
+  padding-right: 20px;
+}
+.list-grid > .grid-footer > ul > li.footer-right ul {
+  display: inline-flex;
+}
+.list-grid > .grid-footer > ul > li.footer-right li {
+  padding-left: 10px;
+}
+.list-grid > .grid-footer > ul > li.footer-right button {
+  color: #9BADCA;
+  height: 34px;
+  border-radius: 5px;
+  padding: 0 8px;
+  background-color: white;
+  border: solid 1px #E5EBF4;
+}
+.list-grid > .grid-footer > ul > li.footer-right button.focus {
+  color: white;
+  border: none;
+  background-color: #26B7AE;
+}
+.list-grid > .grid-footer > ul > li.footer-right > span {
+  padding-left: 10px;
+}
+.list-grid .grid-empty {
+  height: 200px;
+  color: #dedede;
+  display: flex;
+  font-size: 18px;
+  align-items: center;
+  justify-content: center;
+}
+.list-grid .grid-empty h3 {
+  font-weight: 100;
+}
+.list-grid .grid-empty i {
+  font-size: 24px;
+}
+.list-grid .grid-loading {
+  color: #bdbbbb;
+  text-align: center;
+  height: 200px;
+  display: flex;
+  font-size: 18px;
+  align-items: center;
+  justify-content: center;
+}
