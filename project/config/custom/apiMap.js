@@ -5,11 +5,13 @@
 apiMap(function ($app) {
     //公共配置
     $app.custom({
-        API_HOST:'192.168.30.30:8080',
+        API_HOST:'paas.mecrmcrm.com',
         API_GATEWAY:'debug/afa4j',
         API_URL_MAP: {
-            //创建字段
-            'addModuleConfigField': '/custom/C01001',
+            //自定义grid数据
+            'gridData':'custom/C12002',
+            //列表视图渲染
+            'gridViewRender':'render/R01003',
         }
     });
 

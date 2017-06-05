@@ -11,6 +11,7 @@ config(function($app,$innerConfig){
         rootPath:location.pathname.match(/[^?#]*\//)[0]
     });
 
+    //引入其他资源
     $app.include({
         sys:'./sys/path.js',
         route:'./route/defulat.js',
@@ -18,6 +19,7 @@ config(function($app,$innerConfig){
         proCustom:'./custom/pro.js',
         apiMap:'./custom/apiMap.js',
         server:'./server/index.js',
+        directive:'../comm/directive/index.js',
         components:'../comm/component/index.js'
     });
 

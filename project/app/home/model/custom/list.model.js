@@ -3,31 +3,23 @@
  */
 
 model('gridConf',function () {
-    var dataServer=this.server({
-        serverType:'api',
-        url:'test.html'
-    }).error(function (data,option) {
-        console.log(data,option)
-    }).send();
 
+    var This=this;
 
-    console.log(dataServer,'????:::::')
+    //数据请求触发器
+    this.trigger('request',function (viewId) {
 
-    setTimeout(function () {
-        this.exports.data='ok!'
-    }.bind(this),2000);
-
-
-    this.trigger('use',function (a,b) {
-        console.log('ok!'+a+b)
-
-        return '-_-'+a+b
-    })
-
-    this.exports={
-        uu:'yes',
-        data:'start'
-    };
+        This.server({
+            serverType:'api',
+            url:'gridViewRender'
+        }).error(function (data,option) {
+            console.error('列表渲染请求出错!');
+        }).success(function (resData) {
+            console.log(resData)
+        }).send({
+            viewId:viewId
+        });
+    });
 
 
 })

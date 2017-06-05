@@ -57,7 +57,7 @@ server.prototype.error=function (fn) {
 }
 
 //成功回调
-server.prototype.success=function () {
+server.prototype.success=function (fn) {
     if(this.__innerConf__.success.indexOf(fn) === -1){
         this.__innerConf__.success.push(fn);
     }

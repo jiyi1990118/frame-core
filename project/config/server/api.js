@@ -157,7 +157,7 @@ apiServer(function ($app) {
                 }
 
                 //规范请求的地址
-                option.url = PATH.resolve(API_URL_MAP?API_URL_MAP[option.url]||option.url:option.url, host);
+                option.url = PATH.resolve(API_URL_MAP?API_URL_MAP[option.url]||option.url:option.url, host+'/');
 
             },
             success:function (res,option) {
