@@ -3,8 +3,8 @@
  */
 sys(function ($app,$innerConfig) {
 
-    var rootPath=$innerConfig.rootPath,
-        appPath=rootPath+'/project/app';
+    var appPath=$innerConfig.appPath;
+    var rootPath=$innerConfig.rootPath;
 
     /*应用路径配置*/
     $app.path({

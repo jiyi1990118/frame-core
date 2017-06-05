@@ -62,6 +62,7 @@ For(function ($app) {
 
         },
         render: function (vnode, scope) {
+
             var $this=this,
                 watchRenders=[],
                 innerVnodes = [];

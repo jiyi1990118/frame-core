@@ -14,8 +14,7 @@ apiServer(function ($app) {
                 url=option.url;
 
             option.data=option.data||{};
-
-            console.log(url)
+            option.type=option.method||option.type;
 
             Object.keys(sendData||{}).forEach(function (key) {
                 option.data[key]=sendData[key];
@@ -132,7 +131,7 @@ apiServer(function ($app) {
                 xhr.setRequestHeader(key, option.header[key]);
             });
 
-            xhr.send(sendData);
+            xhr.send(JSON.stringify(sendData));
             return xhr;
         },
         filter:{

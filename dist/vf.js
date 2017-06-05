@@ -1196,13 +1196,15 @@
         var compStroage = {};
 
         //组件类
-        function compClass(compConf, vnode, extraParameters) {
+        function compClass(compConf, vnode, extraParameters, vdomApi) {
 
             //标识当前节点是组件
             vnode.isComponent = true;
 
             //组件元素内部作用域
             vnode.innerScope = {};
+
+            vnode.innerFilter = compConf.filter || {};
 
             //组件实例配置
             this.conf = compConf;
@@ -1232,7 +1234,17 @@
                 //虚拟节点
                 vnode: vnode,
                 //节点渲染
-                render: function() {
+                render: function(html, scope, filter) {
+
+                    var vnode = vdomApi.html2vdom(html);
+
+                    /*if(scope instanceof Object){
+                        vnode.scope(scope)
+                    }*/
+                    vnode.innerScope = scope;
+                    vnode.innerFilter = filter;
+
+                    return vnode;
 
                 },
                 stroage: {}
@@ -1267,20 +1279,19 @@
 
             //处理观察的属性
             function propHandle(propName, prop) {
-
+                var proData = {};
                 if (!attrsMap[propName]) {
                     return console.warn('组件数据属性 ' + propName + ' 未定义!');
                 }
 
                 if (prop instanceof Function) {
-                    prop = prop.call(this, attrsMap[propName].value)
-                    prop.key = prop.key || propName;
-                    watchProps = watchProps.concat(prop)
-
+                    proData = prop = prop.call(this, attrsMap[propName].value)
+                    proData.key = prop.key || propName;
+                    watchProps = watchProps.concat(proData);
                 } else if (prop instanceof Object) {
-                    prop.key = prop.key || propName;
-                    prop.exp = prop.exp || attrsMap[propName].value;
-                    watchProps.push(prop);
+                    proData.key = prop.key || propName;
+                    proData.exp = prop.exp || attrsMap[propName].value;
+                    watchProps.push(proData);
 
                 } else {
                     watchProps.push({
@@ -1366,10 +1377,11 @@
                                     }
 
                                     //检查是否有默认数据 并渲染
-                                    if (propConf.hasOwnProperty('default')) {
-                                        if (isRender) $this.render();
+                                    if (propConf.hasOwnProperty('default') && isRender) {
+                                        $this.render();
+                                    } else {
+                                        renderTrigger();
                                     }
-                                    renderTrigger();
 
                                 })) {
                                 //检查是否有默认数据
@@ -1435,8 +1447,8 @@
 
         //组件注册
         exports.register = function(compName, compConf) {
-            compStroage[compName] = function(vnode, extraParameters) {
-                return new compClass(compConf, vnode, extraParameters);
+            compStroage[compName] = function(vnode, extraParameters, vdomApi) {
+                return new compClass(compConf, vnode, extraParameters, vdomApi);
             };
         }
     }, {
@@ -1606,13 +1618,12 @@
                                         }
 
                                         //检查是否有默认数据 并渲染
-                                        if (propConf.hasOwnProperty('default')) {
-                                            if (isRender) $this.render();
+                                        if (propConf.hasOwnProperty('default') && isRender) {
+                                            $this.render();
+                                        } else {
+                                            renderTrigger();
                                         }
-                                        renderTrigger();
-
                                     })) {
-
                                     //检查是否有默认数据
                                     if (propConf.hasOwnProperty('default')) {
                                         //默认值
@@ -2117,6 +2128,8 @@
 
         "use strict";
 
+        var log = require('../../../inside/log/log');
+
         var observer = require('../../../inside/lib/observer');
 
         //语法值观察专用
@@ -2241,8 +2254,8 @@
                         }
                         fags.push(val1[key].value);
                     });
-
-                    return fcall.apply(this, fags);
+                    if (typeof fcall === 'function') return fcall.apply(this, fags);
+                    return log.error('过滤器 ' + val2 + ' 不存在!');
                     //赋值运算
                 case '+=':
                     return val1.value += val2.value;
@@ -2509,7 +2522,7 @@
 
                     ob.receive(function(data) {
                         callback({
-                            value: operation('Filter', data)
+                            value: operation('Filter', data, nowStruct.callee.value)
                         });
                     })
 
@@ -2667,7 +2680,8 @@
             return new structHandle(syntaxStruct, scope, filter, multiple);
         }
     }, {
-        "../../../inside/lib/observer": 53
+        "../../../inside/lib/observer": 53,
+        "../../../inside/log/log": 59
     }],
     18: [function(require, module, exports) {
         /**
@@ -4370,7 +4384,7 @@
 
         //检查是否虚拟节点
         function isVnode(vnode) {
-            return vnode.sel !== undefined;
+            return vnode.hasOwnProperty('sel');
         }
 
         //创建key对索引的map
@@ -4483,17 +4497,55 @@
                     isRearrange,
                     oldVnode,
                     rootScope,
+                    innerFilter,
                     data = vnode.data || {},
                     initCount = cbs.init.length,
                     children = vnode.children,
                     sel = vnode.sel;
 
+                if (innerFilter = vnode.innerFilter) {
+                    Object.keys(extraParameters.filter).forEach(function(key) {
+                        innerFilter[key] = extraParameters.filter[key];
+                    })
+                    extraParameters.filter = innerFilter;
+                } else {
+                    innerFilter = extraParameters.filter;
+                }
+
                 //检查并传递作用域
                 if (parentNode) {
-                    if (parentNode.innerScope) {
+
+                    if (innerFilter = parentNode.innerFilter) {
+                        Object.keys(extraParameters.filter).forEach(function(key) {
+                            innerFilter[key] = extraParameters.filter[key];
+                        })
+                    } else {
+                        innerFilter = extraParameters.filter;
+                    }
+
+                    //检查是否独立作用域
+                    if (vnode.innerScope) {
+                        rootScope = vnode.innerScope;
+                        extraParameters = {
+                            scope: rootScope,
+                            filter: innerFilter
+                        }
+
+                    } else if (parentNode.innerScope) {
+
                         rootScope = parentNode.innerScope;
+
+                        extraParameters = {
+                            scope: rootScope,
+                            filter: innerFilter
+                        }
+
                     } else {
                         rootScope = parentNode.rootScope;
+                        //由父节点传递作用域给子级
+                        if (parentNode instanceof Object) {
+                            Object.keys(parentNode.$scope || {}).length && vnode.middleScope.push(parentNode.$scope)
+                        }
                     }
                 } else {
                     rootScope = extraParameters.scope;
@@ -4501,18 +4553,13 @@
 
                 //检查是否组件内部作用域
                 if (Object.keys(vnode.rootScope).length && rootScope !== vnode.rootScope) {
-                    Object.keys(rootScope).forEach(function(key) {
+                    Object.keys(rootScope || {}).forEach(function(key) {
                         vnode.$scope[key] = rootScope[key];
                     })
                 } else {
                     vnode.rootScope = rootScope;
                 }
 
-                //由父节点传递作用域给子级
-                if (parentNode instanceof Object) {
-                    // parentNode.middleScope.length && (vnode.middleScope=vnode.middleScope.concat(parentNode.middleScope));
-                    Object.keys(parentNode.$scope || {}).length && vnode.middleScope.push(parentNode.$scope)
-                }
 
                 if (isDef(sel)) {
                     // 解析选择器
@@ -4546,10 +4593,15 @@
                     //检查当前元素是否替换成innerVnode
                     if (vnode.isReplace) {
                         switch (true) {
+                            case vnode.innerVnode instanceof Element:
+                                vnode.elm = vnode.innerVnode;
+                                vnode.innerVnode = [];
+                                break;
                             case typeof vnode.innerVnode === 'string':
                                 vnode.innerVnode = module.exports.html2vdom(vnode.innerVnode);
                             case vnode.innerVnode instanceof Array:
                             case vnode.innerVnode instanceof Object:
+
                                 if (!(vnode.innerVnode instanceof Array)) {
                                     vnode.innerVnode = [vnode.innerVnode];
                                 }
@@ -4565,9 +4617,10 @@
                                     vnode.elm = [];
                                     vnode.innerVnode.forEach(function(ch) {
 
-                                        //收集作用域
-                                        vnode.middleScope.length && (ch.middleScope = ch.middleScope.concat(vnode.middleScope));
-                                        Object.keys(vnode.$scope).length && ch.middleScope.push(vnode.$scope)
+                                        //重新定位内部作用域
+                                        if (!ch.innerScope && !vnode.innerScope) {
+                                            ch.innerScope = ch.rootScope = ch.$scope
+                                        }
 
                                         createElm(ch, insertedVnodeQueue, function(ch, isRearrange) {
 
@@ -5060,7 +5113,9 @@
                     parent = document.createDocumentFragment();
                 }
 
-
+                if (typeof Vnode === 'string') {
+                    Vnode = vnode(undefined, {}, undefined, Vnode);
+                }
 
                 //检查是否innerVnode内部节点替换
                 if (Vnode.isReplace) {
@@ -5606,12 +5661,11 @@
                         vnode.isReplace = true;
                         vnode.innerVnode = vnode.children;
                     }
-
                 }
 
                 //组件检查
                 if (compClass) {
-                    compExample = compClass(vnode, extraParameters);
+                    compExample = compClass(vnode, extraParameters, module.exports);
                     //存入实例队列
                     handleExampleQueue.push(compExample);
                     //观察组件渲染
@@ -5639,8 +5693,10 @@
                             if (isInitCall) initCall();
                         })
                     } else {
-                        //如果不是指令则写入属性
-                        attrs[attrName] = attrsMap[attrName].value;
+                        if (attrName.match(/^\w+$/)) {
+                            //如果不是指令则写入属性
+                            attrs[attrName] = attrsMap[attrName].value;
+                        }
                     }
                 });
 
@@ -9077,6 +9133,9 @@
 
                 //触发子级
                 this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set') && this.berforDefineProperty.set(newData, this);
+
+                if (!this.parent) return
+
                 //获取父级数据
                 this.parentData = this.parent.targetData;
                 //更改目标数据

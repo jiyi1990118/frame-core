@@ -187,6 +187,9 @@
 
         //触发子级
         this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set') && this.berforDefineProperty.set(newData, this);
+
+        if(!this.parent)return
+
         //获取父级数据
         this.parentData = this.parent.targetData;
         //更改目标数据
@@ -507,7 +510,7 @@
             return nextKey;
         })
     };
-    
+
     //删除数据读取监听
     observerProxy.prototype.removeRead=function (key, fn) {
         var parentListen = this.listen;
@@ -735,7 +738,7 @@
 
         while (++i< l){
             if(resData=objs.ob[i].get(key)){
-               return resData;
+                return resData;
             }
         }
     };

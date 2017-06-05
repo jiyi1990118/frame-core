@@ -5,6 +5,8 @@
 
 "use strict";
 
+var log=require('../../../inside/log/log');
+
 var observer = require('../../../inside/lib/observer');
 
 //语法值观察专用
@@ -129,8 +131,8 @@ function operation(symbol, val1, val2, val3) {
                 }
                 fags.push(val1[key].value);
             });
-
-            return fcall.apply(this, fags);
+            if(typeof fcall === 'function') return fcall.apply(this, fags);
+            return log.error('过滤器 '+val2+' 不存在!');
         //赋值运算
         case '+=':
             return val1.value += val2.value;
@@ -397,7 +399,7 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
 
             ob.receive(function (data) {
                 callback({
-                    value: operation('Filter', data)
+                    value: operation('Filter', data,nowStruct.callee.value)
                 });
             })
 

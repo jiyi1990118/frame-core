@@ -9,16 +9,29 @@ model('gridConf',function () {
     //数据请求触发器
     this.trigger('request',function (viewId) {
 
-        This.server({
+        /*This.server({
             serverType:'api',
             url:'gridViewRender'
         }).error(function (data,option) {
             console.error('列表渲染请求出错!');
         }).success(function (resData) {
-            console.log(resData)
+            This.exports=resData;
+        }).send({
+            viewId:viewId
+        });*/
+
+        This.server({
+            serverType:'jsonp',
+            method:'gridConf',
+            url:'./project/serverData/config/list/gridConf.js'
+        }).error(function (data,option) {
+            console.error('列表渲染请求出错!');
+        }).success(function (resData) {
+            This.exports=resData;
         }).send({
             viewId:viewId
         });
+
     });
 
 

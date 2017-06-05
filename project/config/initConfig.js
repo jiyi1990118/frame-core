@@ -6,9 +6,13 @@
  */
 config(function($app,$innerConfig){
 
+    var rootPath=location.pathname.match(/[^?#]*\//)[0];
+
     //设置配置内部配置
     $innerConfig({
-        rootPath:location.pathname.match(/[^?#]*\//)[0]
+        rootPath:rootPath,
+        projectPath:rootPath+'/project',
+        appPath:rootPath+'/project/app'
     });
 
     //引入其他资源
@@ -18,7 +22,7 @@ config(function($app,$innerConfig){
         devCustom:'./custom/dev.js',
         proCustom:'./custom/pro.js',
         apiMap:'./custom/apiMap.js',
-        server:'./server/index.js',
+        server:'../comm/server/index.js',
         directive:'../comm/directive/index.js',
         components:'../comm/component/index.js'
     });

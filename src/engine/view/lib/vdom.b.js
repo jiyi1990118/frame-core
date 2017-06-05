@@ -460,35 +460,19 @@ function init(modules) {
             initCount = cbs.init.length,
             children = vnode.children, sel = vnode.sel;
 
-        if (innerFilter = vnode.innerFilter) {
-            Object.keys(extraParameters.filter).forEach(function (key) {
-                innerFilter[key] = extraParameters.filter[key];
-            })
-            extraParameters.filter=innerFilter;
-        } else {
-            innerFilter = extraParameters.filter;
-        }
-
         //检查并传递作用域
         if (parentNode) {
 
-            if (innerFilter = parentNode.innerFilter) {
-                Object.keys(extraParameters.filter).forEach(function (key) {
-                    innerFilter[key] = extraParameters.filter[key];
-                })
-            } else {
-                innerFilter = extraParameters.filter;
-            }
-
             //检查是否独立作用域
-            if(vnode.innerScope){
-                rootScope = vnode.innerScope;
-                extraParameters = {
-                    scope: rootScope,
-                    filter: innerFilter
-                }
+            if (parentNode.innerScope) {
 
-            }else if (parentNode.innerScope) {
+                if (innerFilter = parentNode.innerFilter) {
+                    Object.keys(extraParameters.filter).forEach(function (key) {
+                        innerFilter[key] = extraParameters.filter[key];
+                    })
+                } else {
+                    innerFilter = extraParameters.filter;
+                }
 
                 rootScope = parentNode.innerScope;
 
@@ -496,13 +480,8 @@ function init(modules) {
                     scope: rootScope,
                     filter: innerFilter
                 }
-
-            }  else {
+            } else {
                 rootScope = parentNode.rootScope;
-                //由父节点传递作用域给子级
-                if (parentNode instanceof Object ) {
-                    Object.keys(parentNode.$scope || {}).length && vnode.middleScope.push(parentNode.$scope)
-                }
             }
         } else {
             rootScope = extraParameters.scope;
@@ -517,6 +496,11 @@ function init(modules) {
             vnode.rootScope = rootScope;
         }
 
+        //由父节点传递作用域给子级
+        if (parentNode instanceof Object) {
+            // parentNode.middleScope.length && (vnode.middleScope=vnode.middleScope.concat(parentNode.middleScope));
+            Object.keys(parentNode.$scope || {}).length && vnode.middleScope.push(parentNode.$scope)
+        }
 
         if (isDef(sel)) {
             // 解析选择器
@@ -557,8 +541,9 @@ function init(modules) {
                     case typeof vnode.innerVnode === 'string':
                         vnode.innerVnode = module.exports.html2vdom(vnode.innerVnode);
                     case vnode.innerVnode instanceof Array:
-                    case vnode.innerVnode instanceof Object:
 
+                        console.log(vnode.innerVnode,'gggggggggggggg',)
+                    case vnode.innerVnode instanceof Object:
                         if (!(vnode.innerVnode instanceof Array)) {
                             vnode.innerVnode = [vnode.innerVnode];
                         }
@@ -574,10 +559,9 @@ function init(modules) {
                             vnode.elm = [];
                             vnode.innerVnode.forEach(function (ch) {
 
-                                //重新定位内部作用域
-                                if(!ch.innerScope && !vnode.innerScope){
-                                    ch.innerScope=ch.rootScope=ch.$scope
-                                }
+                                //收集作用域
+                                vnode.middleScope.length && (ch.middleScope = ch.middleScope.concat(vnode.middleScope));
+                                Object.keys(vnode.$scope).length && ch.middleScope.push(vnode.$scope)
 
                                 createElm(ch, insertedVnodeQueue, function (ch, isRearrange) {
 

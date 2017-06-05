@@ -25,39 +25,14 @@ gridConf({
     "leftColsModel": [
         {
             titleConfig: function () {
-                //开发者专用作用域
-                var developScope = this.developScope;
-                //检查并设置初始值
-                developScope.isAllChecked = false;
-                developScope.masterChange = false;
-                developScope.allChecked = false;
-                //主选择框选择时间标识
-                developScope.allCheckedTime = Date.now();
-                developScope.allCheckedCount === undefined && (developScope.allCheckedCount = 0);
 
                 return {
                     template: '<input type="checkbox" $-on:change="onChange" $-checked:false="developScope.allChecked">',
                     scope: {
-                        developScope: developScope,
-                        onChange: function () {
-                            if (this.checked) {
-                                developScope.isAllChecked = true;
-                                developScope.allChecked = true;
-                                developScope.allCheckedCount = developScope.gridListData.dataList.length;
-                            } else {
-                                developScope.isAllChecked = false;
-                                developScope.allChecked = false;
-                                developScope.allCheckedCount = 0
-                            }
-                            developScope.masterChange = true;
-                            developScope.allCheckedTime = Date.now()
-                        }
+
                     },
                     filter: {
-                        checkedHandle: function (isAllChecked) {
-                            developScope.masterChange = true;
-                            return isAllChecked
-                        }
+
                     }
                 }
             },

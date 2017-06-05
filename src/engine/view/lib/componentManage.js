@@ -14,13 +14,15 @@ var syntaxHandle = require('./syntaxHandle');
 var compStroage = {};
 
 //组件类
-function compClass(compConf, vnode, extraParameters) {
+function compClass(compConf, vnode, extraParameters,vdomApi) {
 
     //标识当前节点是组件
     vnode.isComponent = true;
 
     //组件元素内部作用域
     vnode.innerScope={};
+
+    vnode.innerFilter=compConf.filter||{};
 
     //组件实例配置
     this.conf = compConf;
@@ -50,7 +52,17 @@ function compClass(compConf, vnode, extraParameters) {
         //虚拟节点
         vnode: vnode,
         //节点渲染
-        render: function () {
+        render: function (html,scope,filter) {
+
+            var vnode=vdomApi.html2vdom(html);
+
+            /*if(scope instanceof Object){
+                vnode.scope(scope)
+            }*/
+            vnode.innerScope=scope;
+            vnode.innerFilter=filter;
+
+            return vnode;
 
         },
         stroage: {}
@@ -85,20 +97,19 @@ compClass.prototype.init = function () {
 
     //处理观察的属性
     function propHandle(propName, prop) {
-
+        var proData={};
         if (!attrsMap[propName]) {
             return console.warn('组件数据属性 ' + propName + ' 未定义!');
         }
 
         if (prop instanceof Function) {
-            prop = prop.call(this, attrsMap[propName].value)
-            prop.key = prop.key || propName;
-            watchProps = watchProps.concat(prop)
-
+            proData=prop = prop.call(this, attrsMap[propName].value)
+            proData.key = prop.key || propName;
+            watchProps = watchProps.concat(proData);
         } else if (prop instanceof Object) {
-            prop.key = prop.key || propName;
-            prop.exp = prop.exp || attrsMap[propName].value;
-            watchProps.push(prop);
+            proData.key = prop.key || propName;
+            proData.exp = prop.exp || attrsMap[propName].value;
+            watchProps.push(proData);
 
         } else {
             watchProps.push({
@@ -184,10 +195,11 @@ compClass.prototype.init = function () {
                             }
 
                             //检查是否有默认数据 并渲染
-                            if (propConf.hasOwnProperty('default')) {
-                                if (isRender) $this.render();
+                            if (propConf.hasOwnProperty('default') && isRender) {
+                                $this.render();
+                            } else {
+                                renderTrigger();
                             }
-                            renderTrigger();
 
                         })) {
                         //检查是否有默认数据
@@ -253,7 +265,7 @@ exports.get = function (compName) {
 
 //组件注册
 exports.register = function (compName, compConf) {
-    compStroage[compName] = function (vnode, extraParameters) {
-        return new compClass(compConf, vnode, extraParameters);
+    compStroage[compName] = function (vnode, extraParameters,vdomApi) {
+        return new compClass(compConf, vnode, extraParameters,vdomApi);
     };
 }

@@ -3,6 +3,7 @@
  */
 server(function ($app) {
     $app.include({
-        apiServer:'./api.js'
+        apiServer:'./api.js',
+        jsonpServer:'./jsonp.js'
     })
 })
