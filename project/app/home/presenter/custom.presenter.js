@@ -17,8 +17,6 @@ presenter('list',function () {
 
     this.assign('gridConf',gridConf);
 
-    // this.assign('s',window.s);
-
     this.layout('@layout:default').display();
 
 })

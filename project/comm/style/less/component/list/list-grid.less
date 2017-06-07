@@ -65,34 +65,36 @@
         &.asc,&.desc{
           cursor: pointer;
         }
+        .table-cell{
+          display: flex;
+          align-items:center;
+          justify-content:center;
+          p{
+            left: 8px;
+            position: relative;
+          }
+        }
         strong{
           font-weight: normal;
         }
         span {
-          top:0;
+          left: 8px;
           height: 100%;
-          padding-left: 2px;
-          position: absolute;
+          padding-left: 5px;
           vertical-align: middle;
+          position: relative;
           //弹性布局
-          display:inline-flex;
+          display:flex;
           //让两个三角图标垂直排列
           flex-direction:column;
           >.iconfont{
             font-size:12px !important;
             cursor:pointer;
           }
-          //升序排列
-          .icon-down-copy-asc {
-            display:inline-flex;
-            margin-top:8px;
-            &::before{
-              height:10px;
-            }
-          }
-          //降序排列
-          .icon-down-copy-desc {
-            display:inline-flex;
+          // 升序排列/降序排列
+          .icon-down-copy-desc,.icon-down-copy-asc {
+            display:flex;
+            color: @sort-asc;
             &::before{
               height:10px;
             }

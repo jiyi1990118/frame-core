@@ -6,6 +6,7 @@
 
 var getSource=require('../../../inside/source/getSource');
 var modelInterface=require('../modelInterface');
+var sourcePathNormal=require('../../../inside/source/sourcePathNormal');
 
 //模型实例
 function modelExample(pathInfo) {
@@ -18,15 +19,45 @@ function modelExample(pathInfo) {
     getSource(pathInfo, {
         mode:pathInfo.mode,
     },function (resSource) {
+        var extendLib=[];
+        var modelQueue=[];
+        var packageQueue=[];
+        var calle=resSource[0];
         if(resSource === false){
             log.error('model文件 ['+this.responseURL+']缺失！');
             return;
         }
 
+        if(resSource.length>1){
+            calle=resSource[1];
+            extendLib=resSource[0];
+        }
+
+        extendLib.forEach(function (extendPath) {
+            console.log(extendPath,'>>>>>>>>')
+            var packagePath = extendPath.replace(/^\$:/, '');
+            //两种路径 一、model  二、lib 扩展
+            if (packagePath !== extendPath) {
+
+                console.log(sourcePathNormal(packagePath,pathInfo,'extend'),pathInfo)
+                // packageQueue.push()
+                // packagesFlag.push(i);
+                // packagePath = packagePath.indexOf('@') ? packagePath : pathToUrl($modulePath) + '/' + packagePath.slice(1);
+                // packages.push(packagePath);
+            } else {
+                // modelQueue.push()
+                // includeModel[i] = controllerImage.prototype.model.call(modelObj, modelName);
+            }
+
+
+
+        })
+
+
         //资源回调,初始化model
-        if(resSource instanceof Function){
+        if(calle instanceof Function){
             //开始实例化model代码
-            resSource.call(This.interface);
+            calle.call(This.interface);
             //标识模型已调用
             source.isExec=true;
             //检查triggle

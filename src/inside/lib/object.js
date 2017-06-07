@@ -33,6 +33,12 @@ Object.prototype.deepExtend = function () {
     return deepExtend(arguments);
 };
 
+//对象深度继承
+Object.prototype.extend = function () {
+    extend(arguments);
+    return this;
+};
+
 //对象属性写入
 Object.prototype.setAttr = function (key, data) {
     return write(this, key, data)
@@ -45,8 +51,9 @@ Object.prototype.getAttr = function (key) {
 
 //设置原型中的forEach clone 不可遍历
 def(Object.prototype, 'forEach');
-def(Object.prototype, 'clone');
 def(Object.prototype, 'extend');
+def(Object.prototype, 'deepClone');
+def(Object.prototype, 'deepExtend');
 def(Object.prototype, 'setAttr');
 def(Object.prototype, 'getAttr');
 

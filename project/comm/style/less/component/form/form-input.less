@@ -1,0 +1,238 @@
+@input-border-color:#dedede;
+//单选与复选样式
+input{
+  &[type="checkbox"],&[type="radio"]{
+    @height: 25px;
+    @width:  25px;
+    @color:transparent;
+    @checkedColor:#0c8620;
+    width: @width;
+    height: @height;
+    border: solid 1px @input-border-color;
+    background-color: @color;
+    background-clip: content-box;
+    display: inline-block;
+    -webkit-appearance: none;
+    user-select: none;
+    outline: none;
+
+    text-decoration: none;
+    text-align: center;
+    vertical-align: middle;
+    .transition(border-color 0.5s);
+
+    &:after {
+      top: 0;
+      left: 0;
+      height:100%;
+      width:100%;
+      content: '\e605';
+      color:@checkedColor;
+      font-family: "iconfont" !important;
+      font-size: 14px;
+      font-style: normal;
+      display: flex;
+      align-items:center;
+      justify-content:center;
+      -webkit-font-smoothing: antialiased;
+      -webkit-text-stroke-width: 0.2px;
+      -moz-osx-font-smoothing: grayscale;
+      .transition(transform 0.2s);
+      .transform(scale(0, 0) rotate3d(0, 0, 0, 0deg));
+    }
+    &:checked {
+      border: solid 0.1rem @checkedColor;
+      &:after {
+        .transform(scale(1, 1) rotate3d(0, 0, 0, 0deg));
+      }
+    }
+  }
+  &[type="radio"]{
+    border-radius: 50%;
+  }
+
+  &.small{
+    width: 20px;
+    height: 20px;
+  }
+  &.min{
+    width: 16px;
+    height: 16px;
+  }
+}
+
+//开关
+input[type="checkbox"].input-switch {
+  @height: 28px;
+  @width: 52px;
+  @color:#fdfdfd;
+  @checkedColor:#64bd63;
+  width: @width;
+  height: @height;
+  padding: 0;
+  position: relative;
+  border: 1px solid @input-border-color;
+  background-color: @color;
+  border-radius: @height/2;
+  background-clip: content-box;
+  display: inline-block;
+  -webkit-appearance: none;
+  user-select: none;
+  outline: none;
+  box-shadow: -1px 2px 1px #f2f2f2 inset;
+  transition: border cubic-bezier(0, 0, 0, 1) 0.4s, box-shadow cubic-bezier(0, 0, 0, 1) 0.4s;
+  &:after {
+    top: 0;
+    left: 0;
+    content: '';
+    width: @height - 2px;
+    height: @height - 2px;
+    position: absolute;
+    border-radius: (@height - 2px)/2;
+    background-color: #fff;
+    box-shadow: 1px 2px 5px 0 rgba(192, 195, 191, 0.8);
+    transition: left 0.3s;
+    transform: scale(1, 1);
+  }
+  &:checked {
+    border-color: @checkedColor;
+    background-color: @checkedColor;
+    box-shadow: @checkedColor 0 0 0 16px inset;
+    transition: border ease 0.4s, box-shadow ease 0.4s, background-color ease 1.2s;
+
+    &:after {
+      left: @width - @height ;
+      box-shadow:-1px 2px 5px 0 rgba(42, 152, 7, 0.8);
+    }
+  }
+
+}
+
+//文件上传
+.input-upload{
+  height: 3rem;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  position: relative;
+  >ul{
+    width: 100%;
+    z-index: 1;
+    .textAuto();
+    position: relative;
+    >li{
+      width: 100%;
+      .textAuto();
+    }
+  }
+  >input[type="file"]{
+    top:0;
+    left:0;
+    z-index: 2;
+    opacity: 0;
+    height:100%;
+    position: absolute;
+  }
+  .placeholder{
+    top:0;
+    left:0;
+    width: 100%;
+    z-index: 0;
+    color: #a9a9a9;
+    text-align: left;
+    padding-left: 0.5rem;
+    position: absolute;
+  }
+  &.success{
+      .placeholder{
+          display: none;
+      }
+  }
+}
+
+//文件上传样式
+.upfile {
+  @color:#cacaca;
+  @succColor:#0c8620;
+  width:215px;
+  height:32px;
+  position: relative;
+  display: inline-block;
+
+  input {
+    width:100%;
+    height:100%;
+    position: relative;
+    z-index: 9;
+    opacity: 0;
+  }
+  label {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    background: transparent;
+    display: inline-block;
+    color: @color;
+    line-height: 28px;
+    text-align: center;
+
+    span{
+      display: inline-block;
+      width:80px;
+      text-align: center;
+      margin-right: 5px;
+      border:1px solid @color;
+    }
+    ul{
+      width:100px;
+      .textAuto();
+      vertical-align: middle;
+      color: black;
+      display: inline-block;
+    }
+    >i{
+      vertical-align: middle;
+      display: inline-block;
+      color: @succColor;
+      font-size: 22px;
+      opacity:0;
+      -webkit-transition: all .5s;
+    }
+
+  }
+
+  //上传成功
+  &.success{
+    label{
+      span{
+        //border-color: @succColor;
+      }
+      ul{
+        color: @succColor;
+      }
+
+      >i{
+        opacity:1;
+      }
+    }
+
+  }
+
+}
+
+//文本框
+input[type=text],textarea{
+  vertical-align: middle;
+  @color:#0c8620;
+  @size:25px;
+  border: 1px solid @input-border-color;
+  height: @size;
+  line-height: @size;
+  .transition(border-color 0.5s);
+  .backface-visibility(inherit);
+  &:focus{
+    border-color: @color;
+  }
+}

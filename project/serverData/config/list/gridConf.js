@@ -3,7 +3,7 @@
  */
 gridConf({
     //数据接口 ,没有则不请求网络数据,需自行在数据过滤函数中返回
-    "url": "./serverData/data/list/grid.data",
+    "url": "./project/serverData/data/list/grid.data",
     //网络请求的类型 如: POST | GET
     "method": "GET",
     //页面数据展示的条数
@@ -168,11 +168,14 @@ gridConf({
             //列表数据配置
             listConfig: function (data, rowData, index) {
                 return {
-                    template: '<p $-parses-bind:style="index|colorHandel">{{content}}</p>',
+                    template: '<p $-parses-bind:style="index|colorHandel" v-on:click="click">{{content}}</p>',
                     scope: {
                         content: index + ':' + data,
                         index:index,
-                        color:index%2?'red':'pink'
+                        color:index%2?'red':'pink',
+                        click:function () {
+                            alert('yes')
+                        }
                     },
                     filter:{
                         colorHandel:function (index) {
@@ -274,12 +277,11 @@ gridConf({
     },
     /**
      * 数据初始化配置
-     * @param resData
+     * @param gridListData
      * @param $interface
      */
     dataInitConf: function (gridListData, $interface) {
-        //往开发作用域中存储列表数据
-        $interface.developScope.gridListData = gridListData;
+
     }
 
 })

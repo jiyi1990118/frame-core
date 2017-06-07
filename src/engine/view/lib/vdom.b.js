@@ -126,6 +126,7 @@ function $vnode(conf) {
 
 //节点克隆
 $vnode.prototype.clone = function () {
+
     var conf = {},
         scope = {},
         children = [],
@@ -153,9 +154,22 @@ $vnode.prototype.clone = function () {
     }
 
     conf.data = function (data) {
-        var tmp = {};
+        var tmp = {},
+            attrsMap={};
         Object.keys(data).forEach(function (key) {
-            tmp[key] = data[key];
+            switch (key){
+                case 'attrsMap':
+                    if(data[key] instanceof Object){
+                        Object.keys(data[key]).forEach(function (attrName) {
+                            attrsMap[attrName] =data[key][attrName]
+                        })
+                    }
+                    tmp[key]=attrsMap;
+                    break
+                default:
+                    tmp[key] = data[key];
+            }
+
         })
         return tmp;
     }($this.data);
@@ -460,47 +474,46 @@ function init(modules) {
             initCount = cbs.init.length,
             children = vnode.children, sel = vnode.sel;
 
+        if (innerFilter = vnode.innerFilter) {
+            Object.keys(extraParameters.filter).forEach(function (key) {
+                innerFilter[key] = extraParameters.filter[key];
+            })
+            extraParameters.filter=innerFilter;
+        } else {
+            innerFilter = extraParameters.filter;
+        }
+
         //检查并传递作用域
         if (parentNode) {
 
+            if (innerFilter = parentNode.innerFilter) {
+                Object.keys(extraParameters.filter).forEach(function (key) {
+                    innerFilter[key] = extraParameters.filter[key];
+                })
+            } else {
+                innerFilter = extraParameters.filter;
+            }
+
             //检查是否独立作用域
-            if (parentNode.innerScope) {
-
-                if (innerFilter = parentNode.innerFilter) {
-                    Object.keys(extraParameters.filter).forEach(function (key) {
-                        innerFilter[key] = extraParameters.filter[key];
-                    })
-                } else {
-                    innerFilter = extraParameters.filter;
-                }
-
+            if(parentNode.innerScope) {
                 rootScope = parentNode.innerScope;
-
                 extraParameters = {
                     scope: rootScope,
                     filter: innerFilter
                 }
-            } else {
+
+            }  else {
                 rootScope = parentNode.rootScope;
+                //由父节点传递作用域给子级
+                if (parentNode instanceof Object ) {
+                    Object.keys(parentNode.$scope || {}).length && vnode.middleScope.push(parentNode.$scope)
+                }
             }
         } else {
             rootScope = extraParameters.scope;
         }
 
-        //检查是否组件内部作用域
-        if (Object.keys(vnode.rootScope).length && rootScope !== vnode.rootScope) {
-            Object.keys(rootScope || {}).forEach(function (key) {
-                vnode.$scope[key] = rootScope[key];
-            })
-        } else {
-            vnode.rootScope = rootScope;
-        }
-
-        //由父节点传递作用域给子级
-        if (parentNode instanceof Object) {
-            // parentNode.middleScope.length && (vnode.middleScope=vnode.middleScope.concat(parentNode.middleScope));
-            Object.keys(parentNode.$scope || {}).length && vnode.middleScope.push(parentNode.$scope)
-        }
+        vnode.rootScope = rootScope;
 
         if (isDef(sel)) {
             // 解析选择器
@@ -529,6 +542,10 @@ function init(modules) {
         //初始化创建
         function initCreate() {
 
+
+
+            console.log('yes------+++++-----')
+
             if (initCount && --initCount)return
 
             //检查当前元素是否替换成innerVnode
@@ -541,9 +558,8 @@ function init(modules) {
                     case typeof vnode.innerVnode === 'string':
                         vnode.innerVnode = module.exports.html2vdom(vnode.innerVnode);
                     case vnode.innerVnode instanceof Array:
-
-                        console.log(vnode.innerVnode,'gggggggggggggg',)
                     case vnode.innerVnode instanceof Object:
+
                         if (!(vnode.innerVnode instanceof Array)) {
                             vnode.innerVnode = [vnode.innerVnode];
                         }
@@ -556,15 +572,16 @@ function init(modules) {
                             oldVnode = vnode.clone();
                             return
                         } else {
+
                             vnode.elm = [];
                             vnode.innerVnode.forEach(function (ch) {
 
-                                //收集作用域
-                                vnode.middleScope.length && (ch.middleScope = ch.middleScope.concat(vnode.middleScope));
-                                Object.keys(vnode.$scope).length && ch.middleScope.push(vnode.$scope)
+                                //重新定位内部作用域
+                                if(!ch.innerScope && !vnode.innerScope && vnode.isComponent){
+                                    ch.innerScope=ch.$scope
+                                }
 
                                 createElm(ch, insertedVnodeQueue, function (ch, isRearrange) {
-
                                     if (isRearrange) {
                                         //重新排列元素
                                         var childNodes = rearrangeElm(vnode.innerVnode);
@@ -592,6 +609,8 @@ function init(modules) {
                     vnode.elm = api.createComment(vnode.text);
 
                 } else if (isDef(sel)) {
+
+                    if(vnode.elm)return
 
                     //创建实体Dom元素
                     var elm = vnode.elm = isDef(data) && isDef(i = data.ns) ? api.createElementNS(i, vnode.tag)
@@ -1546,6 +1565,8 @@ function compAndDirectiveInspect() {
                     compExample.init();
                     exapmpleQueueHandle();
                 }
+            }else{
+                initCall();
             }
         }
 
@@ -1585,7 +1606,6 @@ function compAndDirectiveInspect() {
             handleExampleQueue.push(compExample);
             //观察组件渲染
             compExample.watchRender(function () {
-
                 initCall();
                 isInitCall = true;
             })

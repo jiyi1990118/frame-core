@@ -106,7 +106,7 @@ function getSource(url,option,callback) {
                 if (this.state) {
                     //检查是否多个jsonp切片
                     var sourceMap=(this.many ? [].slice.call(arguments) : [[].slice.call(arguments)]).reduce(function (map,source) {
-                        map[source[0]]=source[1];
+                        map[source[0]]=source.slice(1);
                         return map;
                     },{});
 

@@ -151,6 +151,7 @@
      */
     function listenStruct(parentListen, nowKey) {
 
+        this.count=1;
         //子级数据
         this.child = {};
         //监听的回调集合
@@ -185,26 +186,33 @@
             newData = parentData && typeof parentData === 'object' ? parentData[this.nowKey] : undefined,
             isEqual = diff(oldData, newData);
 
-        //触发子级
-        this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set') && this.berforDefineProperty.set(newData, this);
-
-        if(!this.parent)return
-
-        //获取父级数据
-        this.parentData = this.parent.targetData;
-        //更改目标数据
-        this.targetData = newData;
-
         //检查是否变化
         if (!isEqual) {
+
+            if(!this.parent)return
+
+            //获取父级数据
+            this.parentData = this.parent.targetData;
+            //更改目标数据
+            this.targetData = newData;
+
+            if(oldParentData !== this.parentData){
+                console.log('预留-----功能需优化!父数据变化更新子级数据重新绑定')
+            }
+
+            //触发上一个级监听数据
+            if(this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set')){
+                this.berforDefineProperty.set(newData, this);
+            }
+
             //标识有数据
             this.isData=true;
 
-            //还原旧数据的属性
             //检查当前数据属性 后面是否修改
             if (this.topListen && oldParentData !== this.parentData && Object.getOwnPropertyDescriptor(oldParentData, this.nowKey) && Object.getOwnPropertyDescriptor(oldParentData, this.nowKey).set !== this.prevDefineProperty.set) {
                 this.topListen.berforDefineProperty = this.prevDefineProperty;
-            } else{
+            } else if(oldParentData !== this.parentData){
+                //还原数据之前的状态 还原旧数据的属性
                 if(oldParentData)this.prevDefineProperty && Object.defineProperty(oldParentData, this.nowKey, this.prevDefineProperty);
             }
 
@@ -217,12 +225,13 @@
             this.listensRead.forEach(function (fn) {
                 fn(newData, oldData);
             });
+
             this.listensRead=[];
 
-            this.topListen = undefined;
             //数据监听
             this.listen(!(parentData && parentData.hasOwnProperty(this.nowKey)));
         }
+
 
         //触发子级节点数据对比
         Object.keys(this.child).forEach(function (key) {
@@ -251,7 +260,7 @@
             this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set') && this.berforDefineProperty.get(this);
 
             //监听数据变更
-            Object.defineProperty(this.parentData, this.nowKey, {
+            Object.defineProperty(this.parentData, this.nowKey,this.nowDefineProperty= {
                 enumerable: true,
                 configurable: true,
                 set: function (newData, transfer) {
@@ -266,6 +275,7 @@
                         case transfer instanceof listenStruct:
                             //数据监听转移
                             transfer && (This.topListen = transfer);
+                            transfer.count=This.count+1;
                             break;
                         case transfer === 'this':
                             return This;
@@ -279,6 +289,7 @@
                 this.isDelete = true;
                 delete this.parentData[this.nowKey]
             }
+
         }
 
     };
@@ -477,6 +488,7 @@
             fn = key;
             key = ''
         }
+
         //遍历监听的Key
         recursionKey(key, function (nowKey, nextKey) {
             if (nowKey) {
@@ -487,6 +499,7 @@
             }
             if (!(nowKey && nextKey)) {
                 parentListen.add(fn);
+                // parentListen.addRead(fn);
                 resData=parentListen.targetData;
                 //检查是否有数据 并触发回调
                 if(parentListen.isData)fn(resData);

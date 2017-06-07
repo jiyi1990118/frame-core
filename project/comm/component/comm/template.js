@@ -13,7 +13,6 @@ template(function ($app) {
             },
         },
         isReplace: true,
-        filters: {},
         hook: {
             init: function () {
 
@@ -27,6 +26,7 @@ template(function ($app) {
         },
         render:function (vnode, scope) {
             var templateConf=scope.templateConf;
+
             return this.render(templateConf.template,templateConf.scope,templateConf.filter);
         }
     })

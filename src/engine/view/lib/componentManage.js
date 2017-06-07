@@ -55,11 +55,8 @@ function compClass(compConf, vnode, extraParameters,vdomApi) {
         render: function (html,scope,filter) {
 
             var vnode=vdomApi.html2vdom(html);
-
-            /*if(scope instanceof Object){
-                vnode.scope(scope)
-            }*/
             vnode.innerScope=scope;
+            vnode.$scope=scope||vnode.$scope;
             vnode.innerFilter=filter;
 
             return vnode;
@@ -109,6 +106,11 @@ compClass.prototype.init = function () {
         } else if (prop instanceof Object) {
             proData.key = prop.key || propName;
             proData.exp = prop.exp || attrsMap[propName].value;
+
+            Object.keys(prop).forEach(function (key) {
+                proData[key]=prop[key];
+            })
+
             watchProps.push(proData);
 
         } else {
@@ -155,6 +157,7 @@ compClass.prototype.init = function () {
                     //收集作用域
                     var scopes = [vnode.rootScope].concat(vnode.middleScope);
                     scopes.push(vnode.$scope);
+
 
                     syntaxExample = syntaxHandle(strcut, scopes, extraParameters.filter, true);
 

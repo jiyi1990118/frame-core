@@ -4,6 +4,8 @@
  */
 "use strict";
 
+var cbs = {}
+
 //语法结构处理
 var syntaxHandle = require('./syntaxHandle');
 
@@ -126,6 +128,7 @@ function $vnode(conf) {
 
 //节点克隆
 $vnode.prototype.clone = function () {
+
     var conf = {},
         scope = {},
         children = [],
@@ -153,9 +156,22 @@ $vnode.prototype.clone = function () {
     }
 
     conf.data = function (data) {
-        var tmp = {};
+        var tmp = {},
+            attrsMap={};
         Object.keys(data).forEach(function (key) {
-            tmp[key] = data[key];
+            switch (key){
+                case 'attrsMap':
+                    if(data[key] instanceof Object){
+                        Object.keys(data[key]).forEach(function (attrName) {
+                            attrsMap[attrName] =data[key][attrName]
+                        })
+                    }
+                    tmp[key]=attrsMap;
+                    break
+                default:
+                    tmp[key] = data[key];
+            }
+
         })
         return tmp;
     }($this.data);
@@ -418,7 +434,7 @@ function concatTextExp(exps) {
 }
 
 function init(modules) {
-    var i, j, cbs = {};
+    var i, j;
     var api = htmlDomApi;
 
     //收集自定义模块中的钩子
@@ -481,17 +497,8 @@ function init(modules) {
             }
 
             //检查是否独立作用域
-            if(vnode.innerScope){
-                rootScope = vnode.innerScope;
-                extraParameters = {
-                    scope: rootScope,
-                    filter: innerFilter
-                }
-
-            }else if (parentNode.innerScope) {
-
+            if(parentNode.innerScope) {
                 rootScope = parentNode.innerScope;
-
                 extraParameters = {
                     scope: rootScope,
                     filter: innerFilter
@@ -508,15 +515,7 @@ function init(modules) {
             rootScope = extraParameters.scope;
         }
 
-        //检查是否组件内部作用域
-        if (Object.keys(vnode.rootScope).length && rootScope !== vnode.rootScope) {
-            Object.keys(rootScope || {}).forEach(function (key) {
-                vnode.$scope[key] = rootScope[key];
-            })
-        } else {
-            vnode.rootScope = rootScope;
-        }
-
+        vnode.rootScope = rootScope;
 
         if (isDef(sel)) {
             // 解析选择器
@@ -546,7 +545,6 @@ function init(modules) {
         function initCreate() {
 
             if (initCount && --initCount)return
-
             //检查当前元素是否替换成innerVnode
             if (vnode.isReplace) {
                 switch (true) {
@@ -571,16 +569,16 @@ function init(modules) {
                             oldVnode = vnode.clone();
                             return
                         } else {
+
                             vnode.elm = [];
                             vnode.innerVnode.forEach(function (ch) {
 
                                 //重新定位内部作用域
-                                if(!ch.innerScope && !vnode.innerScope){
-                                    ch.innerScope=ch.rootScope=ch.$scope
+                                if(!ch.innerScope && !vnode.innerScope && vnode.isComponent){
+                                    ch.innerScope=ch.$scope
                                 }
 
                                 createElm(ch, insertedVnodeQueue, function (ch, isRearrange) {
-
                                     if (isRearrange) {
                                         //重新排列元素
                                         var childNodes = rearrangeElm(vnode.innerVnode);
@@ -608,6 +606,9 @@ function init(modules) {
                     vnode.elm = api.createComment(vnode.text);
 
                 } else if (isDef(sel)) {
+
+
+                    if(oldVnode && vnode.elm === oldVnode.elm)return;
 
                     //创建实体Dom元素
                     var elm = vnode.elm = isDef(data) && isDef(i = data.ns) ? api.createElementNS(i, vnode.tag)
@@ -683,7 +684,7 @@ function init(modules) {
             }
 
             i = data.hook;
-            if (isDef(i)) {
+            if ( isDef(i)) {
                 //检查并触发create类型钩子
                 if (i.create)
                     i.create(emptyNode, vnode);
@@ -693,13 +694,14 @@ function init(modules) {
                     insertedVnodeQueue.push(vnode);
             }
 
-            //销毁旧节点
-            oldVnode && oldVnode.destroy();
-            //节点备份
-            oldVnode = vnode.clone();
-
             //返回当前节点数据
             callback(vnode, isRearrange);
+
+            //销毁旧节点
+            oldVnode && oldVnode.destroy();
+
+            //节点备份
+            oldVnode = vnode.clone();
 
             //标识父元素重新排列子元素
             isRearrange = true;
@@ -1005,7 +1007,6 @@ function init(modules) {
                         var scopes = [vnode.rootScope].concat(vnode.middleScope);
                         scopes.push(vnode.$scope);
                         //表达式监听
-                        ;
                         (exps[index] = syntaxHandle(exp, scopes, extraParameters.filter, true)).readWatch(function (data) {
                             // console.log('this is text ', data, vnode.$scope);
                             //检查文本是否以存在 则重新合并文本内容
@@ -1114,19 +1115,35 @@ function init(modules) {
 
             if (Vnode instanceof Array) {
 
+                var containerVnode=Vnode,
+                    tmpNode,
+                    tmpParent=parent;
                 //创建新节点
                 Vnode.forEach(function (Vnode) {
 
-                    var oldVnode;
+                    var oldVnode,
+                        nowParentNode;
                     //创建新节点
                     createElm(Vnode, insertedVnodeQueue, function (ch, isRearrange) {
+
                         if (isRearrange) {
-                            rearrangePatch(ch, oldVnode, parent);
+                            rearrangePatch(ch, oldVnode, oldVnode.elm.parentNode);
                         } else {
                             //新增节点到父元素容器中
-                            api.insertBefore(parent, Vnode.elm, nextElm);
+                            var location=containerVnode.indexOf(ch);
+                            if(tmpNode){
+                                if(tmpNode instanceof Array){
+                                    tmpParent=tmpNode[0].parentNode;
+                                }else{
+                                    tmpParent=tmpNode.parentNode;
+                                }
+                            }else{
+                                tmpParent=parent;
+                            }
+                            api.insertBefore(nowParentNode=tmpParent, ch.elm, containerVnode[location+1]?containerVnode[location+1].elm:null);
                         }
                         oldVnode = ch.clone();
+                        tmpNode=ch.elm;
                     }, extraParameters);
                 })
 
@@ -1180,15 +1197,14 @@ function init(modules) {
             }
         }
 
+        //触发model中的post钩子
+        cbs.post.forEach(function (postHook) {
+            postHook();
+        });
 
         //触发队列中的insert钩子
         insertedVnodeQueue.forEach(function (ivq) {
             ivq.data.hook.insert(ivq);
-        });
-
-        //触发model中的post钩子
-        cbs.post.forEach(function (postHook) {
-            postHook();
         });
 
         //检查是否有回调
@@ -1421,95 +1437,54 @@ function styleModule() {
  * @returns {{create: updateEventListeners, update: updateEventListeners, destroy: updateEventListeners}}
  */
 function eventListenersModule() {
-    function invokeHandler(handler, vnode, event) {
-        if (typeof handler === "function") {
-            // call function handler
-            handler.call(vnode, event, vnode);
-        }
-        else if (typeof handler === "object") {
-            // call handler with arguments
-            if (typeof handler[0] === "function") {
-                // special case for single argument for performance
-                if (handler.length === 2) {
-                    handler[0].call(vnode, handler[1], event, vnode);
-                }
-                else {
-                    var args = handler.slice(1);
-                    args.push(event);
-                    args.push(vnode);
-                    handler[0].apply(vnode, args);
-                }
-            }
-            else {
-                // call multiple handlers
-                for (var i = 0; i < handler.length; i++) {
-                    invokeHandler(handler[i]);
-                }
-            }
-        }
-    }
-
-    function handleEvent(event, vnode) {
-        var name = event.type, on = vnode.data.on;
-        // call event handler(s) if exists
-        if (on && on[name]) {
-            invokeHandler(on[name], vnode, event);
-        }
-    }
-
-    function createListener() {
-        return function handler(event) {
-            handleEvent(event, handler.vnode);
-        };
-    }
 
     function updateEventListeners(oldVnode, vnode) {
-        var oldOn = oldVnode.data.on, oldListener = oldVnode.listener, oldElm = oldVnode.elm,
-            on = vnode && vnode.data.on, elm = (vnode && vnode.elm), name;
-        // optimization for reused immutable handlers
-        if (oldOn === on) {
+        var oldOn = oldVnode.data.on,
+            newListener={},
+            oldListener = oldVnode.listener,
+            oldElm = oldVnode.elm,
+            on = vnode && vnode.data.on,
+            elm = (vnode && vnode.elm), name;
+
+        if (oldVnode.listener === vnode.listener && oldOn === on && !on === !oldVnode.listener) {
             return;
         }
-        // remove existing listeners which no longer used
-        if (oldOn && oldListener) {
-            // if element changed or deleted we remove all existing listeners unconditionally
-            if (!on) {
-                for (name in oldOn) {
-                    // remove listener if element was changed or existing listeners removed
-                    oldElm.removeEventListener(name, oldListener, false);
+
+        oldListener=oldListener||{};
+
+        if (!oldOn) {
+            //遍历所有事件类型
+            Object.keys(on).forEach(function (eventName) {
+                (newListener[eventName]=[].concat(on[eventName])).forEach(function (fn) {
+                    elm.addEventListener(eventName, fn, false);
+                })
+            });
+        } else {
+            Object.keys(on).forEach(function (eventName) {
+                if(!oldListener[eventName]){
+                    (newListener[eventName]=[].concat(on[eventName])).forEach(function (fn) {
+                        elm.addEventListener(eventName, fn, false);
+                    })
+                }else{
+                    var oldOnEvents=[].concat(oldListener[eventName]);
+                    (newListener[eventName]=[].concat(on[eventName])).forEach(function (fn) {
+                        var location=oldOnEvents.indexOf(fn)
+                        if(location === -1){
+                            elm.addEventListener(eventName, fn, false);
+                        }else{
+                            //移除已存在的
+                            oldOnEvents.splice(location,1);
+                        }
+                    })
+                    oldOnEvents.forEach(function (fn) {
+                        oldElm.removeEventListener(eventName, fn, false);
+                    })
                 }
-            }
-            else {
-                for (name in oldOn) {
-                    // remove listener if existing listener removed
-                    if (!on[name]) {
-                        oldElm.removeEventListener(name, oldListener, false);
-                    }
-                }
-            }
+
+            });
         }
-        // add new listeners which has not already attached
-        if (on) {
-            // reuse existing listener or create new
-            var listener = vnode.listener = oldVnode.listener || createListener();
-            // update vnode for listener
-            listener.vnode = vnode;
-            // if element changed or added we add all needed listeners unconditionally
-            if (!oldOn) {
-                for (name in on) {
-                    // add listener if element was changed or new listeners added
-                    elm.addEventListener(name, listener, false);
-                }
-            }
-            else {
-                for (name in on) {
-                    // add listener if new listener added
-                    if (!oldOn[name]) {
-                        elm.addEventListener(name, listener, false);
-                    }
-                }
-            }
-        }
+
+        vnode.newListener=newListener;
     }
 
     return {
@@ -1526,6 +1501,7 @@ var directorieManage = require('./directiveManage');
 function compAndDirectiveInspect() {
 
     function inspectInit(vnode, initCall, extraParameters, parentNode) {
+
         var compExample,
             isInitCall,
             isLayoutElm,
@@ -1560,7 +1536,12 @@ function compAndDirectiveInspect() {
                     compExample.init();
                 } else {
                     compExample.init();
-                    exapmpleQueueHandle();
+                    //检查是替换
+                    if(handleExampleQueue.length || compExample.conf.isReplace){
+                        exapmpleQueueHandle();
+                    }else{
+                        initCall();
+                    }
                 }
             }
         }
@@ -1601,7 +1582,6 @@ function compAndDirectiveInspect() {
             handleExampleQueue.push(compExample);
             //观察组件渲染
             compExample.watchRender(function () {
-
                 initCall();
                 isInitCall = true;
             })
@@ -1616,7 +1596,7 @@ function compAndDirectiveInspect() {
 
             //检查是否是指令
             if (directorieClass) {
-                directorieExample = directorieClass(vnode, extraParameters);
+                directorieExample = directorieClass(vnode, extraParameters,module.exports);
                 //存入实例队列
                 handleExampleQueue.push(directorieExample);
                 //观察指令渲染
@@ -1652,6 +1632,7 @@ function compAndDirectiveInspect() {
 module.exports = {
     patch: patch,
     vnode: vnode,
+    cbs:cbs,
     isVnode: isVnode,
     domApi: htmlDomApi,
     node2vnode: emptyNodeAt

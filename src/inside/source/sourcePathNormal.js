@@ -4,18 +4,19 @@
  */
 
 var PATH=require('../lib/path');
+var OBJECT=require('../lib/object');
 var appConf=require('../config/lib/commData').appConf;
 
 /**
  * 转换真实资源路径
  * @param url
  * @param originInfo
- * @param modeType
+ * @param modeType Site.prototype.isPrototypeOf(s)
  */
 function sourcePathNormal(url,originInfo,modeType) {
     var first=url.charAt(0),
-        moduleDirName=appConf.system.moduleDirName[modeType],
-        sliceName=appConf.system.moduleDefault[modeType+'Slice'],
+        moduleDirName=OBJECT.hasPrototypeProperty(appConf.system.moduleDirName,modeType)?modeType:appConf.system.moduleDirName[modeType]||modeType,
+        sliceName=appConf.system.moduleDefault[modeType+'Slice']||'',
 
     sourceInfo={
         //当前模块
@@ -76,11 +77,11 @@ function sourcePathNormal(url,originInfo,modeType) {
     //module模块地址
     sourceInfo.module=module;
     //当前资源路径(不包含文件 module路径、mode类型目录、文件module后缀、文件后缀)
-    sourceInfo.pathName=url;
+    sourceInfo.pathName=url||originInfo.pathName;
     //切片
     sourceInfo.slice=sliceName;
     //url
-    sourceInfo.url=PATH.normalize((module?module+'/'+moduleDirName+'/':'')+url);
+    sourceInfo.url=PATH.normalize((module?module+'/'+moduleDirName+'/':'')+sourceInfo.pathName);
     return sourceInfo;
 }
 

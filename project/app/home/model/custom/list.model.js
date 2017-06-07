@@ -2,7 +2,7 @@
  * Created by xiyuan on 17-6-4.
  */
 
-model('gridConf',function () {
+model('gridConf',['$:lib:gridConf','@lib/'],function ($gridConf) {
 
     var This=this;
 

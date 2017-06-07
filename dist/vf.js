@@ -360,6 +360,7 @@
 
         var getSource = require('../../../inside/source/getSource');
         var modelInterface = require('../modelInterface');
+        var sourcePathNormal = require('../../../inside/source/sourcePathNormal');
 
         //模型实例
         function modelExample(pathInfo) {
@@ -372,15 +373,45 @@
             getSource(pathInfo, {
                 mode: pathInfo.mode,
             }, function(resSource) {
+                var extendLib = [];
+                var modelQueue = [];
+                var packageQueue = [];
+                var calle = resSource[0];
                 if (resSource === false) {
                     log.error('model文件 [' + this.responseURL + ']缺失！');
                     return;
                 }
 
+                if (resSource.length > 1) {
+                    calle = resSource[1];
+                    extendLib = resSource[0];
+                }
+
+                extendLib.forEach(function(extendPath) {
+                    console.log(extendPath, '>>>>>>>>')
+                    var packagePath = extendPath.replace(/^\$:/, '');
+                    //两种路径 一、model  二、lib 扩展
+                    if (packagePath !== extendPath) {
+
+                        console.log(sourcePathNormal(packagePath, pathInfo, 'extend'), pathInfo)
+                        // packageQueue.push()
+                        // packagesFlag.push(i);
+                        // packagePath = packagePath.indexOf('@') ? packagePath : pathToUrl($modulePath) + '/' + packagePath.slice(1);
+                        // packages.push(packagePath);
+                    } else {
+                        // modelQueue.push()
+                        // includeModel[i] = controllerImage.prototype.model.call(modelObj, modelName);
+                    }
+
+
+
+                })
+
+
                 //资源回调,初始化model
-                if (resSource instanceof Function) {
+                if (calle instanceof Function) {
                     //开始实例化model代码
-                    resSource.call(This.interface);
+                    calle.call(This.interface);
                     //标识模型已调用
                     source.isExec = true;
                     //检查triggle
@@ -450,6 +481,7 @@
         module.exports = modelExample;
     }, {
         "../../../inside/source/getSource": 60,
+        "../../../inside/source/sourcePathNormal": 61,
         "../modelInterface": 5
     }],
     5: [function(require, module, exports) {
@@ -856,14 +888,18 @@
          * @param view
          */
         function presenterExec(source, sourceInfo, pathInfo, view) {
-
+            var calle = source[0];
             if (!source) {
                 log.error('presenter [' + sourceInfo.url + ']中缺失' + sourceInfo.slice + '操作(切片)');
                 return;
             }
 
+            if (source.length > 1) {
+                calle = source[1];
+            }
+
             //调度器执行
-            source.call(new presenterInterface({
+            calle.call(new presenterInterface({
                 //是否布局
                 isLayout: sourceInfo.isLayout,
                 //参数
@@ -1237,11 +1273,8 @@
                 render: function(html, scope, filter) {
 
                     var vnode = vdomApi.html2vdom(html);
-
-                    /*if(scope instanceof Object){
-                        vnode.scope(scope)
-                    }*/
                     vnode.innerScope = scope;
+                    vnode.$scope = scope || vnode.$scope;
                     vnode.innerFilter = filter;
 
                     return vnode;
@@ -1291,6 +1324,11 @@
                 } else if (prop instanceof Object) {
                     proData.key = prop.key || propName;
                     proData.exp = prop.exp || attrsMap[propName].value;
+
+                    Object.keys(prop).forEach(function(key) {
+                        proData[key] = prop[key];
+                    })
+
                     watchProps.push(proData);
 
                 } else {
@@ -1337,6 +1375,7 @@
                             //收集作用域
                             var scopes = [vnode.rootScope].concat(vnode.middleScope);
                             scopes.push(vnode.$scope);
+
 
                             syntaxExample = syntaxHandle(strcut, scopes, extraParameters.filter, true);
 
@@ -1470,21 +1509,28 @@
         var directiveStroage = {};
 
         //指令类
-        function directiveClass(directiveConf, vnode, extraParameters, directiveName) {
+        function directiveClass(directiveConf, vnode, extraParameters, directiveName, vdomApi) {
+            this.vdomApi = vdomApi;
+
             //标识当前节点是指令
             vnode.isDirective = true;
 
             //指令名称
             this.name = directiveName;
 
+            this.expInfo = vnode.data.attrsMap[directiveName];
+
             //表达式
-            this.exp = vnode.data.attrsMap[directiveName].value
+            this.exp = vnode.data.attrsMap[directiveName].value;
 
             //指令实例配置
             this.conf = directiveConf;
 
             //当前指令虚拟节点
             this.vnode = vnode;
+
+            //当前节点备份
+            this.cloneVnode = vnode.clone();
 
             //指令扩展参数
             this.extraParameter = extraParameters;
@@ -1505,6 +1551,8 @@
                 filter: {},
                 //虚拟节点
                 vnode: vnode,
+                //expInfo
+                expInfo: vnode.data.attrsMap[directiveName],
                 //节点渲染
                 render: function() {
 
@@ -1538,7 +1586,17 @@
                 data = vnode.data,
                 props = conf.props,
                 watchProps = [],
+                exp = this.exp,
                 extraParameters = this.extraParameter;
+
+
+            //写入钩子
+            if (conf.hook) {
+                vnode.data.hook = vnode.data.hook || {};
+                Object.keys(conf.hook).forEach(function(hookName) {
+                    vnode.data.hook[hookName] = conf.hook[hookName];
+                })
+            }
 
             function renderTrigger() {
                 if (watchProps.length <= ++propLoad) {
@@ -1565,12 +1623,16 @@
             //检查观察的属性 中数据是否完全加载
             if (conf.props) {
                 if (props instanceof Function) {
-                    props = props.call($api, this.exp);
+                    props = props.call($api, exp, this.expInfo);
                     watchProps = watchProps.concat(props)
 
                     if (watchProps.length) {
                         //进行属性作用域数据获取
                         watchProps.forEach(function(propConf) {
+                            propConf.exp = propConf.exp || exp;
+
+                            if (!propConf.exp) return renderTrigger();
+
                             var syntaxExample,
                                 strcut = syntaxStruct(propConf.exp);
 
@@ -1578,7 +1640,10 @@
                             if (!strcut.errMsg) {
                                 //收集作用域
                                 var scopes = [vnode.rootScope].concat(vnode.middleScope);
-                                scopes.push(vnode.$scope);
+                                // scopes.push(vnode.$scope);
+                                if (vnode.innerScope) {
+                                    scopes.push(vnode.innerScope);
+                                }
 
                                 syntaxExample = syntaxHandle(strcut, scopes, extraParameters.filter, true);
 
@@ -1632,7 +1697,6 @@
                                     }
                                 };
 
-                                // console.log(propConf,strcut,syntaxExample)
                             } else {
                                 console.warn('表达式： ' + propConf.exp + '有误！')
                             }
@@ -1645,16 +1709,33 @@
                 } else {
                     console.warn('指令配置中props只能为function')
                 }
+            } else {
+                $this.render();
             }
         }
 
         directiveClass.prototype.render = function() {
             var conf = this.conf,
-                vnode = this.vnode;
+                vnode = this.vnode,
+                renderVnode;
 
             //检查是否有渲染的方法
             if (conf.render instanceof Function) {
-                vnode.innerVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
+                renderVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
+
+                switch (true) {
+                    case !renderVnode:
+                        return;
+                    case renderVnode === vnode:
+                    case renderVnode.elm && renderVnode.elm === vnode.elm:
+                        //检查是否渲染，并检查更新元素
+                        vnode.elm && this.vdomApi.cbs.update.forEach(function(updateHandle) {
+                            updateHandle(vnode, renderVnode);
+                        })
+                        return;
+                }
+
+                vnode.innerVnode = renderVnode;
             }
 
             //标识当前节点是否替换
@@ -1684,8 +1765,8 @@
 
         //指令注册
         exports.register = function(directiveName, directiveConf) {
-            directiveStroage[directiveName] = function(vnode, extraParameters) {
-                return new directiveClass(directiveConf, vnode, extraParameters, directiveName);
+            directiveStroage[directiveName] = function(vnode, extraParameters, vdomApi) {
+                return new directiveClass(directiveConf, vnode, extraParameters, directiveName, vdomApi);
             };
         }
     }, {
@@ -4046,6 +4127,8 @@
          */
         "use strict";
 
+        var cbs = {}
+
         //语法结构处理
         var syntaxHandle = require('./syntaxHandle');
 
@@ -4168,6 +4251,7 @@
 
         //节点克隆
         $vnode.prototype.clone = function() {
+
             var conf = {},
                 scope = {},
                 children = [],
@@ -4195,9 +4279,22 @@
             }
 
             conf.data = function(data) {
-                var tmp = {};
+                var tmp = {},
+                    attrsMap = {};
                 Object.keys(data).forEach(function(key) {
-                    tmp[key] = data[key];
+                    switch (key) {
+                        case 'attrsMap':
+                            if (data[key] instanceof Object) {
+                                Object.keys(data[key]).forEach(function(attrName) {
+                                    attrsMap[attrName] = data[key][attrName]
+                                })
+                            }
+                            tmp[key] = attrsMap;
+                            break
+                        default:
+                            tmp[key] = data[key];
+                    }
+
                 })
                 return tmp;
             }($this.data);
@@ -4460,7 +4557,7 @@
         }
 
         function init(modules) {
-            var i, j, cbs = {};
+            var i, j;
             var api = htmlDomApi;
 
             //收集自定义模块中的钩子
@@ -4524,17 +4621,8 @@
                     }
 
                     //检查是否独立作用域
-                    if (vnode.innerScope) {
-                        rootScope = vnode.innerScope;
-                        extraParameters = {
-                            scope: rootScope,
-                            filter: innerFilter
-                        }
-
-                    } else if (parentNode.innerScope) {
-
+                    if (parentNode.innerScope) {
                         rootScope = parentNode.innerScope;
-
                         extraParameters = {
                             scope: rootScope,
                             filter: innerFilter
@@ -4551,15 +4639,7 @@
                     rootScope = extraParameters.scope;
                 }
 
-                //检查是否组件内部作用域
-                if (Object.keys(vnode.rootScope).length && rootScope !== vnode.rootScope) {
-                    Object.keys(rootScope || {}).forEach(function(key) {
-                        vnode.$scope[key] = rootScope[key];
-                    })
-                } else {
-                    vnode.rootScope = rootScope;
-                }
-
+                vnode.rootScope = rootScope;
 
                 if (isDef(sel)) {
                     // 解析选择器
@@ -4589,7 +4669,6 @@
                 function initCreate() {
 
                     if (initCount && --initCount) return
-
                     //检查当前元素是否替换成innerVnode
                     if (vnode.isReplace) {
                         switch (true) {
@@ -4614,16 +4693,16 @@
                                     oldVnode = vnode.clone();
                                     return
                                 } else {
+
                                     vnode.elm = [];
                                     vnode.innerVnode.forEach(function(ch) {
 
                                         //重新定位内部作用域
-                                        if (!ch.innerScope && !vnode.innerScope) {
-                                            ch.innerScope = ch.rootScope = ch.$scope
+                                        if (!ch.innerScope && !vnode.innerScope && vnode.isComponent) {
+                                            ch.innerScope = ch.$scope
                                         }
 
                                         createElm(ch, insertedVnodeQueue, function(ch, isRearrange) {
-
                                             if (isRearrange) {
                                                 //重新排列元素
                                                 var childNodes = rearrangeElm(vnode.innerVnode);
@@ -4651,6 +4730,9 @@
                             vnode.elm = api.createComment(vnode.text);
 
                         } else if (isDef(sel)) {
+
+
+                            if (oldVnode && vnode.elm === oldVnode.elm) return;
 
                             //创建实体Dom元素
                             var elm = vnode.elm = isDef(data) && isDef(i = data.ns) ? api.createElementNS(i, vnode.tag) :
@@ -4736,13 +4818,14 @@
                             insertedVnodeQueue.push(vnode);
                     }
 
-                    //销毁旧节点
-                    oldVnode && oldVnode.destroy();
-                    //节点备份
-                    oldVnode = vnode.clone();
-
                     //返回当前节点数据
                     callback(vnode, isRearrange);
+
+                    //销毁旧节点
+                    oldVnode && oldVnode.destroy();
+
+                    //节点备份
+                    oldVnode = vnode.clone();
 
                     //标识父元素重新排列子元素
                     isRearrange = true;
@@ -5051,7 +5134,6 @@
                                 var scopes = [vnode.rootScope].concat(vnode.middleScope);
                                 scopes.push(vnode.$scope);
                                 //表达式监听
-                                ;
                                 (exps[index] = syntaxHandle(exp, scopes, extraParameters.filter, true)).readWatch(function(data) {
                                     // console.log('this is text ', data, vnode.$scope);
                                     //检查文本是否以存在 则重新合并文本内容
@@ -5162,19 +5244,35 @@
 
                     if (Vnode instanceof Array) {
 
+                        var containerVnode = Vnode,
+                            tmpNode,
+                            tmpParent = parent;
                         //创建新节点
                         Vnode.forEach(function(Vnode) {
 
-                            var oldVnode;
+                            var oldVnode,
+                                nowParentNode;
                             //创建新节点
                             createElm(Vnode, insertedVnodeQueue, function(ch, isRearrange) {
+
                                 if (isRearrange) {
-                                    rearrangePatch(ch, oldVnode, parent);
+                                    rearrangePatch(ch, oldVnode, oldVnode.elm.parentNode);
                                 } else {
                                     //新增节点到父元素容器中
-                                    api.insertBefore(parent, Vnode.elm, nextElm);
+                                    var location = containerVnode.indexOf(ch);
+                                    if (tmpNode) {
+                                        if (tmpNode instanceof Array) {
+                                            tmpParent = tmpNode[0].parentNode;
+                                        } else {
+                                            tmpParent = tmpNode.parentNode;
+                                        }
+                                    } else {
+                                        tmpParent = parent;
+                                    }
+                                    api.insertBefore(nowParentNode = tmpParent, ch.elm, containerVnode[location + 1] ? containerVnode[location + 1].elm : null);
                                 }
                                 oldVnode = ch.clone();
+                                tmpNode = ch.elm;
                             }, extraParameters);
                         })
 
@@ -5228,15 +5326,14 @@
                     }
                 }
 
+                //触发model中的post钩子
+                cbs.post.forEach(function(postHook) {
+                    postHook();
+                });
 
                 //触发队列中的insert钩子
                 insertedVnodeQueue.forEach(function(ivq) {
                     ivq.data.hook.insert(ivq);
-                });
-
-                //触发model中的post钩子
-                cbs.post.forEach(function(postHook) {
-                    postHook();
                 });
 
                 //检查是否有回调
@@ -5490,95 +5587,55 @@
          * @returns {{create: updateEventListeners, update: updateEventListeners, destroy: updateEventListeners}}
          */
         function eventListenersModule() {
-            function invokeHandler(handler, vnode, event) {
-                if (typeof handler === "function") {
-                    // call function handler
-                    handler.call(vnode, event, vnode);
-                } else if (typeof handler === "object") {
-                    // call handler with arguments
-                    if (typeof handler[0] === "function") {
-                        // special case for single argument for performance
-                        if (handler.length === 2) {
-                            handler[0].call(vnode, handler[1], event, vnode);
-                        } else {
-                            var args = handler.slice(1);
-                            args.push(event);
-                            args.push(vnode);
-                            handler[0].apply(vnode, args);
-                        }
-                    } else {
-                        // call multiple handlers
-                        for (var i = 0; i < handler.length; i++) {
-                            invokeHandler(handler[i]);
-                        }
-                    }
-                }
-            }
-
-            function handleEvent(event, vnode) {
-                var name = event.type,
-                    on = vnode.data.on;
-                // call event handler(s) if exists
-                if (on && on[name]) {
-                    invokeHandler(on[name], vnode, event);
-                }
-            }
-
-            function createListener() {
-                return function handler(event) {
-                    handleEvent(event, handler.vnode);
-                };
-            }
 
             function updateEventListeners(oldVnode, vnode) {
                 var oldOn = oldVnode.data.on,
+                    newListener = {},
                     oldListener = oldVnode.listener,
                     oldElm = oldVnode.elm,
                     on = vnode && vnode.data.on,
                     elm = (vnode && vnode.elm),
                     name;
-                // optimization for reused immutable handlers
-                if (oldOn === on) {
+
+                if (oldVnode.listener === vnode.listener && oldOn === on && !on === !oldVnode.listener) {
                     return;
                 }
-                // remove existing listeners which no longer used
-                if (oldOn && oldListener) {
-                    // if element changed or deleted we remove all existing listeners unconditionally
-                    if (!on) {
-                        for (name in oldOn) {
-                            // remove listener if element was changed or existing listeners removed
-                            oldElm.removeEventListener(name, oldListener, false);
+
+                oldListener = oldListener || {};
+
+                if (!oldOn) {
+                    //遍历所有事件类型
+                    Object.keys(on).forEach(function(eventName) {
+                        (newListener[eventName] = [].concat(on[eventName])).forEach(function(fn) {
+                            elm.addEventListener(eventName, fn, false);
+                        })
+                    });
+                } else {
+                    Object.keys(on).forEach(function(eventName) {
+                        if (!oldListener[eventName]) {
+                            (newListener[eventName] = [].concat(on[eventName])).forEach(function(fn) {
+                                elm.addEventListener(eventName, fn, false);
+                            })
+                        } else {
+                            var oldOnEvents = [].concat(oldListener[eventName]);
+                            (newListener[eventName] = [].concat(on[eventName])).forEach(function(fn) {
+                                var location = oldOnEvents.indexOf(fn)
+                                if (location === -1) {
+                                    elm.addEventListener(eventName, fn, false);
+                                } else {
+                                    //移除已存在的
+                                    oldOnEvents.splice(location, 1);
+                                }
+                            })
+                            oldOnEvents.forEach(function(fn) {
+                                oldElm.removeEventListener(eventName, fn, false);
+                            })
                         }
-                    } else {
-                        for (name in oldOn) {
-                            // remove listener if existing listener removed
-                            if (!on[name]) {
-                                oldElm.removeEventListener(name, oldListener, false);
-                            }
-                        }
-                    }
+
+                    });
                 }
-                // add new listeners which has not already attached
-                if (on) {
-                    // reuse existing listener or create new
-                    var listener = vnode.listener = oldVnode.listener || createListener();
-                    // update vnode for listener
-                    listener.vnode = vnode;
-                    // if element changed or added we add all needed listeners unconditionally
-                    if (!oldOn) {
-                        for (name in on) {
-                            // add listener if element was changed or new listeners added
-                            elm.addEventListener(name, listener, false);
-                        }
-                    } else {
-                        for (name in on) {
-                            // add listener if new listener added
-                            if (!oldOn[name]) {
-                                elm.addEventListener(name, listener, false);
-                            }
-                        }
-                    }
-                }
+
+                vnode.newListener = newListener;
             }
 
             return {
@@ -5595,6 +5652,7 @@
         function compAndDirectiveInspect() {
 
             function inspectInit(vnode, initCall, extraParameters, parentNode) {
+
                 var compExample,
                     isInitCall,
                     isLayoutElm,
@@ -5629,7 +5687,12 @@
                             compExample.init();
                         } else {
                             compExample.init();
-                            exapmpleQueueHandle();
+                            //检查是替换
+                            if (handleExampleQueue.length || compExample.conf.isReplace) {
+                                exapmpleQueueHandle();
+                            } else {
+                                initCall();
+                            }
                         }
                     }
                 }
@@ -5670,7 +5733,6 @@
                     handleExampleQueue.push(compExample);
                     //观察组件渲染
                     compExample.watchRender(function() {
-
                         initCall();
                         isInitCall = true;
                     })
@@ -5685,7 +5747,7 @@
 
                     //检查是否是指令
                     if (directorieClass) {
-                        directorieExample = directorieClass(vnode, extraParameters);
+                        directorieExample = directorieClass(vnode, extraParameters, module.exports);
                         //存入实例队列
                         handleExampleQueue.push(directorieExample);
                         //观察指令渲染
@@ -5721,6 +5783,7 @@
         module.exports = {
             patch: patch,
             vnode: vnode,
+            cbs: cbs,
             isVnode: isVnode,
             domApi: htmlDomApi,
             node2vnode: emptyNodeAt
@@ -6364,6 +6427,8 @@
             if (element.getAttribute('target') !== null) return;
 
             var href = element.getAttribute('href');
+
+            if (!href) return;
 
             //检查是否返回
             if (element.getAttribute('isBack') !== null) {
@@ -8289,7 +8354,7 @@
                             //文件资源监听
                             reader.onloadend = function(e) {
                                 typeof option.success === "function" && option.success.call(xhr, this.result);
-                                typeof option.complete === 'function' && option.complete.call(xhr, this.result);
+                                typeof option.complete === 'function' && option.complete.call(xhr, this.result, true);
                             };
 
                             //资源读取 ArrayBuffer / text
@@ -8633,6 +8698,12 @@
             return deepExtend(arguments);
         };
 
+        //对象深度继承
+        Object.prototype.extend = function() {
+            extend(arguments);
+            return this;
+        };
+
         //对象属性写入
         Object.prototype.setAttr = function(key, data) {
             return write(this, key, data)
@@ -8645,8 +8716,9 @@
 
         //设置原型中的forEach clone 不可遍历
         def(Object.prototype, 'forEach');
-        def(Object.prototype, 'clone');
         def(Object.prototype, 'extend');
+        def(Object.prototype, 'deepClone');
+        def(Object.prototype, 'deepExtend');
         def(Object.prototype, 'setAttr');
         def(Object.prototype, 'getAttr');
 
@@ -9097,6 +9169,7 @@
              */
             function listenStruct(parentListen, nowKey) {
 
+                this.count = 1;
                 //子级数据
                 this.child = {};
                 //监听的回调集合
@@ -9131,26 +9204,33 @@
                     newData = parentData && typeof parentData === 'object' ? parentData[this.nowKey] : undefined,
                     isEqual = diff(oldData, newData);
 
-                //触发子级
-                this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set') && this.berforDefineProperty.set(newData, this);
-
-                if (!this.parent) return
-
-                //获取父级数据
-                this.parentData = this.parent.targetData;
-                //更改目标数据
-                this.targetData = newData;
-
                 //检查是否变化
                 if (!isEqual) {
+
+                    if (!this.parent) return
+
+                    //获取父级数据
+                    this.parentData = this.parent.targetData;
+                    //更改目标数据
+                    this.targetData = newData;
+
+                    if (oldParentData !== this.parentData) {
+                        console.log('预留-----功能需优化!父数据变化更新子级数据重新绑定')
+                    }
+
+                    //触发上一个级监听数据
+                    if (this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set')) {
+                        this.berforDefineProperty.set(newData, this);
+                    }
+
                     //标识有数据
                     this.isData = true;
 
-                    //还原旧数据的属性
                     //检查当前数据属性 后面是否修改
                     if (this.topListen && oldParentData !== this.parentData && Object.getOwnPropertyDescriptor(oldParentData, this.nowKey) && Object.getOwnPropertyDescriptor(oldParentData, this.nowKey).set !== this.prevDefineProperty.set) {
                         this.topListen.berforDefineProperty = this.prevDefineProperty;
-                    } else {
+                    } else if (oldParentData !== this.parentData) {
+                        //还原数据之前的状态 还原旧数据的属性
                         if (oldParentData) this.prevDefineProperty && Object.defineProperty(oldParentData, this.nowKey, this.prevDefineProperty);
                     }
 
@@ -9163,12 +9243,13 @@
                     this.listensRead.forEach(function(fn) {
                         fn(newData, oldData);
                     });
+
                     this.listensRead = [];
 
-                    this.topListen = undefined;
                     //数据监听
                     this.listen(!(parentData && parentData.hasOwnProperty(this.nowKey)));
                 }
+
 
                 //触发子级节点数据对比
                 Object.keys(this.child).forEach(function(key) {
@@ -9197,7 +9278,7 @@
                     this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set') && this.berforDefineProperty.get(this);
 
                     //监听数据变更
-                    Object.defineProperty(this.parentData, this.nowKey, {
+                    Object.defineProperty(this.parentData, this.nowKey, this.nowDefineProperty = {
                         enumerable: true,
                         configurable: true,
                         set: function(newData, transfer) {
@@ -9212,6 +9293,7 @@
                                 case transfer instanceof listenStruct:
                                     //数据监听转移
                                     transfer && (This.topListen = transfer);
+                                    transfer.count = This.count + 1;
                                     break;
                                 case transfer === 'this':
                                     return This;
@@ -9225,6 +9307,7 @@
                         this.isDelete = true;
                         delete this.parentData[this.nowKey]
                     }
+
                 }
 
             };
@@ -9423,6 +9506,7 @@
                     fn = key;
                     key = ''
                 }
+
                 //遍历监听的Key
                 recursionKey(key, function(nowKey, nextKey) {
                     if (nowKey) {
@@ -9433,6 +9517,7 @@
                     }
                     if (!(nowKey && nextKey)) {
                         parentListen.add(fn);
+                        // parentListen.addRead(fn);
                         resData = parentListen.targetData;
                         //检查是否有数据 并触发回调
                         if (parentListen.isData) fn(resData);
@@ -11732,7 +11817,7 @@
                             var sourceMap = (this.many ? [].slice.call(arguments) : [
                                 [].slice.call(arguments)
                             ]).reduce(function(map, source) {
-                                map[source[0]] = source[1];
+                                map[source[0]] = source.slice(1);
                                 return map;
                             }, {});
 
@@ -11762,18 +11847,19 @@
          */
 
         var PATH = require('../lib/path');
+        var OBJECT = require('../lib/object');
         var appConf = require('../config/lib/commData').appConf;
 
         /**
          * 转换真实资源路径
          * @param url
          * @param originInfo
-         * @param modeType
+         * @param modeType Site.prototype.isPrototypeOf(s)
          */
         function sourcePathNormal(url, originInfo, modeType) {
             var first = url.charAt(0),
-                moduleDirName = appConf.system.moduleDirName[modeType],
-                sliceName = appConf.system.moduleDefault[modeType + 'Slice'],
+                moduleDirName = OBJECT.hasPrototypeProperty(appConf.system.moduleDirName, modeType) ? modeType : appConf.system.moduleDirName[modeType] || modeType,
+                sliceName = appConf.system.moduleDefault[modeType + 'Slice'] || '',
 
                 sourceInfo = {
                     //当前模块
@@ -11834,17 +11920,18 @@
             //module模块地址
             sourceInfo.module = module;
             //当前资源路径(不包含文件 module路径、mode类型目录、文件module后缀、文件后缀)
-            sourceInfo.pathName = url;
+            sourceInfo.pathName = url || originInfo.pathName;
             //切片
             sourceInfo.slice = sliceName;
             //url
-            sourceInfo.url = PATH.normalize((module ? module + '/' + moduleDirName + '/' : '') + url);
+            sourceInfo.url = PATH.normalize((module ? module + '/' + moduleDirName + '/' : '') + sourceInfo.pathName);
             return sourceInfo;
         }
 
         module.exports = sourcePathNormal;
     }, {
         "../config/lib/commData": 31,
+        "../lib/object": 52,
         "../lib/path": 54
     }],
     62: [function(require, module, exports) {

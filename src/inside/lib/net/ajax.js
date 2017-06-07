@@ -43,7 +43,7 @@ function ajax(option){
                     //文件资源监听
                     reader.onloadend = function(e) {
                         typeof option.success === "function" && option.success.call(xhr,this.result);
-                        typeof option.complete === 'function' && option.complete.call(xhr,this.result);
+                        typeof option.complete === 'function' && option.complete.call(xhr,this.result,true);
                     };
 
                     //资源读取 ArrayBuffer / text

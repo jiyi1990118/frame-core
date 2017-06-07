@@ -3,6 +3,7 @@
  */
 directive(function ($app) {
     $app.include({
-        comm:'./comm/index.js'
+        comm:'./comm/index.js',
+        'date':'./form/date/date.js',
     })
 })

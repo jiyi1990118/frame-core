@@ -32,6 +32,8 @@ window.document.addEventListener('click', function (event) {
 
     var href=element.getAttribute('href');
 
+    if(!href)return;
+
     //检查是否返回
     if(element.getAttribute('isBack') !== null){
         window.history.back();

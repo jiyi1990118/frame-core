@@ -12,21 +12,28 @@ var syntaxHandle = require('./syntaxHandle');
 var directiveStroage = {};
 
 //指令类
-function directiveClass(directiveConf, vnode, extraParameters, directiveName) {
+function directiveClass(directiveConf, vnode, extraParameters, directiveName,vdomApi) {
+    this.vdomApi=vdomApi;
+
     //标识当前节点是指令
     vnode.isDirective = true;
 
     //指令名称
     this.name = directiveName;
 
+    this.expInfo=vnode.data.attrsMap[directiveName];
+
     //表达式
-    this.exp = vnode.data.attrsMap[directiveName].value
+    this.exp = vnode.data.attrsMap[directiveName].value;
 
     //指令实例配置
     this.conf = directiveConf;
 
     //当前指令虚拟节点
     this.vnode = vnode;
+
+    //当前节点备份
+    this.cloneVnode=vnode.clone();
 
     //指令扩展参数
     this.extraParameter = extraParameters;
@@ -47,6 +54,8 @@ function directiveClass(directiveConf, vnode, extraParameters, directiveName) {
         filter: {},
         //虚拟节点
         vnode: vnode,
+        //expInfo
+        expInfo:vnode.data.attrsMap[directiveName],
         //节点渲染
         render: function () {
 
@@ -80,7 +89,17 @@ directiveClass.prototype.init = function () {
         data = vnode.data,
         props = conf.props,
         watchProps = [],
+        exp=this.exp,
         extraParameters = this.extraParameter;
+
+
+    //写入钩子
+    if(conf.hook){
+        vnode.data.hook=vnode.data.hook||{};
+        Object.keys(conf.hook).forEach(function (hookName) {
+            vnode.data.hook[hookName]=conf.hook[hookName];
+        })
+    }
 
     function renderTrigger() {
         if (watchProps.length <= ++propLoad) {
@@ -107,12 +126,16 @@ directiveClass.prototype.init = function () {
     //检查观察的属性 中数据是否完全加载
     if (conf.props) {
         if (props instanceof Function) {
-            props = props.call($api, this.exp);
+            props = props.call($api, exp,this.expInfo);
             watchProps = watchProps.concat(props)
 
             if (watchProps.length) {
                 //进行属性作用域数据获取
                 watchProps.forEach(function (propConf) {
+                    propConf.exp=propConf.exp||exp;
+
+                    if(!propConf.exp)return renderTrigger();
+
                     var syntaxExample,
                         strcut = syntaxStruct(propConf.exp);
 
@@ -120,7 +143,10 @@ directiveClass.prototype.init = function () {
                     if (!strcut.errMsg) {
                         //收集作用域
                         var scopes = [vnode.rootScope].concat(vnode.middleScope);
-                        scopes.push(vnode.$scope);
+                        // scopes.push(vnode.$scope);
+                        if(vnode.innerScope){
+                            scopes.push(vnode.innerScope);
+                        }
 
                         syntaxExample = syntaxHandle(strcut, scopes, extraParameters.filter, true);
 
@@ -172,10 +198,8 @@ directiveClass.prototype.init = function () {
                                 $api.scope[propConf.key] = propConf['default'];
                                 renderTrigger();
                             }
-                        }
-                        ;
+                        };
 
-                        // console.log(propConf,strcut,syntaxExample)
                     } else {
                         console.warn('表达式： ' + propConf.exp + '有误！')
                     }
@@ -188,16 +212,33 @@ directiveClass.prototype.init = function () {
         } else {
             console.warn('指令配置中props只能为function')
         }
+    }else{
+        $this.render();
     }
 }
 
 directiveClass.prototype.render = function () {
     var conf = this.conf,
-        vnode = this.vnode;
+        vnode = this.vnode,
+        renderVnode;
 
     //检查是否有渲染的方法
     if (conf.render instanceof Function) {
-        vnode.innerVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
+        renderVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
+
+        switch (true){
+            case !renderVnode:
+                return;
+            case renderVnode === vnode:
+            case renderVnode.elm && renderVnode.elm === vnode.elm:
+                //检查是否渲染，并检查更新元素
+                vnode.elm && this.vdomApi.cbs.update.forEach(function (updateHandle) {
+                    updateHandle(vnode,renderVnode);
+                })
+                return;
+        }
+
+        vnode.innerVnode=renderVnode;
     }
 
     //标识当前节点是否替换
@@ -227,7 +268,7 @@ exports.get = function (directiveName) {
 
 //指令注册
 exports.register = function (directiveName, directiveConf) {
-    directiveStroage[directiveName] = function (vnode, extraParameters) {
-        return new directiveClass(directiveConf, vnode, extraParameters, directiveName);
+    directiveStroage[directiveName] = function (vnode, extraParameters,vdomApi) {
+        return new directiveClass(directiveConf, vnode, extraParameters, directiveName,vdomApi);
     };
 }

@@ -51,9 +51,9 @@ For(function ($app) {
                         $this.stroage.watchInfo=watchInfo;
                     },
                     type:[Array,Object],
-                    default:[
+                    /*default:[
 
-                    ],
+                    ],*/
                     autoRender:true
                 }
             ]

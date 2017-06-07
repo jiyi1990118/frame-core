@@ -236,14 +236,18 @@ presenterInterface.prototype.model = function (modelPath) {
  * @param view
  */
 function presenterExec(source,sourceInfo,pathInfo,view) {
-
+    var calle=source[0];
     if(!source){
         log.error('presenter ['+  sourceInfo.url +']中缺失'+sourceInfo.slice+'操作(切片)');
         return;
     }
 
+    if(source.length > 1){
+        calle=source[1];
+    }
+
     //调度器执行
-    source.call(new presenterInterface({
+    calle.call(new presenterInterface({
         //是否布局
         isLayout:sourceInfo.isLayout,
         //参数

@@ -3,6 +3,7 @@
  */
 comm(function ($app) {
     $app.include({
-        For:'./for.js'
+        For:'./for.js',
+        $on:'./$-on.js'
     })
 })
