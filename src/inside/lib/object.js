@@ -35,7 +35,7 @@ Object.prototype.deepExtend = function () {
 
 //对象深度继承
 Object.prototype.extend = function () {
-    extend(arguments);
+    extend.apply(this,[this].concat([].slice.call(arguments)));
     return this;
 };
 

@@ -24,6 +24,145 @@
 })({
     1: [function(require, module, exports) {
         /**
+         * Created by xiyuan on 17-6-8.
+         */
+
+        var PATH = require('../../inside/lib/path');
+        var extendInterface = require('./lib/extenInterface');
+        var getSource = require('../../inside/source/getSource');
+        var modelEngine = require('../model/index');
+        var sourcePathNormal = require('../../inside/source/sourcePathNormal');
+        var modelExample;
+
+        //扩展存储
+        var extendStroage = {};
+
+        //扩展状态
+        var extendLoadState = {};
+
+        //扩展监听
+        var extendWatch = {};
+
+        function extendExample(pathInfo, callbcak) {
+
+            var url = PATH.resolve(pathInfo.url + '/' + pathInfo.slice),
+                extendObj = extendStroage[url],
+                state = extendLoadState[url];
+
+            if (extendObj || state) {
+                if (extendObj) {
+                    callbcak(extendObj);
+                } else {
+                    extendWatch[url].push(callbcak);
+                }
+                return;
+            }
+
+            extendLoadState[url] = 1;
+            extendWatch[url] = [];
+
+            //资源获取
+            getSource(pathInfo, {
+                mode: pathInfo.mode,
+            }, function(resSource) {
+                var extendLib = [];
+                var count = 0;
+                var isExec;
+                var calle = resSource[0];
+
+                if (resSource === false) {
+                    log.error(pathInfo.mode + '文件 [' + this.responseURL + ']缺失！');
+                    return;
+                }
+
+                if (resSource.length > 1) {
+                    calle = resSource[1];
+                    extendLib = [].concat(resSource[0]);
+                }
+
+                function extendExec() {
+                    if (count === extendLib.length && !isExec) {
+                        isExec = true;
+                        var watchFn,
+                            extendObj = calle.apply(new extendInterface(), extendLib);
+
+                        //存储当前扩展
+                        extendStroage[url] = extendObj;
+                        //资源状态
+                        extendLoadState[url] = 2;
+                        //返回数据
+                        callbcak(extendObj);
+                        //执行监听
+                        while (watchFn = extendWatch[url].pop()) {
+                            watchFn(extendObj);
+                        }
+                        delete extendWatch[url];
+                    }
+                }
+
+                extendLib.forEach(function(extendPath, index) {
+                    var packagePath = extendPath.replace(/^\$:/, '');
+                    //两种路径 一、model  二、lib 扩展
+                    if (packagePath !== extendPath) {
+                        //扩展获取
+                        extendExample(sourcePathNormal(packagePath, pathInfo, 'extend'), function(extend) {
+                            extendLib[index] = extend;
+                            count++;
+                            extendExec()
+                        });
+                    } else {
+                        count++;
+                        extendLib[index] = new modelExample(sourcePathNormal(packagePath, pathInfo, 'model'));
+                    }
+                });
+                extendExec();
+
+            });
+        }
+
+
+        module.exports = {
+            extendInterface: extendInterface,
+            extendExample: extendExample,
+            //主要由model传递model实例接口
+            setModelExample: function(ModelExample) {
+                modelExample = ModelExample;
+            }
+        }
+    }, {
+        "../../inside/lib/path": 56,
+        "../../inside/source/getSource": 62,
+        "../../inside/source/sourcePathNormal": 63,
+        "../model/index": 5,
+        "./lib/extenInterface": 2
+    }],
+    2: [function(require, module, exports) {
+        /**
+         * Created by xiyuan on 17-6-8.
+         */
+
+        var serverEngine = require('../../server/index');
+
+        var lib = require('../../../inside/lib/exports');
+
+        function extendInterface() {
+
+        }
+
+        extendInterface.prototype.lib = lib;
+
+        extendInterface.prototype.server = function(option) {
+            return serverEngine.serverExec(option)
+        }
+
+
+        module.exports = extendInterface;
+    }, {
+        "../../../inside/lib/exports": 49,
+        "../../server/index": 10
+    }],
+    3: [function(require, module, exports) {
+        /**
          * 引擎中心
          * Created by xiyuan on 17-5-9.
          */
@@ -60,11 +199,11 @@
         }
 
     }, {
-        "../inside/source/getSource": 60,
-        "./presenter/index": 6,
-        "./view/exports": 13
+        "../inside/source/getSource": 62,
+        "./presenter/index": 8,
+        "./view/exports": 15
     }],
-    2: [function(require, module, exports) {
+    4: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-6-2.
          */
@@ -327,12 +466,12 @@
             display: display
         };
     }, {
-        "../../engine/view/exports": 13,
-        "../../inside/log/log": 59,
-        "../../inside/source/getSource": 60,
-        "../../inside/source/sourcePathNormal": 61
+        "../../engine/view/exports": 15,
+        "../../inside/log/log": 61,
+        "../../inside/source/getSource": 62,
+        "../../inside/source/sourcePathNormal": 63
     }],
-    3: [function(require, module, exports) {
+    5: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-6-1.
          */
@@ -348,10 +487,10 @@
         }
 
     }, {
-        "./lib/modelExample": 4,
-        "./modelInterface": 5
+        "./lib/modelExample": 6,
+        "./modelInterface": 7
     }],
-    4: [function(require, module, exports) {
+    6: [function(require, module, exports) {
         /**
          * 数据模型 实例
          * Created by xiyuan on 17-6-4.
@@ -360,7 +499,10 @@
 
         var getSource = require('../../../inside/source/getSource');
         var modelInterface = require('../modelInterface');
+        var extendEngine = require('../../extend/index');
         var sourcePathNormal = require('../../../inside/source/sourcePathNormal');
+
+        extendEngine.setModelExample(modelExample);
 
         //模型实例
         function modelExample(pathInfo) {
@@ -374,8 +516,8 @@
                 mode: pathInfo.mode,
             }, function(resSource) {
                 var extendLib = [];
-                var modelQueue = [];
-                var packageQueue = [];
+                var count = 0;
+                var isExec;
                 var calle = resSource[0];
                 if (resSource === false) {
                     log.error('model文件 [' + this.responseURL + ']缺失！');
@@ -384,43 +526,47 @@
 
                 if (resSource.length > 1) {
                     calle = resSource[1];
-                    extendLib = resSource[0];
+                    extendLib = [].concat(resSource[0]);
                 }
 
-                extendLib.forEach(function(extendPath) {
-                    console.log(extendPath, '>>>>>>>>')
+                function modelExec() {
+                    if (count === extendLib.length && !isExec) {
+                        isExec = true;
+                        //资源回调,初始化model
+                        if (calle instanceof Function) {
+                            //开始实例化model代码
+                            calle.apply(This.interface, extendLib);
+                            //标识模型已调用
+                            source.isExec = true;
+                            //检查triggle
+                            This.useTrigger.forEach(function(info) {
+                                if (source.trigger[info.name] instanceof Function) {
+                                    info.callback(source.trigger[info.name].apply(This, info.args));
+                                }
+                            });
+                        } else if (calle instanceof Object) {
+                            console.log('暂不支持model 数据对象')
+                        }
+                    }
+                }
+
+                extendLib.forEach(function(extendPath, index) {
                     var packagePath = extendPath.replace(/^\$:/, '');
                     //两种路径 一、model  二、lib 扩展
                     if (packagePath !== extendPath) {
+                        extendEngine.extendExample(sourcePathNormal(packagePath, pathInfo, 'extend'), function(extend) {
+                            extendLib[index] = extend;
+                            count++;
+                            modelExec()
+                        })
 
-                        console.log(sourcePathNormal(packagePath, pathInfo, 'extend'), pathInfo)
-                        // packageQueue.push()
-                        // packagesFlag.push(i);
-                        // packagePath = packagePath.indexOf('@') ? packagePath : pathToUrl($modulePath) + '/' + packagePath.slice(1);
-                        // packages.push(packagePath);
                     } else {
-                        // modelQueue.push()
-                        // includeModel[i] = controllerImage.prototype.model.call(modelObj, modelName);
+                        count++;
+                        extendLib[index] = new modelExample(sourcePathNormal(packagePath, pathInfo, 'model'));
                     }
 
-
-
-                })
-
-
-                //资源回调,初始化model
-                if (calle instanceof Function) {
-                    //开始实例化model代码
-                    calle.call(This.interface);
-                    //标识模型已调用
-                    source.isExec = true;
-                    //检查triggle
-                    This.useTrigger.forEach(function(info) {
-                        if (source.trigger[info.name] instanceof Function) {
-                            info.callback(source.trigger[info.name].apply(This, info.args));
-                        }
-                    });
-                };
+                });
+                modelExec()
             });
         };
 
@@ -480,11 +626,12 @@
 
         module.exports = modelExample;
     }, {
-        "../../../inside/source/getSource": 60,
-        "../../../inside/source/sourcePathNormal": 61,
-        "../modelInterface": 5
+        "../../../inside/source/getSource": 62,
+        "../../../inside/source/sourcePathNormal": 63,
+        "../../extend/index": 1,
+        "../modelInterface": 7
     }],
-    5: [function(require, module, exports) {
+    7: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-6-1.
          */
@@ -627,10 +774,10 @@
 
         module.exports = modelInterface;
     }, {
-        "../../inside/lib/observer": 53,
-        "../server/index": 8
+        "../../inside/lib/observer": 55,
+        "../server/index": 10
     }],
-    6: [function(require, module, exports) {
+    8: [function(require, module, exports) {
         /**
          * 调度器引擎
          * Created by xiyuan on 17-5-9.
@@ -644,10 +791,10 @@
             exec: presenterEngine.presenterExec
         }
     }, {
-        "../../inside/log/log": 59,
-        "./presenterInterface": 7
+        "../../inside/log/log": 61,
+        "./presenterInterface": 9
     }],
-    7: [function(require, module, exports) {
+    9: [function(require, module, exports) {
         /**
          * Created by xiyuan on 16-5-17.
          */
@@ -928,14 +1075,14 @@
 
 
     }, {
-        "../../inside/config/lib/commData": 31,
-        "../../inside/lib/encrypt/uid": 45,
-        "../../inside/source/sourcePathNormal": 61,
-        "../layout/index": 2,
-        "../model/index": 3,
-        "../view/exports": 13
+        "../../inside/config/lib/commData": 33,
+        "../../inside/lib/encrypt/uid": 47,
+        "../../inside/source/sourcePathNormal": 63,
+        "../layout/index": 4,
+        "../model/index": 5,
+        "../view/exports": 15
     }],
-    8: [function(require, module, exports) {
+    10: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-6-4.
          */
@@ -948,10 +1095,10 @@
             serverRegister: serverRegister
         }
     }, {
-        "./lib/serverExec": 10,
-        "./lib/serverRegister": 12
+        "./lib/serverExec": 12,
+        "./lib/serverRegister": 14
     }],
-    9: [function(require, module, exports) {
+    11: [function(require, module, exports) {
         /**
          * 服务存储
          * Created by xiyuan on 17-6-4.
@@ -964,7 +1111,7 @@
         module.exports = serverComm;
 
     }, {}],
-    10: [function(require, module, exports) {
+    12: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-6-4.
          */
@@ -1048,10 +1195,10 @@
 
         module.exports = serverExec;
     }, {
-        "./serverComm": 9,
-        "./serverInterface": 11
+        "./serverComm": 11,
+        "./serverInterface": 13
     }],
-    11: [function(require, module, exports) {
+    13: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-6-4.
          */
@@ -1076,7 +1223,8 @@
             if (typeof serverConf.filter === 'object' && serverConf.filter.receive instanceof Function) {
                 //执行过滤器
                 resData = serverConf.filter.receive.call(this, agrs[0], innerConf.option);
-                if (resData !== undefined) agrs[0] = resData
+                if (resData === undefined) return
+                agrs[0] = resData
             }
 
             innerConf.receive.forEach(function(fn) {
@@ -1096,7 +1244,8 @@
             if (typeof serverConf.filter === 'object' && serverConf.filter.success instanceof Function) {
                 //执行过滤器
                 resData = serverConf.filter.success.call(this, agrs[0], innerConf.option);
-                if (resData !== undefined) agrs[0] = resData
+                if (resData === undefined) return
+                agrs[0] = resData
             }
 
             innerConf.success.forEach(function(fn) {
@@ -1116,7 +1265,8 @@
             if (typeof serverConf.filter === 'object' && serverConf.filter.error instanceof Function) {
                 //执行过滤器
                 resData = serverConf.filter.error.call(this, agrs[0], innerConf.option);
-                if (resData !== undefined) agrs[0] = resData
+                if (resData === undefined) return
+                agrs[0] = resData
             }
 
             innerConf.error.forEach(function(fn) {
@@ -1128,7 +1278,7 @@
         module.exports = serverInterface;
 
     }, {}],
-    12: [function(require, module, exports) {
+    14: [function(require, module, exports) {
         /**
          * 服务注册
          * Created by xiyuan on 17-6-4.
@@ -1143,9 +1293,9 @@
 
         module.exports = serverRegister;
     }, {
-        "./serverComm": 9
+        "./serverComm": 11
     }],
-    13: [function(require, module, exports) {
+    15: [function(require, module, exports) {
         /**
          * 视图引擎
          * Created by xiyuan on 17-5-9.
@@ -1207,15 +1357,15 @@
 
 
     }, {
-        "./lib/componentManage": 14,
-        "./lib/directiveManage": 15,
-        "./lib/html2vdom": 16,
-        "./lib/syntaxHandle": 17,
-        "./lib/syntaxStruct": 18,
-        "./lib/vdom": 19,
-        "./lib/viewSourc": 20
+        "./lib/componentManage": 16,
+        "./lib/directiveManage": 17,
+        "./lib/html2vdom": 18,
+        "./lib/syntaxHandle": 19,
+        "./lib/syntaxStruct": 20,
+        "./lib/vdom": 21,
+        "./lib/viewSourc": 22
     }],
-    14: [function(require, module, exports) {
+    16: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-11.
          */
@@ -1491,10 +1641,10 @@
             };
         }
     }, {
-        "./syntaxHandle": 17,
-        "./syntaxStruct": 18
+        "./syntaxHandle": 19,
+        "./syntaxStruct": 20
     }],
-    15: [function(require, module, exports) {
+    17: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-15.
          */
@@ -1770,10 +1920,10 @@
             };
         }
     }, {
-        "./syntaxHandle": 17,
-        "./syntaxStruct": 18
+        "./syntaxHandle": 19,
+        "./syntaxStruct": 20
     }],
-    16: [function(require, module, exports) {
+    18: [function(require, module, exports) {
         /**
          * html字符转虚拟dom数据
          * Created by xiyuan on 17-5-9.
@@ -2197,11 +2347,11 @@
         };
 
     }, {
-        "../../../inside/lib/string": 56,
-        "./syntaxStruct": 18,
-        "./vdom": 19
+        "../../../inside/lib/string": 58,
+        "./syntaxStruct": 20,
+        "./vdom": 21
     }],
-    17: [function(require, module, exports) {
+    19: [function(require, module, exports) {
         /**
          * 语法结构处理
          * Created by xiyuan on 17-5-11.
@@ -2761,10 +2911,10 @@
             return new structHandle(syntaxStruct, scope, filter, multiple);
         }
     }, {
-        "../../../inside/lib/observer": 53,
-        "../../../inside/log/log": 59
+        "../../../inside/lib/observer": 55,
+        "../../../inside/log/log": 61
     }],
-    18: [function(require, module, exports) {
+    20: [function(require, module, exports) {
         /**
          * 语法解析
          * Created by xiyuan on 17-4-25.
@@ -4120,7 +4270,7 @@
             return syntaxStruct;
         }
     }, {}],
-    19: [function(require, module, exports) {
+    21: [function(require, module, exports) {
         /**
          * 虚拟Dom
          * Created by xiyuan on 17-5-9.
@@ -5790,12 +5940,12 @@
         };
 
     }, {
-        "../../../inside/lib/observer": 53,
-        "./componentManage": 14,
-        "./directiveManage": 15,
-        "./syntaxHandle": 17
+        "../../../inside/lib/observer": 55,
+        "./componentManage": 16,
+        "./directiveManage": 17,
+        "./syntaxHandle": 19
     }],
-    20: [function(require, module, exports) {
+    22: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-6-2.
          */
@@ -5823,10 +5973,10 @@
 
         module.exports = viewSourc;
     }, {
-        "../../../inside/source/getSource": 60,
-        "../../../inside/source/sourcePathNormal": 61
+        "../../../inside/source/getSource": 62,
+        "../../../inside/source/sourcePathNormal": 63
     }],
-    21: [function(require, module, exports) {
+    23: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-30.
          */
@@ -5908,15 +6058,15 @@
             start: start
         };
     }, {
-        "../../inside/config/lib/commData": 31,
-        "../../inside/lib/path": 54,
-        "../../inside/lib/url": 58,
-        "./route/exec": 22,
-        "./route/index": 24,
-        "./route/pathConvert": 25,
-        "./route/routeData": 27
+        "../../inside/config/lib/commData": 33,
+        "../../inside/lib/path": 56,
+        "../../inside/lib/url": 60,
+        "./route/exec": 24,
+        "./route/index": 26,
+        "./route/pathConvert": 27,
+        "./route/routeData": 29
     }],
-    22: [function(require, module, exports) {
+    24: [function(require, module, exports) {
         /**
          * 路由执行
          * Created by xiyuan on 17-5-30.
@@ -6145,16 +6295,16 @@
 
         module.exports = exec;
     }, {
-        "../../../engine/index": 1,
-        "../../../inside/config/index": 30,
-        "../../../inside/event/insideEvent": 37,
-        "../../../inside/lib/path": 54,
-        "../../../inside/log/log": 59,
-        "./getRouteInfo": 23,
-        "./pathConvert": 25,
-        "./routeData": 27
+        "../../../engine/index": 3,
+        "../../../inside/config/index": 32,
+        "../../../inside/event/insideEvent": 39,
+        "../../../inside/lib/path": 56,
+        "../../../inside/log/log": 61,
+        "./getRouteInfo": 25,
+        "./pathConvert": 27,
+        "./routeData": 29
     }],
-    23: [function(require, module, exports) {
+    25: [function(require, module, exports) {
         /**
          * 路由信息获取
          * Created by xiyuan on 17-5-30.
@@ -6219,9 +6369,9 @@
         module.exports = getRouteInfo;
 
     }, {
-        "../../../inside/config/index": 30
+        "../../../inside/config/index": 32
     }],
-    24: [function(require, module, exports) {
+    26: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-30.
          */
@@ -6235,10 +6385,10 @@
             watch: watch
         };
     }, {
-        "./redirect": 26,
-        "./watch": 28
+        "./redirect": 28,
+        "./watch": 30
     }],
-    25: [function(require, module, exports) {
+    27: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-6-3.
          */
@@ -6293,9 +6443,9 @@
             getNowPath: getNowPath
         };
     }, {
-        "../../../inside/lib/url": 58
+        "../../../inside/lib/url": 60
     }],
-    26: [function(require, module, exports) {
+    28: [function(require, module, exports) {
         /**
          * 页面重定向
          * Created by xiyuan on 17-5-30.
@@ -6367,13 +6517,13 @@
 
         module.exports = redirect;
     }, {
-        "../../../inside/config/index": 30,
-        "../../../inside/lib/path": 54,
-        "../../../inside/lib/url": 58,
-        "./exec": 22,
-        "./routeData": 27
+        "../../../inside/config/index": 32,
+        "../../../inside/lib/path": 56,
+        "../../../inside/lib/url": 60,
+        "./exec": 24,
+        "./routeData": 29
     }],
-    27: [function(require, module, exports) {
+    29: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-30.
          */
@@ -6391,9 +6541,9 @@
         }
 
     }, {
-        "../../../inside/lib/path": 54
+        "../../../inside/lib/path": 56
     }],
-    28: [function(require, module, exports) {
+    30: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-30.
          */
@@ -6483,14 +6633,14 @@
 
         module.exports = watch;
     }, {
-        "../../../inside/config/index": 30,
-        "../../../inside/lib/path": 54,
-        "./exec": 22,
-        "./pathConvert": 25,
-        "./redirect": 26,
-        "./routeData": 27
+        "../../../inside/config/index": 32,
+        "../../../inside/lib/path": 56,
+        "./exec": 24,
+        "./pathConvert": 27,
+        "./redirect": 28,
+        "./routeData": 29
     }],
-    29: [function(require, module, exports) {
+    31: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -6519,11 +6669,11 @@
             }
         }
     }, {
-        "../inside/config/index": 30,
-        "../inside/event/insideEvent": 37,
-        "./boot/index": 21
+        "../inside/config/index": 32,
+        "../inside/event/insideEvent": 39,
+        "./boot/index": 23
     }],
-    30: [function(require, module, exports) {
+    32: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -6543,11 +6693,11 @@
             }
         }
     }, {
-        "../../inside/lib/object": 52,
-        "./lib/commData": 31,
-        "./lib/loadUrlConf": 34
+        "../../inside/lib/object": 54,
+        "./lib/commData": 33,
+        "./lib/loadUrlConf": 36
     }],
-    31: [function(require, module, exports) {
+    33: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -6583,17 +6733,20 @@
                 fileCallback: {
                     model: 'model',
                     view: 'view',
+                    extend: 'extend',
                     presenter: 'presenter'
                 },
                 //模块目录名称
                 moduleDirName: {
                     view: 'view',
+                    extend: 'extend',
                     presenter: 'presenter',
                     model: 'model'
                 },
                 //文件后缀标识
                 fileSuffix: {
                     view: '.view',
+                    extend: '.extend',
                     presenter: '.presenter',
                     model: '.model'
                 },
@@ -6601,9 +6754,11 @@
                 moduleDefault: {
                     view: 'index',
                     model: 'index',
+                    extend: 'index',
                     presenter: 'index',
                     viewSlice: 'index',
                     modelSlice: 'index',
+                    extendSlice: 'index',
                     presenterSlice: 'index'
                 }
             },
@@ -6650,7 +6805,7 @@
             customUseConf: customUseConf
         }
     }, {}],
-    32: [function(require, module, exports) {
+    34: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-31.
          */
@@ -6828,10 +6983,10 @@
 
         module.exports = configEndHandle;
     }, {
-        "../../../inside/config/lib/commData": 31,
-        "../../../inside/lib/string": 56
+        "../../../inside/config/lib/commData": 33,
+        "../../../inside/lib/string": 58
     }],
-    33: [function(require, module, exports) {
+    35: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -7119,16 +7274,16 @@
             configIniterface: configIniterface
         };
     }, {
-        "../../lib/net/jsonp": 51,
-        "../../lib/path": 54,
-        "../../log/log": 59,
-        "./../../../engine/server/index": 8,
-        "./../../../engine/view/lib/componentManage": 14,
-        "./../../../engine/view/lib/directiveManage": 15,
-        "./commData": 31,
-        "./routeConf": 35
+        "../../lib/net/jsonp": 53,
+        "../../lib/path": 56,
+        "../../log/log": 61,
+        "./../../../engine/server/index": 10,
+        "./../../../engine/view/lib/componentManage": 16,
+        "./../../../engine/view/lib/directiveManage": 17,
+        "./commData": 33,
+        "./routeConf": 37
     }],
-    34: [function(require, module, exports) {
+    36: [function(require, module, exports) {
         'use strict';
         var log = require('../../log/log');
         var jsonp = require('../../lib/net/jsonp');
@@ -7183,13 +7338,13 @@
 
         module.exports = loadUrlConf
     }, {
-        "../../lib/net/jsonp": 51,
-        "../../log/log": 59,
-        "./commData": 31,
-        "./configEndHandle": 32,
-        "./initerface": 33
+        "../../lib/net/jsonp": 53,
+        "../../log/log": 61,
+        "./commData": 33,
+        "./configEndHandle": 34,
+        "./initerface": 35
     }],
-    35: [function(require, module, exports) {
+    37: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-31.
          */
@@ -7295,9 +7450,9 @@
 
         module.exports = routeConf;
     }, {
-        "./commData": 31
+        "./commData": 33
     }],
-    36: [function(require, module, exports) {
+    38: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-12-2.
          */
@@ -7335,7 +7490,7 @@
 
         module.exports = eventInterface;
     }, {}],
-    37: [function(require, module, exports) {
+    39: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -7378,9 +7533,9 @@
 
         module.exports = insideEvent;
     }, {
-        "./eventInterface": 36
+        "./eventInterface": 38
     }],
-    38: [function(require, module, exports) {
+    40: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-11-30.
          */
@@ -7419,7 +7574,7 @@
 
 
     }, {}],
-    39: [function(require, module, exports) {
+    41: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-3-7.
          */
@@ -7556,7 +7711,7 @@
         }
 
     }, {}],
-    40: [function(require, module, exports) {
+    42: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-11-30.
          */
@@ -7657,7 +7812,7 @@
 
 
     }, {}],
-    41: [function(require, module, exports) {
+    43: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-27.
          */
@@ -7954,9 +8109,9 @@
 
 
     }, {
-        "./base64": 40
+        "./base64": 42
     }],
-    42: [function(require, module, exports) {
+    44: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-27.
          */
@@ -7969,13 +8124,13 @@
             sha256: require('./sha256'),
         }
     }, {
-        "./base64": 40,
-        "./md5": 43,
-        "./sha256": 44,
-        "./uid": 45,
-        "./utf8": 46
+        "./base64": 42,
+        "./md5": 45,
+        "./sha256": 46,
+        "./uid": 47,
+        "./utf8": 48
     }],
-    43: [function(require, module, exports) {
+    45: [function(require, module, exports) {
 
         "use strict";
 
@@ -7989,10 +8144,10 @@
             return commLib.rstr2hex(commLib.rstrexports(str2rstr_utf8(s)));
         };
     }, {
-        "./commLib": 41,
-        "./utf8": 46
+        "./commLib": 43,
+        "./utf8": 48
     }],
-    44: [function(require, module, exports) {
+    46: [function(require, module, exports) {
 
 
         var b64pad = "=";
@@ -8189,9 +8344,9 @@
 
         module.exports = sha256
     }, {
-        "./commLib": 41
+        "./commLib": 43
     }],
-    45: [function(require, module, exports) {
+    47: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-26.
          */
@@ -8205,7 +8360,7 @@
         }
 
     }, {}],
-    46: [function(require, module, exports) {
+    48: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-11-30.
          */
@@ -8243,7 +8398,7 @@
         }
 
     }, {}],
-    47: [function(require, module, exports) {
+    49: [function(require, module, exports) {
         /**
          * 内部处理库
          * Created by xiyuan on 17-5-9.
@@ -8265,20 +8420,20 @@
             platform: require('./platform')
         }
     }, {
-        "./buffer": 38,
-        "./date": 39,
-        "./encrypt/exports": 42,
-        "./json": 48,
-        "./net/exports": 50,
-        "./object": 52,
-        "./observer": 53,
-        "./path": 54,
-        "./platform": 55,
-        "./string": 56,
-        "./type": 57,
-        "./url": 58
+        "./buffer": 40,
+        "./date": 41,
+        "./encrypt/exports": 44,
+        "./json": 50,
+        "./net/exports": 52,
+        "./object": 54,
+        "./observer": 55,
+        "./path": 56,
+        "./platform": 57,
+        "./string": 58,
+        "./type": 59,
+        "./url": 60
     }],
-    48: [function(require, module, exports) {
+    50: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-3-7.
          */
@@ -8309,7 +8464,7 @@
         };
 
     }, {}],
-    49: [function(require, module, exports) {
+    51: [function(require, module, exports) {
         /**
          * Created by xiyuan on 16-12-5.
          */
@@ -8481,10 +8636,10 @@
 
         module.exports = ajax;
     }, {
-        "../json": 48,
-        "../url": 58
+        "../json": 50,
+        "../url": 60
     }],
-    50: [function(require, module, exports) {
+    52: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-27.
          */
@@ -8495,10 +8650,10 @@
             jsonp: require('./jsonp')
         }
     }, {
-        "./ajax": 49,
-        "./jsonp": 51
+        "./ajax": 51,
+        "./jsonp": 53
     }],
-    51: [function(require, module, exports) {
+    53: [function(require, module, exports) {
         'use strict';
 
         var url = require('../url');
@@ -8659,10 +8814,10 @@
 
 
     }, {
-        "../path": 54,
-        "../url": 58
+        "../path": 56,
+        "../url": 60
     }],
-    52: [function(require, module, exports) {
+    54: [function(require, module, exports) {
         'use strict';
 
         /**
@@ -8700,7 +8855,7 @@
 
         //对象深度继承
         Object.prototype.extend = function() {
-            extend(arguments);
+            extend.apply(this, [this].concat([].slice.call(arguments)));
             return this;
         };
 
@@ -9015,7 +9170,7 @@
             get: get
         }
     }, {}],
-    53: [function(require, module, exports) {
+    55: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-3-7.
          */
@@ -9799,7 +9954,7 @@
             };
         }(), this);
     }, {}],
-    54: [function(require, module, exports) {
+    56: [function(require, module, exports) {
         /**
          * 路径处理
          * Created by xiyuan on 17-3-7.
@@ -9904,9 +10059,9 @@
         }
 
     }, {
-        "./url": 58
+        "./url": 60
     }],
-    55: [function(require, module, exports) {
+    57: [function(require, module, exports) {
         (function(global) {
             'use strict';
 
@@ -11207,7 +11362,7 @@
             module.exports = parse();
         }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
     }, {}],
-    56: [function(require, module, exports) {
+    58: [function(require, module, exports) {
         'use strict';
 
         /*字符串处理（与PHP的 trim功能相同）*/
@@ -11307,7 +11462,7 @@
             escapeToRegexp: escapeToRegexp
         }
     }, {}],
-    57: [function(require, module, exports) {
+    59: [function(require, module, exports) {
         function getType(value) {
             if (isElement(value)) return 'element';
             var type = typeof(value);
@@ -11492,7 +11647,7 @@
             equals: equals,
         }
     }, {}],
-    58: [function(require, module, exports) {
+    60: [function(require, module, exports) {
         /**
          * 网址处理
          * Created by xiyuan on 17-3-7.
@@ -11661,7 +11816,7 @@
         }
 
     }, {}],
-    59: [function(require, module, exports) {
+    61: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -11706,7 +11861,7 @@
             fatal: fatal
         }
     }, {}],
-    60: [function(require, module, exports) {
+    62: [function(require, module, exports) {
         /**
          * 资源获取 （model view presenter ...）
          * Created by xiyuan on 17-6-1.
@@ -11834,13 +11989,13 @@
 
         module.exports = getSource;
     }, {
-        "../config/lib/commData": 31,
-        "../lib/net/ajax": 49,
-        "../lib/net/jsonp": 51,
-        "../lib/path": 54,
-        "../log/log": 59
+        "../config/lib/commData": 33,
+        "../lib/net/ajax": 51,
+        "../lib/net/jsonp": 53,
+        "../lib/path": 56,
+        "../log/log": 61
     }],
-    61: [function(require, module, exports) {
+    63: [function(require, module, exports) {
         /**
          * 转换真实资源路径
          * Created by xiyuan on 17-6-1.
@@ -11921,6 +12076,8 @@
             sourceInfo.module = module;
             //当前资源路径(不包含文件 module路径、mode类型目录、文件module后缀、文件后缀)
             sourceInfo.pathName = url || originInfo.pathName;
+            if (/\/$/.test(sourceInfo.pathName)) sourceInfo.pathName += appConf.system.moduleDefault[modeType];
+
             //切片
             sourceInfo.slice = sliceName;
             //url
@@ -11930,11 +12087,11 @@
 
         module.exports = sourcePathNormal;
     }, {
-        "../config/lib/commData": 31,
-        "../lib/object": 52,
-        "../lib/path": 54
+        "../config/lib/commData": 33,
+        "../lib/object": 54,
+        "../lib/path": 56
     }],
-    62: [function(require, module, exports) {
+    64: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-9.
          */
@@ -11962,9 +12119,9 @@
             }
         }, window)
     }, {
-        "./engine/index": 1,
-        "./init/index": 29,
-        "./inside/config/index": 30,
-        "./inside/lib/exports": 47
+        "./engine/index": 3,
+        "./init/index": 31,
+        "./inside/config/index": 32,
+        "./inside/lib/exports": 49
     }]
-}, {}, [62]);
+}, {}, [64]);

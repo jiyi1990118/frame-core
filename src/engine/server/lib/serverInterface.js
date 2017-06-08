@@ -22,7 +22,8 @@ serverInterface.prototype.complete=function () {
     if(typeof serverConf.filter === 'object' && serverConf.filter.receive instanceof Function){
         //执行过滤器
         resData=serverConf.filter.receive.call(this,agrs[0],innerConf.option);
-        if(resData !== undefined) agrs[0]=resData
+        if(resData === undefined) return
+        agrs[0]=resData
     }
 
     innerConf.receive.forEach(function (fn) {
@@ -42,7 +43,8 @@ serverInterface.prototype.success=function () {
     if(typeof serverConf.filter === 'object' && serverConf.filter.success instanceof Function){
         //执行过滤器
         resData=serverConf.filter.success.call(this,agrs[0],innerConf.option);
-        if(resData !== undefined) agrs[0]=resData
+        if(resData === undefined) return
+        agrs[0]=resData
     }
 
     innerConf.success.forEach(function (fn) {
@@ -62,7 +64,8 @@ serverInterface.prototype.error=function () {
     if(typeof serverConf.filter === 'object' && serverConf.filter.error instanceof Function){
         //执行过滤器
         resData =serverConf.filter.error.call(this,agrs[0],innerConf.option);
-        if(resData !== undefined) agrs[0]=resData
+        if(resData === undefined) return
+        agrs[0]=resData
     }
 
     innerConf.error.forEach(function (fn) {

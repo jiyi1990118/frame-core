@@ -13,8 +13,8 @@ listGrid(function ($app) {
         '</li>' +
         '</ul>' +
         '</div>' +
-        '<div class="grid-row-group" $-on:mouseout="eventManage.bodyMouseout" $-render="eles|setContainer:[$,\'leftContainer\']">' +
-            '<ul class="grid-body-row" for="(rowKey ,rowData ) in gridListData" $-on:click="eventManage.rowClick(rowKey,rowData)" $-on:mouseover="eventManage.rowHover(rowKey,rowData)" $-class="{row-hover:gridConf.rowHoverIndex == rowKey }">' +
+        '<div class="grid-row-group" v-on:mouseout="eventManage.bodyMouseout" $-render="eles|setContainer:[$,\'leftContainer\']">' +
+            '<ul class="grid-body-row" for="(rowKey ,rowData ) in gridListData" v-on:click="eventManage.rowClick(rowKey,rowData)" v-on:mouseover="eventManage.rowHover(rowKey,rowData)" $-class="{row-hover:gridConf.rowHoverIndex == rowKey }">' +
                 '<li for="(actionKey , actionData) in gridConf.leftColsModel">' +
                     '<template config="actionData|:colDataHandle($,rowData,rowKey,gridListData,eles)"></template>' +
                 '</li>' +
@@ -26,14 +26,14 @@ listGrid(function ($app) {
         '<div class="grid-table-right">' +
             '<div class="grid-header-group">' +
             '<ul class="grid-header-row">' +
-                '<li class="content-center" $-class="{desc:colModel.order == \'desc\',asc:colModel.order == \'asc\'}" $-on:click="eventManage.headerClick(colKey,colModel)" for=" ( colKey , colModel ) in gridConf.colsModel">' +
+                '<li class="content-center" $-class="{desc:colModel.order == \'desc\',asc:colModel.order == \'asc\'}" $-on:click="headerClick(colKey)" for=" ( colKey , colModel ) in gridConf.colsModel">' +
                     '<div class="table-cell"><template config="colModel|:colHeaderHandle($)"></template>' +
                     '<span $-if="colModel.order" $-show="gridConf.orderIndex == colKey "><i class="iconfont icon-down-copy-asc"></i><i class="iconfont icon-down-copy-desc"></i></span></div>' +
                 '</li>' +
             '</ul>' +
             '</div>' +
-            '<div class="grid-row-group" $-on:mouseout="eventManage.bodyMouseout" $-render="eles|setContainer:[$,\'rightContainer\']">' +
-                '<ul class="grid-body-row" for="(rowKey , rowData) in gridListData" $-on:click="eventManage.rowClick(rowKey,rowData)" $-on:mouseover="eventManage.rowHover(rowKey,rowData)" $-class="{row-hover:gridConf.rowHoverIndex == rowKey }">' +
+            '<div class="grid-row-group" v-on:mouseout="eventManage.bodyMouseout" $-render="eles|setContainer:[$,\'rightContainer\']">' +
+                '<ul class="grid-body-row" for="(rowKey , rowData) in gridListData" v-on:click="eventManage.rowClick(rowKey,rowData)" v-on:mouseover="eventManage.rowHover(rowKey,rowData)" $-class="{row-hover:gridConf.rowHoverIndex == rowKey }">' +
                 '<li for=" ( colKey , colModel ) in gridConf.colsModel"  $-render="eventManage.render(rowKey,colKey)">' +
                 '<template config="colModel|:colDataHandle($,rowData,rowKey,gridListData,eles)"></template>' +
                 '</li>' +
@@ -47,20 +47,20 @@ listGrid(function ($app) {
     var footerHtml='<ul>' +
         '<li class="footer-left">' +
         '<ul class="grid-paging-left">' +
-            '<li $-on:click="eventManage.pageTurn(1)" $-class="{disabled:gridConf.pageNumber == 1}">首页</li>' +
+            '<li v-on:click="eventManage.pageTurn(1)" $-class="{disabled:gridConf.pageNumber == 1}">首页</li>' +
         '</ul>' +
         '<ul class="grid-paging-center">' +
-            '<li $-on:click="eventManage.pageTurn(gridConf.pageNumber-1)" $-class="{disabled:gridConf.pageNumber == 1}"><i class="iconfont icon-left"></i></li>' +
-            '<li $-on:click="eventManage.pageTurn(pagingTag)" $-class="{focus:gridConf.pageNumber == pagingTag}" for="pagingTag in pagingListTag"><span>{{pagingTag}}</span></li>' +
-            '<li $-on:click="eventManage.pageTurn(gridConf.pageNumber+1)" $-class="{disabled:gridConf.pageNumber == pageCount}"><i class="iconfont icon-right"></i></li>' +
+            '<li v-on:click="eventManage.pageTurn(gridConf.pageNumber-1)" $-class="{disabled:gridConf.pageNumber == 1}"><i class="iconfont icon-left"></i></li>' +
+            '<li v-on:click="eventManage.pageTurn(pagingTag)" $-class="{focus:gridConf.pageNumber == pagingTag}" for="pagingTag in pagingListTag"><span>{{pagingTag}}</span></li>' +
+            '<li v-on:click="eventManage.pageTurn(gridConf.pageNumber+1)" $-class="{disabled:gridConf.pageNumber == pageCount}"><i class="iconfont icon-right"></i></li>' +
         '</ul>' +
         '<ul class="grid-paging-right">' +
-            '<li $-on:click="eventManage.pageTurn(pageCount)" $-class="{disabled:gridConf.pageNumber == pageCount}">尾页</li>' +
+            '<li v-on:click="eventManage.pageTurn(pageCount)" $-class="{disabled:gridConf.pageNumber == pageCount}">尾页</li>' +
         '</ul>' +
-        '<div class=toPage>第<input type="text" $-model="searchVal" $-valid="pageCount|searchValid" name="pageNumber">页<button $-on:click="searchVal|toPage:[$,pageCount]" class="page-search">确定</button>共<strong>{{pageCount}}</strong>页</div>' +
+        '<div class=toPage>第<input type="text" $-model="searchVal" $-valid="pageCount|searchValid" name="pageNumber">页<button v-on:click="searchVal|toPage:[$,pageCount]" class="page-search">确定</button>共<strong>{{pageCount}}</strong>页</div>' +
         '</li>' +
         '<li class="footer-right">' +//<select config="gridConf.pageSizeList|pageSizeListHandle" ></select>条
-            '<span class="split">每页</span><ul><li for="size in gridConf.pageSizeList"><button $-on:click="eventManage.pageSize(size)" $-class="{focus:gridConf.pageSize == size}">{{size}}条</button></li></ul>' +
+            '<span class="split">每页</span><ul><li for="size in gridConf.pageSizeList"><button v-on:click="eventManage.pageSize(size)" $-class="{focus:gridConf.pageSize == size}">{{size}}条</button></li></ul>' +
             '<span>共<strong>{{dataCount}}</strong>条</span>' +
         '</li>' +
         '</ul>';
@@ -91,66 +91,56 @@ listGrid(function ($app) {
                 type:gridConf.method||gridConf.type,
                 complete:function (res,state) {
                     //数据处理
-                    dataListHandle(true,res,state,sendData,scope);
+                    dataListHandle(sendData,scope,res,state);
                 }
             })
-
         }else{
-            dataListHandle(false,sendData,scope);
+            dataListHandle(sendData,scope,sendData);
         }
 
     }
 
     //列表数据处理
-    function dataListHandle(isUrl,resData,state,sendData,scope) {
-        //检查是否内部url请求还是过滤处理
-        if(!isUrl){
-            scope=state;
-        }
-
-        var $gridConf=scope.gridConf,
+    function dataListHandle(sendData,scope,resData,state) {
+        var res,
+            $gridConf=scope.gridConf,
             //用于数据内部初始化处理
             dataInit=function (resData) {
-                var index=0,
-                    pagingListTag=[],
-                    dataCount=resData.dataCount,
-                    pageCount=Math.ceil(dataCount/sendData.pageSize);
+                //让出资源给标题先渲染
+                setTimeout(function () {
+                    var index=0,
+                        pagingListTag=[],
+                        dataCount=resData.dataCount,
+                        pageCount=Math.ceil(dataCount/sendData.pageSize);
 
-                //检查并执行数据初始化回调
-                typeof $gridConf.dataInitConf === 'function' && $gridConf.dataInitConf(resData);
+                    //检查并执行数据初始化回调
+                    typeof $gridConf.dataInitConf === 'function' && $gridConf.dataInitConf(resData);
 
-                //写入列表数据到作用域中
-                scope.gridListData=resData.dataList;
+                    //写入列表数据到作用域中
+                    scope.gridListData=resData.dataList;
 
-                //写入分页中
-                while (++index <= pageCount && index<= 5){
-                    pagingListTag.push(index);
-                }
-                scope.pagingListTag=pagingListTag;
+                    //写入分页中
+                    while (++index <= pageCount && index<= 5){
+                        pagingListTag.push(index);
+                    }
+                    scope.pagingListTag=pagingListTag;
 
-                //写入列表的页数与条数
-                scope.pageCount=pageCount;
-                scope.dataCount=dataCount;
+                    //写入列表的页数与条数
+                    scope.pageCount=pageCount;
+                    scope.dataCount=dataCount;
 
-                scope.loading=false;
-
+                    scope.loading=false;
+                })
             },
             callback=function (resData) {
                 //通过回调获取数据
                 dataInit(resData);
-                dataInit=null;
+                dataInit=new Function;
             };
 
         //检查是否有过滤函数
         if(typeof $gridConf.filtration === 'function'){
-
-            if($gridConf.url){
-                var res=$gridConf.filtration(state && resData,callback);
-                //检查是否有直接返回的值
-                ({}.toString.call(res) === "[object Object]") &&  dataInit(res);
-            }else{
-                $gridConf.filtration.call($gridConf,resData,callback);
-            }
+            if(res=$gridConf.filtration.call($gridConf,resData,callback))dataInit(res);
             res=null;
             //检查数据及状态
         }else if(state && ({}.toString.call(resData) === "[object Object]")){
@@ -172,6 +162,25 @@ listGrid(function ($app) {
             },
         },
         isReplace: true,
+        scope:{
+            //定义标题部分li的事件
+            headerClick:function (colKey,colModel) {
+                console.log(colKey)
+                return function () {
+                    console.log('yes')
+                    //更改排序索引标识
+                    /*gridConf.orderIndex=colKey;
+                    //检查是否开启排序
+                    if(colModel.order){
+
+                        gridConf.order=colModel.order=colModel.order === 'asc'?'desc':'asc';
+                        gridConf.orderField=colModel.field;
+                        //数据请求
+                        This.dataRequest();
+                    }*/
+                }
+            },
+        },
         filter: {
             //header标题处理
             colHeaderHandle:function (actionData) {
@@ -213,17 +222,19 @@ listGrid(function ($app) {
                 switch (true ){
                     case colModel.listConfig instanceof  Function:
                         config=colModel.listConfig(colData,rowData,rowKey,gridListData,eles)
+                        if(!(config instanceof Object)){
+                            config={
+                                template:'<span>'+config+'</span>',
+                            }
+                        }
                         break;
                     case colModel.listConfig instanceof  Object:
                         config=colModel.listConfig;
                         break;
-                    case !!colData:
+                    default:
                         config={
                             template:'<span>'+colData+'</span>',
                         };
-                        break;
-                    default:
-                        console.log(colModel,rowData,rowKey)
                 }
 
                 if(config.template === null || config.template === undefined){
@@ -233,8 +244,6 @@ listGrid(function ($app) {
                 }else{
                     config.template=String( config.template)
                 }
-
-                // console.log('-----------',config)
 
                 return config
             }
@@ -257,7 +266,6 @@ listGrid(function ($app) {
                 leftContainer:null,
                 rightContainer:null
             };
-            console.log(scope)
             //数据请求
             dataRequest(scope)
 

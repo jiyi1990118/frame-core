@@ -6,7 +6,10 @@
 
 var getSource=require('../../../inside/source/getSource');
 var modelInterface=require('../modelInterface');
+var extendEngine=require('../../extend/index');
 var sourcePathNormal=require('../../../inside/source/sourcePathNormal');
+
+extendEngine.setModelExample(modelExample);
 
 //模型实例
 function modelExample(pathInfo) {
@@ -20,8 +23,8 @@ function modelExample(pathInfo) {
         mode:pathInfo.mode,
     },function (resSource) {
         var extendLib=[];
-        var modelQueue=[];
-        var packageQueue=[];
+        var count=0;
+        var isExec;
         var calle=resSource[0];
         if(resSource === false){
             log.error('model文件 ['+this.responseURL+']缺失！');
@@ -30,43 +33,47 @@ function modelExample(pathInfo) {
 
         if(resSource.length>1){
             calle=resSource[1];
-            extendLib=resSource[0];
+            extendLib=[].concat(resSource[0]);
         }
 
-        extendLib.forEach(function (extendPath) {
-            console.log(extendPath,'>>>>>>>>')
+        function modelExec() {
+            if(count === extendLib.length && !isExec){
+                isExec=true;
+                //资源回调,初始化model
+                if(calle instanceof Function){
+                    //开始实例化model代码
+                    calle.apply(This.interface,extendLib);
+                    //标识模型已调用
+                    source.isExec=true;
+                    //检查triggle
+                    This.useTrigger.forEach(function (info) {
+                        if(source.trigger[info.name] instanceof Function){
+                            info.callback(source.trigger[info.name].apply(This,info.args));
+                        }
+                    });
+                }else if(calle instanceof Object){
+                    console.log('暂不支持model 数据对象')
+                }
+            }
+        }
+
+        extendLib.forEach(function (extendPath,index) {
             var packagePath = extendPath.replace(/^\$:/, '');
             //两种路径 一、model  二、lib 扩展
             if (packagePath !== extendPath) {
+                extendEngine.extendExample(sourcePathNormal(packagePath,pathInfo,'extend'),function (extend) {
+                    extendLib[index]=extend;
+                    count++;
+                    modelExec()
+                })
 
-                console.log(sourcePathNormal(packagePath,pathInfo,'extend'),pathInfo)
-                // packageQueue.push()
-                // packagesFlag.push(i);
-                // packagePath = packagePath.indexOf('@') ? packagePath : pathToUrl($modulePath) + '/' + packagePath.slice(1);
-                // packages.push(packagePath);
             } else {
-                // modelQueue.push()
-                // includeModel[i] = controllerImage.prototype.model.call(modelObj, modelName);
+                count++;
+                extendLib[index]=new modelExample(sourcePathNormal(packagePath,pathInfo,'model'));
             }
 
-
-
-        })
-
-
-        //资源回调,初始化model
-        if(calle instanceof Function){
-            //开始实例化model代码
-            calle.call(This.interface);
-            //标识模型已调用
-            source.isExec=true;
-            //检查triggle
-            This.useTrigger.forEach(function (info) {
-                if(source.trigger[info.name] instanceof Function){
-                    info.callback(source.trigger[info.name].apply(This,info.args));
-                }
-            });
-        };
+        });
+        modelExec()
     });
 };
 

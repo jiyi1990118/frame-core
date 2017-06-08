@@ -33,17 +33,20 @@ var appConf={
         fileCallback:{
             model:'model',
             view:'view',
+            extend:'extend',
             presenter:'presenter'
         },
         //模块目录名称
         moduleDirName:{
             view: 'view',
+            extend:'extend',
             presenter: 'presenter',
             model: 'model'
         },
         //文件后缀标识
         fileSuffix:{
             view: '.view',
+            extend:'.extend',
             presenter: '.presenter',
             model: '.model'
         },
@@ -51,9 +54,11 @@ var appConf={
         moduleDefault:{
             view:'index',
             model:'index',
+            extend:'index',
             presenter:'index',
             viewSlice:'index',
             modelSlice:'index',
+            extendSlice:'index',
             presenterSlice:'index'
         }
     },

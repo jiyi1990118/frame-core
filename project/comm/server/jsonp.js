@@ -17,7 +17,6 @@ jsonpServer(function ($app) {
                 option.data[key]=sendData[key];
             });
 
-
             JSONP({
                 url: url,
                 data:option.data,
@@ -47,17 +46,14 @@ jsonpServer(function ($app) {
 
         },
         filter:{
-            request:function (option) {
-
-            },
             success:function (res,option) {
-                
+                return res;
             },
             error:function (res,option) {
-
+                return res;
             },
             receive:function (res,option) {
-
+                return res;
             }
         },
         config:{

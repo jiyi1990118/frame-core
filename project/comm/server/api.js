@@ -160,10 +160,22 @@ apiServer(function ($app) {
 
             },
             success:function (res,option) {
-                
+                //检查数据是否存在
+                if(!res){
+                    this.error({
+                        data: null,
+                        message: "接口异常!",
+                        state: 0
+                    });
+                //检查数据状态
+                }else if(res.status !== 200){
+                    this.error(res);
+                }else{
+                    return res.data;
+                }
             },
             error:function (res,option) {
-
+                return res;
             },
             receive:function (res,option) {
 

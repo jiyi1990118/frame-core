@@ -3,7 +3,7 @@
  */
 $on(function ($app) {
 
-    $app.directive('v-on', {
+    $app.directive('$-on', {
         priority:100,
         //属性作用域
         props: function (expStr) {

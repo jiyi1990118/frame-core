@@ -78,6 +78,8 @@ function sourcePathNormal(url,originInfo,modeType) {
     sourceInfo.module=module;
     //当前资源路径(不包含文件 module路径、mode类型目录、文件module后缀、文件后缀)
     sourceInfo.pathName=url||originInfo.pathName;
+    if(/\/$/.test(sourceInfo.pathName))sourceInfo.pathName+=appConf.system.moduleDefault[modeType];
+
     //切片
     sourceInfo.slice=sliceName;
     //url
