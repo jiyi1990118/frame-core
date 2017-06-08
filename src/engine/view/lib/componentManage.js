@@ -22,6 +22,14 @@ function compClass(compConf, vnode, extraParameters,vdomApi) {
     //组件元素内部作用域
     vnode.innerScope={};
 
+    if(compConf.scope instanceof Function){
+        vnode.innerScope=compConf.scope();
+    }else if(compConf.scope instanceof Object){
+        Object.keys(compConf.scope||{}).forEach(function (key) {
+            vnode.innerScope[key]=compConf.scope[key];
+        })
+    }
+
     vnode.innerFilter=compConf.filter||{};
 
     //组件实例配置

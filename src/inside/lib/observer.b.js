@@ -183,8 +183,10 @@
     listenStruct.prototype.diff = function (parentData) {
         var oldData = this.targetData,
             oldParentData = this.parentData,
-            newData = parentData && typeof parentData === 'object' ? parentData[this.nowKey] : undefined,
-            isEqual = diff(oldData, newData);
+            newData = parentData && typeof parentData === 'object' ? parentData[this.nowKey] : undefined;
+
+            console.log(oldData, newData,Object.keys(this.child).length,'??????',this.nowKey)
+            var isEqual = diff(oldData, newData);
 
         if(!this.parent)return
 
@@ -194,12 +196,16 @@
         //更改目标数据
         this.targetData = newData;
 
+
+
         //检查当前数据属性 后面是否修改
         if (this.topListen && oldParentData !== this.parentData && Object.getOwnPropertyDescriptor(oldParentData, this.nowKey) && Object.getOwnPropertyDescriptor(oldParentData, this.nowKey).set !== this.prevDefineProperty.set) {
-            this.topListen.berforDefineProperty = this.berforDefineProperty;
+            this.topListen.berforDefineProperty = this.prevDefineProperty;
+            console.log('runlll')
         } else if(oldParentData !== this.parentData){
             //还原数据之前的状态 还原旧数据的属性
-            if(oldParentData)this.berforDefineProperty && Object.defineProperty(oldParentData, this.nowKey, this.berforDefineProperty);
+            if(oldParentData)this.prevDefineProperty && Object.defineProperty(oldParentData, this.nowKey, this.prevDefineProperty);
+            console.log('0000000000',this.prevDefineProperty)
         }
 
         //检查是否变化
@@ -224,19 +230,34 @@
             });
 
             this.listensRead=[];
+
+            console.log('aaa',oldParentData , this.parentData,this.nowKey,!(parentData && parentData.hasOwnProperty(this.nowKey)))
+
+            if(oldParentData !== this.parentData){
+
+                console.log('预留-----功能需优化!父数据变化更新子级数据重新绑定');
+                //数据监听
+                this.listen(!(parentData && parentData.hasOwnProperty(this.nowKey)));
+            }
+        }else{
+
+            console.log('++++++++++++++',oldParentData === this.parentData,oldParentData ,this.parentData,this.nowKey);
+            if(oldParentData !== this.parentData){
+
+
+                //数据监听
+                this.listen(!(parentData && parentData.hasOwnProperty(this.nowKey)));
+
+            }
         }
 
-        if(oldParentData !== this.parentData){
-            //数据监听
-            this.listen(!(parentData && parentData.hasOwnProperty(this.nowKey)));
-        }
+        console.log(oldData, newData,Object.keys(this.child).length,this.nowKey,'end')
 
         //触发子级节点数据对比
         Object.keys(this.child).forEach(function (key) {
             var childListen = this.child[key];
             childListen.diff(newData);
         }.bind(this));
-
     };
 
     //节点数据监听
@@ -244,19 +265,6 @@
         var This = this;
 
         if (this.parentData && typeof this.parentData === 'object') {
-            //检查当前数据是否需要完全移除
-            if(isDelete){
-                this.isDelete = false;
-                if (isDelete === true) {
-                    this.isDelete = true;
-                    if(this.parentData instanceof Array){
-                        this.parentData.slice(this.nowKey,1);
-                    }else{
-                        delete this.parentData[this.nowKey]
-                    }
-                }
-                return
-            }
 
             this.prevDefineProperty = Object.getOwnPropertyDescriptor(this.parentData, this.nowKey) || {
                     configurable: true,
@@ -297,6 +305,12 @@
                     return This.targetData;
                 }
             });
+            this.isDelete = false;
+            if (isDelete === true) {
+                this.isDelete = true;
+                delete this.parentData[this.nowKey]
+            }
+
         }
 
     };

@@ -26,7 +26,7 @@ listGrid(function ($app) {
         '<div class="grid-table-right">' +
             '<div class="grid-header-group">' +
             '<ul class="grid-header-row">' +
-                '<li class="content-center" $-class="{desc:colModel.order == \'desc\',asc:colModel.order == \'asc\'}" $-on:click="headerClick(colKey)" for=" ( colKey , colModel ) in gridConf.colsModel">' +
+                '<li class="content-center" $-class="{desc:colModel.order == \'desc\',asc:colModel.order == \'asc\'}" $-on:click="headerClick(colKey,colModel,allScope)" for=" ( colKey , colModel ) in gridConf.colsModel">' +
                     '<div class="table-cell"><template config="colModel|:colHeaderHandle($)"></template>' +
                     '<span $-if="colModel.order" $-show="gridConf.orderIndex == colKey "><i class="iconfont icon-down-copy-asc"></i><i class="iconfont icon-down-copy-desc"></i></span></div>' +
                 '</li>' +
@@ -78,7 +78,7 @@ listGrid(function ($app) {
         var gridConf=scope.gridConf,
             sendData={
                 order:gridConf.order,
-                orderField:gridConf.orderField,
+                sidx:gridConf.orderField,
                 pageNow:gridConf.pageNumber,
                 pageSize:gridConf.pageSize
             }.extend(gridConf.sendData||{});
@@ -117,7 +117,18 @@ listGrid(function ($app) {
                     typeof $gridConf.dataInitConf === 'function' && $gridConf.dataInitConf(resData);
 
                     //写入列表数据到作用域中
+                    // scope.gridListData=[];
                     scope.gridListData=resData.dataList;
+
+                    setTimeout(function () {
+                        scope.gridListData=[];
+
+                        setTimeout(function () {
+                            scope.gridListData=resData.dataList;
+                        },1000)
+                    },1000)
+
+                    console.log(scope,resData.dataList)
 
                     //写入分页中
                     while (++index <= pageCount && index<= 5){
@@ -147,7 +158,7 @@ listGrid(function ($app) {
             dataInit(resData);
         }
 
-    }
+    };
 
     //列表组件
     $app.component('list-grid', {
@@ -162,24 +173,26 @@ listGrid(function ($app) {
             },
         },
         isReplace: true,
-        scope:{
-            //定义标题部分li的事件
-            headerClick:function (colKey,colModel) {
-                console.log(colKey)
-                return function () {
-                    console.log('yes')
-                    //更改排序索引标识
-                    /*gridConf.orderIndex=colKey;
-                    //检查是否开启排序
-                    if(colModel.order){
+        scope:function () {
+            return {
+                //定义标题部分li的事件
+                headerClick:function (colKey,colModel,allScope) {
+                    return function () {
 
-                        gridConf.order=colModel.order=colModel.order === 'asc'?'desc':'asc';
-                        gridConf.orderField=colModel.field;
-                        //数据请求
-                        This.dataRequest();
-                    }*/
-                }
-            },
+                        var gridConf=allScope.gridConf;
+                        //更改排序索引标识
+                        gridConf.orderIndex=colKey;
+                        console.log(colModel)
+                        //检查是否开启排序
+                        if(colModel.order){
+                            gridConf.order=colModel.order=colModel.order === 'asc'?'desc':'asc';
+                            gridConf.orderField=colModel.field;
+                            //数据请求
+                            dataRequest(allScope);
+                        }
+                    }
+                },
+            }
         },
         filter: {
             //header标题处理
@@ -260,6 +273,9 @@ listGrid(function ($app) {
             }
         },
         render:function (vnode, scope) {
+
+            //内部传递作用域
+            scope.allScope=scope;
 
             //用于元素记录容器
             scope.eles={

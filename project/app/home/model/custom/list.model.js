@@ -13,7 +13,7 @@ model('gridConf',['$:custom/gridConf:gridStruct'],function (gridStruct) {
                 titleConfig: function () {
 
                     return {
-                        template: '<input type="checkbox" $-on:change="onChange" $-checked:false="developScope.allChecked">',
+                        template: '<input type="checkbox" v-on:change="onChange" $-checked:false="developScope.allChecked">',
                         scope: {
 
                         },
@@ -45,7 +45,7 @@ model('gridConf',['$:custom/gridConf:gridStruct'],function (gridStruct) {
                         };
 
                     return {
-                        template: '<input $-on:change="onChange" $-on:click="onClick" $-model="$isChecked" type="checkbox" $-checked:false="developScope.isAllChecked|checkedHandle:[$,developScope.allCheckedTime]">',
+                        template: '<input v-on:change="onChange" v-on:click="onClick" $-model="$isChecked" type="checkbox" $-checked:false="developScope.isAllChecked|checkedHandle:[$,developScope.allCheckedTime]">',
                         scope: scope,
                         filter: {
                             checkedHandle: function (isAllChecked) {
@@ -82,7 +82,7 @@ model('gridConf',['$:custom/gridConf:gridStruct'],function (gridStruct) {
                 listConfig: function () {
 
                     return {
-                        template: '<span $-drop-menu="dropMenuConfig" $-on:click="onClick"  class="iconfont icon-fenlei"></span>',
+                        template: '<span $-drop-menu="dropMenuConfig" v-on:click="onClick"  class="iconfont icon-fenlei"></span>',
                         scope: {
                             dropMenuConfig: {
                                 config:{
@@ -90,7 +90,7 @@ model('gridConf',['$:custom/gridConf:gridStruct'],function (gridStruct) {
                                 },
                                 list: [
                                     {
-                                        content: '<span $-on:click="events.click">栏目一</span>',
+                                        content: '<span v-on:click="events.click">栏目一</span>',
                                         scope:{
                                             events:{
                                                 click:function () {
@@ -122,22 +122,6 @@ model('gridConf',['$:custom/gridConf:gridStruct'],function (gridStruct) {
                         events: {}
                     }
                 }
-            },
-            {
-                titleConfig: {
-                    template: '自定义',
-                    scope: {},
-                    content: '',
-                    events: {}
-                },
-                listConfig: function (data, rowData, index) {
-                    return {
-                        template: index,
-                        scope: {},
-                        content: '',
-                        events: {}
-                    }
-                }
             }
         ]
     }
@@ -154,8 +138,7 @@ model('gridConf',['$:custom/gridConf:gridStruct'],function (gridStruct) {
         }).error(function (data,option) {
             console.error('列表渲染请求出错! ['+data.message+']');
         }).success(function (resData) {
-            console.log(resData=gridStruct(resData,viewId,gridConf))
-            This.exports=resData;
+            This.exports=gridStruct(resData,viewId,gridConf);
         }).send({
             viewId:viewId
         });

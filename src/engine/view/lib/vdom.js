@@ -94,28 +94,6 @@ var htmlDomApi = {
 
 var patch = init([compAndDirectiveInspect(), attributesModule(), classModule(), propsModule(), styleModule(), eventListenersModule()])
 
-
-//对象深度继承
-function objectclone(obj) {
-    var newObj;
-
-    if (obj instanceof Array) {
-        newObj = []
-    } else if (obj instanceof Object) {
-        newObj = {}
-    }
-
-    if (newObj) {
-        Object.keys(obj).forEach(function (key) {
-            newObj[key] = objectclone(obj[key])
-        })
-    } else {
-        newObj = obj;
-    }
-    obj = undefined;
-    return newObj;
-}
-
 //虚拟节点对象
 function $vnode(conf) {
     var $this = this;
@@ -487,7 +465,6 @@ function init(modules) {
 
         //检查并传递作用域
         if (parentNode) {
-
             if (innerFilter = parentNode.innerFilter) {
                 Object.keys(extraParameters.filter).forEach(function (key) {
                     innerFilter[key] = extraParameters.filter[key];
@@ -1446,9 +1423,11 @@ function eventListenersModule() {
             on = vnode && vnode.data.on,
             elm = (vnode && vnode.elm), name;
 
-        if (oldVnode.listener === vnode.listener && oldOn === on && !on === !oldVnode.listener) {
+        if (vnode && oldVnode.listener === vnode.listener && oldOn === on && !on === !oldVnode.listener) {
             return;
         }
+
+        if(on === oldOn)return;
 
         oldListener=oldListener||{};
 

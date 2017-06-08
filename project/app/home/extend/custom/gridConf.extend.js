@@ -46,6 +46,7 @@ extend('gridStruct',function () {
                 id:fieldInfo.id,
                 //字体 对齐方式
                 align: "center",
+                order: true,
                 name: fieldInfo.columnName
             },
             fieldKey = fieldInfo.moduleCode + '_' + fieldInfo.phyColumnName;
@@ -129,7 +130,8 @@ extend('gridStruct',function () {
 
     //数据过滤函数
     function filtration(sendData,callback) {
-
+        //当前页编码
+        sendData.currentPage=sendData.pageNow;
         server({
             url:'gridData',
             serverType:'api'

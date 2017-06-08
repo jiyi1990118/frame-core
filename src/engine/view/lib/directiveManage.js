@@ -92,7 +92,6 @@ directiveClass.prototype.init = function () {
         exp=this.exp,
         extraParameters = this.extraParameter;
 
-
     //写入钩子
     if(conf.hook){
         vnode.data.hook=vnode.data.hook||{};
@@ -114,9 +113,9 @@ directiveClass.prototype.init = function () {
     }
 
     //作用域处理合并
-    Object.keys(extraParameters.scope = extraParameters.scope || {}).forEach(function (sKey) {
+    /*Object.keys(extraParameters.scope = extraParameters.scope || {}).forEach(function (sKey) {
         $api.scope[sKey] = extraParameters.scope[sKey];
-    })
+    })*/
 
     //作用域处理合并
     Object.keys(conf.scope = conf.scope || {}).forEach(function (sKey) {
@@ -143,9 +142,10 @@ directiveClass.prototype.init = function () {
                     if (!strcut.errMsg) {
                         //收集作用域
                         var scopes = [vnode.rootScope].concat(vnode.middleScope);
-                        // scopes.push(vnode.$scope);
                         if(vnode.innerScope){
                             scopes.push(vnode.innerScope);
+                        }else{
+                            scopes.push(vnode.$scope);
                         }
 
                         syntaxExample = syntaxHandle(strcut, scopes, extraParameters.filter, true);

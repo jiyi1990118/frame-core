@@ -20,17 +20,10 @@ $on(function ($app) {
         },
         render: function (vnode, scope) {
 
-            // vnode.elm.addEventListener(this.expInfo.type,scope.on,false)
-
             vnode.data.on=vnode.data.on||{};
 
-            vnode.data.on[this.expInfo.type]=[scope.on,function () {
-                console.log(this)
-            }];
+            vnode.data.on[this.expInfo.type]=scope.on;
 
-            // this.update(vnode);
-
-            // console.log(scope,vnode.elm)
             return vnode;
         }
     });

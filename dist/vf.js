@@ -1390,6 +1390,14 @@
             //组件元素内部作用域
             vnode.innerScope = {};
 
+            if (compConf.scope instanceof Function) {
+                vnode.innerScope = compConf.scope();
+            } else if (compConf.scope instanceof Object) {
+                Object.keys(compConf.scope || {}).forEach(function(key) {
+                    vnode.innerScope[key] = compConf.scope[key];
+                })
+            }
+
             vnode.innerFilter = compConf.filter || {};
 
             //组件实例配置
@@ -1739,7 +1747,6 @@
                 exp = this.exp,
                 extraParameters = this.extraParameter;
 
-
             //写入钩子
             if (conf.hook) {
                 vnode.data.hook = vnode.data.hook || {};
@@ -1761,9 +1768,9 @@
             }
 
             //作用域处理合并
-            Object.keys(extraParameters.scope = extraParameters.scope || {}).forEach(function(sKey) {
+            /*Object.keys(extraParameters.scope = extraParameters.scope || {}).forEach(function (sKey) {
                 $api.scope[sKey] = extraParameters.scope[sKey];
-            })
+            })*/
 
             //作用域处理合并
             Object.keys(conf.scope = conf.scope || {}).forEach(function(sKey) {
@@ -1790,9 +1797,10 @@
                             if (!strcut.errMsg) {
                                 //收集作用域
                                 var scopes = [vnode.rootScope].concat(vnode.middleScope);
-                                // scopes.push(vnode.$scope);
                                 if (vnode.innerScope) {
                                     scopes.push(vnode.innerScope);
+                                } else {
+                                    scopes.push(vnode.$scope);
                                 }
 
                                 syntaxExample = syntaxHandle(strcut, scopes, extraParameters.filter, true);
@@ -4367,28 +4375,6 @@
 
         var patch = init([compAndDirectiveInspect(), attributesModule(), classModule(), propsModule(), styleModule(), eventListenersModule()])
 
-
-        //对象深度继承
-        function objectclone(obj) {
-            var newObj;
-
-            if (obj instanceof Array) {
-                newObj = []
-            } else if (obj instanceof Object) {
-                newObj = {}
-            }
-
-            if (newObj) {
-                Object.keys(obj).forEach(function(key) {
-                    newObj[key] = objectclone(obj[key])
-                })
-            } else {
-                newObj = obj;
-            }
-            obj = undefined;
-            return newObj;
-        }
-
         //虚拟节点对象
         function $vnode(conf) {
             var $this = this;
@@ -4761,7 +4747,6 @@
 
                 //检查并传递作用域
                 if (parentNode) {
-
                     if (innerFilter = parentNode.innerFilter) {
                         Object.keys(extraParameters.filter).forEach(function(key) {
                             innerFilter[key] = extraParameters.filter[key];
@@ -5747,9 +5732,11 @@
                     elm = (vnode && vnode.elm),
                     name;
 
-                if (oldVnode.listener === vnode.listener && oldOn === on && !on === !oldVnode.listener) {
+                if (vnode && oldVnode.listener === vnode.listener && oldOn === on && !on === !oldVnode.listener) {
                     return;
                 }
+
+                if (on === oldOn) return;
 
                 oldListener = oldListener || {};
 
@@ -9359,19 +9346,24 @@
                     newData = parentData && typeof parentData === 'object' ? parentData[this.nowKey] : undefined,
                     isEqual = diff(oldData, newData);
 
+                if (!this.parent) return
+
+                //获取父级数据
+                this.parentData = this.parent.targetData;
+
+                //更改目标数据
+                this.targetData = newData;
+
+                //检查当前数据属性 后面是否修改
+                if (this.topListen && oldParentData !== this.parentData && Object.getOwnPropertyDescriptor(oldParentData, this.nowKey) && Object.getOwnPropertyDescriptor(oldParentData, this.nowKey).set !== this.prevDefineProperty.set) {
+                    this.topListen.berforDefineProperty = this.berforDefineProperty;
+                } else if (oldParentData !== this.parentData) {
+                    //还原数据之前的状态 还原旧数据的属性
+                    if (oldParentData) this.berforDefineProperty && Object.defineProperty(oldParentData, this.nowKey, this.berforDefineProperty);
+                }
+
                 //检查是否变化
                 if (!isEqual) {
-
-                    if (!this.parent) return
-
-                    //获取父级数据
-                    this.parentData = this.parent.targetData;
-                    //更改目标数据
-                    this.targetData = newData;
-
-                    if (oldParentData !== this.parentData) {
-                        console.log('预留-----功能需优化!父数据变化更新子级数据重新绑定')
-                    }
 
                     //触发上一个级监听数据
                     if (this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set')) {
@@ -9380,14 +9372,6 @@
 
                     //标识有数据
                     this.isData = true;
-
-                    //检查当前数据属性 后面是否修改
-                    if (this.topListen && oldParentData !== this.parentData && Object.getOwnPropertyDescriptor(oldParentData, this.nowKey) && Object.getOwnPropertyDescriptor(oldParentData, this.nowKey).set !== this.prevDefineProperty.set) {
-                        this.topListen.berforDefineProperty = this.prevDefineProperty;
-                    } else if (oldParentData !== this.parentData) {
-                        //还原数据之前的状态 还原旧数据的属性
-                        if (oldParentData) this.prevDefineProperty && Object.defineProperty(oldParentData, this.nowKey, this.prevDefineProperty);
-                    }
 
                     //触发监听
                     this.listens.forEach(function(fn) {
@@ -9400,17 +9384,21 @@
                     });
 
                     this.listensRead = [];
+                }
 
+                if (oldParentData !== this.parentData) {
                     //数据监听
                     this.listen(!(parentData && parentData.hasOwnProperty(this.nowKey)));
                 }
 
+                console.log(oldData, newData, Object.keys(this.child).length, this.nowKey, 'end')
 
                 //触发子级节点数据对比
                 Object.keys(this.child).forEach(function(key) {
                     var childListen = this.child[key];
                     childListen.diff(newData);
                 }.bind(this));
+
             };
 
             //节点数据监听
@@ -9418,6 +9406,19 @@
                 var This = this;
 
                 if (this.parentData && typeof this.parentData === 'object') {
+                    //检查当前数据是否需要完全移除
+                    if (isDelete) {
+                        this.isDelete = false;
+                        if (isDelete === true) {
+                            this.isDelete = true;
+                            if (this.parentData instanceof Array) {
+                                this.parentData.slice(this.nowKey, 1);
+                            } else {
+                                delete this.parentData[this.nowKey]
+                            }
+                        }
+                        return
+                    }
 
                     this.prevDefineProperty = Object.getOwnPropertyDescriptor(this.parentData, this.nowKey) || {
                         configurable: true,
@@ -9437,6 +9438,7 @@
                         enumerable: true,
                         configurable: true,
                         set: function(newData, transfer) {
+                            console.log('>>>>>>>>>>>', This.nowKey, newData, This.targetData)
                             var tmp = {};
                             tmp[This.nowKey] = newData;
                             This.diff(tmp);
@@ -9457,12 +9459,6 @@
                             return This.targetData;
                         }
                     });
-                    this.isDelete = false;
-                    if (isDelete === true) {
-                        this.isDelete = true;
-                        delete this.parentData[this.nowKey]
-                    }
-
                 }
 
             };
@@ -9479,12 +9475,14 @@
 
             //添加监听
             listenStruct.prototype.add = function(fn) {
-                this.listens.indexOf(fn) !== -1 || this.listens.push(fn);
+                /*this.listens.indexOf(fn) !== -1 || */
+                this.listens.push(fn);
             };
 
             //添加监听
             listenStruct.prototype.addRead = function(fn) {
-                this.listensRead.indexOf(fn) !== -1 || this.listensRead.push(fn);
+                /*this.listensRead.indexOf(fn) !== -1 ||*/
+                this.listensRead.push(fn);
             };
 
             //删除监听
