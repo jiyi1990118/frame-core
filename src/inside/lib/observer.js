@@ -276,7 +276,6 @@
                 enumerable: true,
                 configurable: true,
                 set: function (newData, transfer) {
-                    console.log('>>>>>>>>>>>',This.nowKey,newData,This.targetData)
                     var tmp = {};
                     tmp[This.nowKey] = newData;
                     This.diff(tmp);

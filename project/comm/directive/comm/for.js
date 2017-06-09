@@ -69,7 +69,6 @@ For(function ($app) {
 
             //移除上一次for循环的子数据监听
             if(this.stroage.watchRenders instanceof Array){
-                console.log(',,,,,,,,,,,,,,',this.stroage.watchRenders.length)
                 this.stroage.watchRenders.forEach(function (info) {
                     info.ob.unWatch(info.key,info.fn);
                 })
@@ -116,10 +115,6 @@ For(function ($app) {
             });
 
             this.stroage.watchRenders=watchRenders;
-
-            console.log(',,,,,,,++++++++,,,,,,,',watchRenders.length)
-
-            console.log(innerVnodes)
 
             //改变当前节点
             return innerVnodes;

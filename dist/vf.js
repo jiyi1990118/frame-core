@@ -4522,7 +4522,7 @@
                         case 'elm':
                         default:
                             (this.innerVnode || []).forEach(function(vnode, index) {
-                                if (type !== 'elm') delete $this.elm[index];
+                                if (type !== 'elm') $this.elm.splice(0, 1);
                                 delete $this.innerVnode[index];
                                 vnode.destroy(type);
                             })
@@ -4819,15 +4819,8 @@
                                 if (!(vnode.innerVnode instanceof Array)) {
                                     vnode.innerVnode = [vnode.innerVnode];
                                 }
-
                                 //检查节点是否被渲染，此处需要做元素对比
-                                if (vnode.elm && vnode.elm.length) {
-                                    patch(oldVnode, vnode, rootScope, extraParameters.filter, parentNode);
-                                    //销毁对象但不销毁元素
-                                    oldVnode.destroy('elm');
-                                    oldVnode = vnode.clone();
-                                    return
-                                } else {
+                                if (!(vnode.elm && vnode.elm.length)) {
 
                                     vnode.elm = [];
                                     vnode.innerVnode.forEach(function(ch) {
@@ -4893,7 +4886,6 @@
                                         var oldVnode;
                                         createElm(ch, insertedVnodeQueue, function(ch, isRearrange) {
                                             if (isRearrange) {
-                                                // console.log(velm,'??????????????//',ch,oldVnode,vnode)
                                                 rearrangePatch(ch, oldVnode, vnode.elm);
                                             } else {
                                                 api.appendChild(elm, ch.elm);
@@ -9391,8 +9383,6 @@
                     this.listen(!(parentData && parentData.hasOwnProperty(this.nowKey)));
                 }
 
-                console.log(oldData, newData, Object.keys(this.child).length, this.nowKey, 'end')
-
                 //触发子级节点数据对比
                 Object.keys(this.child).forEach(function(key) {
                     var childListen = this.child[key];
@@ -9438,7 +9428,6 @@
                         enumerable: true,
                         configurable: true,
                         set: function(newData, transfer) {
-                            console.log('>>>>>>>>>>>', This.nowKey, newData, This.targetData)
                             var tmp = {};
                             tmp[This.nowKey] = newData;
                             This.diff(tmp);

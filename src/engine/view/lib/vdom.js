@@ -242,7 +242,7 @@ $vnode.prototype.destroy = function (type) {
                 case 'elm':
                 default:
                     (this.innerVnode || []).forEach(function (vnode, index) {
-                        if (type !== 'elm') delete $this.elm[index];
+                        if (type !== 'elm') $this.elm.splice(0,1);
                         delete $this.innerVnode[index];
                         vnode.destroy(type);
                     })
@@ -537,15 +537,8 @@ function init(modules) {
                         if (!(vnode.innerVnode instanceof Array)) {
                             vnode.innerVnode = [vnode.innerVnode];
                         }
-
                         //检查节点是否被渲染，此处需要做元素对比
-                        if (vnode.elm && vnode.elm.length) {
-                            patch(oldVnode, vnode, rootScope, extraParameters.filter, parentNode);
-                            //销毁对象但不销毁元素
-                            oldVnode.destroy('elm');
-                            oldVnode = vnode.clone();
-                            return
-                        } else {
+                        if (!(vnode.elm && vnode.elm.length)){
 
                             vnode.elm = [];
                             vnode.innerVnode.forEach(function (ch) {
@@ -611,7 +604,6 @@ function init(modules) {
                                 var oldVnode;
                                 createElm(ch, insertedVnodeQueue, function (ch, isRearrange) {
                                     if (isRearrange) {
-                                        // console.log(velm,'??????????????//',ch,oldVnode,vnode)
                                         rearrangePatch(ch, oldVnode, vnode.elm);
                                     } else {
                                         api.appendChild(elm, ch.elm);
