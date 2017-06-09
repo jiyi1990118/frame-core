@@ -32,6 +32,7 @@ var htmlDomApi = {
     },
     insertBefore: function insertBefore(parentNode, newNode, referenceNode) {
         referenceNode = referenceNode instanceof Array ? referenceNode[0] : referenceNode;
+        referenceNode=parentNode.contains(referenceNode)?referenceNode:null;
         newNode instanceof Array ? newNode.forEach(function (child, key) {
             parentNode.insertBefore(child, referenceNode);
         }) : parentNode.insertBefore(newNode, referenceNode);
@@ -365,6 +366,7 @@ function emptyNodeAt(elm) {
  * 重新补丁
  * @param newVnode
  * @param oldVnode
+ * @param parentElm
  */
 function rearrangePatch(newVnode, oldVnode, parentElm) {
     htmlDomApi.insertBefore(parentElm, newVnode.elm, oldVnode.elm);
@@ -520,7 +522,7 @@ function init(modules) {
 
         //初始化创建
         function initCreate() {
-
+            var isElm=undefined;
             if (initCount && --initCount)return
             //检查当前元素是否替换成innerVnode
             if (vnode.isReplace) {
@@ -537,8 +539,16 @@ function init(modules) {
                         if (!(vnode.innerVnode instanceof Array)) {
                             vnode.innerVnode = [vnode.innerVnode];
                         }
+
                         //检查节点是否被渲染，此处需要做元素对比
-                        if (!(vnode.elm && vnode.elm.length)){
+                        if (vnode.elm && vnode.elm.length) {
+                            patch(oldVnode, vnode, rootScope, extraParameters.filter, parentNode);
+
+                            //销毁对象但不销毁元素
+                            oldVnode.destroy('elm');
+                            oldVnode = vnode.clone();
+                            return;
+                        } else{
 
                             vnode.elm = [];
                             vnode.innerVnode.forEach(function (ch) {
@@ -549,6 +559,7 @@ function init(modules) {
                                 }
 
                                 createElm(ch, insertedVnodeQueue, function (ch, isRearrange) {
+
                                     if (isRearrange) {
                                         //重新排列元素
                                         var childNodes = rearrangeElm(vnode.innerVnode);
@@ -603,11 +614,14 @@ function init(modules) {
 
                                 var oldVnode;
                                 createElm(ch, insertedVnodeQueue, function (ch, isRearrange) {
+
                                     if (isRearrange) {
                                         rearrangePatch(ch, oldVnode, vnode.elm);
                                     } else {
                                         api.appendChild(elm, ch.elm);
                                     }
+                                    //销毁旧节点
+                                    oldVnode && oldVnode.destroy();
                                     oldVnode = ch.clone();
                                 }, extraParameters, vnode);
                             } else {
@@ -1094,7 +1108,6 @@ function init(modules) {
                         nowParentNode;
                     //创建新节点
                     createElm(Vnode, insertedVnodeQueue, function (ch, isRearrange) {
-
                         if (isRearrange) {
                             rearrangePatch(ch, oldVnode, oldVnode.elm.parentNode);
                         } else {

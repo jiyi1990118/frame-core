@@ -125,8 +125,8 @@ listGrid(function ($app) {
 
                         setTimeout(function () {
                             scope.gridListData=resData.dataList;
-                        },5000)
-                    },5000)
+                        },3000)
+                    },3000)
 
                     console.log(scope,resData.dataList)
 
