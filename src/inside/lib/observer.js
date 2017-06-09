@@ -135,14 +135,46 @@
         }
     }
 
+
+    /**
+     * 检查子节点是否有监听
+     * @param listen
+     * @returns {boolean}
+     */
+    function checkChildListen(listen) {
+
+        var i=~0,
+            key,
+            isUse,
+            nowListen,
+            childKeys=Object.keys(listen.child),
+            len=childKeys.length;
+
+        //检查当前节点是否有监听
+        isUse=listen.listens.length || listen.listensRead.length;
+
+        if(isUse)return true;
+
+        while (++i<len){
+            key=childKeys[i];
+            nowListen=listen.child[key];
+            if(isUse=checkChildListen(nowListen))return true;
+        }
+        return false;
+    }
+
     /**
      * 获取需要销毁的监听节点
      * @param listen
      * @returns {*}
      */
     function destroyListen(listen) {
-        if (!listen.parent || !Object.keys(listen.parent.child).length === 1)return listen;
-        return destroyListen(listen.parent);
+        //检查当前节点是否存在监听
+        if(!listen.listens.length && !listen.listensRead.length){
+            if(listen.parent)return destroyListen(listen.parent);
+            return listen;
+        }
+        return false;
     }
 
     /**
@@ -322,6 +354,7 @@
 
     //删除监听
     listenStruct.prototype.remove = function (fn) {
+        var listen=this;
         if (typeof fn === "function") {
             var index = this.listens.indexOf(fn);
             return index === -1 ? false : this.listens.splice(this.listens.indexOf(fn), 1)[0];
@@ -331,9 +364,38 @@
 
         //所有监听移除后还原数据原有属性
         if (!this.listens.length && !Object.keys(this.child).length) {
+
             //此处主要销毁监听节点
-            destroyListen(this).destroy();
+            if(checkChildListen(listen)){
+                return this;
+            }else{
+                this.destroy();
+            }
+
+            if(listen.parent){
+                var i=~0,
+                    key,
+                    isUse,
+                    nowListen,
+                    childKeys=Object.keys(listen.parent.child),
+                    len=childKeys.length;
+
+                //检查同级元素中是否有监听
+                while (++i<len){
+                    key=childKeys[i];
+                    if(listen.nowKey === key)continue;
+                    nowListen=listen.parent.child[key];
+                    if(isUse=checkChildListen(nowListen))break;
+                }
+
+                if(isUse)return this;
+
+                //检查父节点上的上层是否有监听
+                if(isUse= destroyListen(listen.parent))return isUse.destroy();
+
+            }
         }
+        return this;
     };
 
     //删除read监听
