@@ -31,7 +31,8 @@ var layoutStroage = {
 //视图渲染
 function render() {
 
-    var pageContainer = document.body;
+    var pageContainer = document.body,
+        emptyNode=viewEngine.vdom.node2vnode(pageContainer);
 
     //检查当前是否需要渲染布局
     if (layoutStroage.vnode) {
@@ -49,6 +50,17 @@ function render() {
         }
         pageContainer = layoutStroage.main;
     }
+
+    //传递父节点信息给 presenter视图元素
+    ;[].concat(layoutStroage.presenter.vnode).forEach(function (childVnode) {
+        if(pageContainer.vnode){
+            childVnode.parentVnode=pageContainer.vnode;
+        }else{
+            childVnode.parentVnode=emptyNode;
+            emptyNode.children.push(childVnode);
+        }
+
+    });
 
     //渲染 presenter 视图
     viewEngine.vdom.patch(null, layoutStroage.presenter.vnode, layoutStroage.presenter.source, undefined, function (containerElm, replaceParent) {

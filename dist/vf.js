@@ -49,6 +49,7 @@
                 extendObj = extendStroage[url],
                 state = extendLoadState[url];
 
+            //检查当前的扩展是否存在
             if (extendObj || state) {
                 if (extendObj) {
                     callbcak(extendObj);
@@ -60,6 +61,9 @@
 
             extendLoadState[url] = 1;
             extendWatch[url] = [];
+
+            //标识当前来源类型
+            pathInfo.originType = 'extend'
 
             //资源获取
             getSource(pathInfo, {
@@ -237,7 +241,8 @@
         //视图渲染
         function render() {
 
-            var pageContainer = document.body;
+            var pageContainer = document.body,
+                emptyNode = viewEngine.vdom.node2vnode(pageContainer);
 
             //检查当前是否需要渲染布局
             if (layoutStroage.vnode) {
@@ -255,6 +260,18 @@
                 }
                 pageContainer = layoutStroage.main;
             }
+
+            //传递父节点信息给 presenter视图元素
+            ;
+            [].concat(layoutStroage.presenter.vnode).forEach(function(childVnode) {
+                if (pageContainer.vnode) {
+                    childVnode.parentVnode = pageContainer.vnode;
+                } else {
+                    childVnode.parentVnode = emptyNode;
+                    emptyNode.children.push(childVnode);
+                }
+
+            });
 
             //渲染 presenter 视图
             viewEngine.vdom.patch(null, layoutStroage.presenter.vnode, layoutStroage.presenter.source, undefined, function(containerElm, replaceParent) {
@@ -501,6 +518,9 @@
         var modelInterface = require('../modelInterface');
         var extendEngine = require('../../extend/index');
         var sourcePathNormal = require('../../../inside/source/sourcePathNormal');
+        var commData = require('../../../inside/config/lib/commData');
+
+        var mvpRecord = commData.mvpRecord;
 
         extendEngine.setModelExample(modelExample);
 
@@ -511,6 +531,20 @@
             this.useTrigger = [];
 
             var source = this.interface.__source__;
+
+            //请求来源
+            var origin = pathInfo.origin;
+            pathInfo.originType = origin.originType
+
+            //收集相关资源 提供后续资源销毁
+            switch (origin.originType) {
+                case 'layout':
+                    mvpRecord.lm.push(this)
+                    break;
+                case 'presenter':
+                    mvpRecord.m.push(this);
+                    break;
+            }
 
             getSource(pathInfo, {
                 mode: pathInfo.mode,
@@ -626,6 +660,7 @@
 
         module.exports = modelExample;
     }, {
+        "../../../inside/config/lib/commData": 33,
         "../../../inside/source/getSource": 62,
         "../../../inside/source/sourcePathNormal": 63,
         "../../extend/index": 1,
@@ -806,7 +841,7 @@
 
         var viewEngine = require('../view/exports');
 
-        var appConf = require('../../inside/config/lib/commData').appConf;
+        var commData = require('../../inside/config/lib/commData');
 
         var layoutEngine = require('../layout/index');
 
@@ -814,8 +849,12 @@
 
         var sourcePathNormal = require('../../inside/source/sourcePathNormal');
 
+        var appConf = commData.appConf;
+
+        var mvpRecord = commData.mvpRecord;
+
         //调度器存储器
-        var presenterSource = {};
+        var presenterSource = commData.presenterSource;
 
         /**
          * 数据属性设置
@@ -834,8 +873,8 @@
 
         /**
          * 调度器接口(调度器的实现)
-         * @param parameter
          * @param info
+         * @param view
          */
         function presenterInterface(info, view) {
             //调度器数据存储
@@ -849,6 +888,28 @@
                 display: false,
                 info: info
             };
+
+            //检查当前的presenter类型 并记录
+            if (info.isLayout) {
+                info.originType = 'layout';
+                mvpRecord.lp.push(this);
+            } else {
+                //当前是主presenter （此处需销毁之前的相关数据）
+                if (mvpRecord.p) {
+
+                    //销毁之前页面的presenter
+                    window.i = presenterSource[mvpRecord.p.__sourceId__]
+
+                }
+
+                console.log(info, '>>>>>>>...', mvpRecord)
+
+
+
+                //标识当前资源类型
+                mvpRecord.p = this;
+                info.originType = 'presenter';
+            }
 
             //设置资源id不可写
             def(this, '__sourceId__');
@@ -1060,7 +1121,8 @@
                 //当前资源路径(不包含文件 module路径、mode类型目录、文件module后缀、文件后缀)
                 pathName: sourceInfo.pathName,
                 //资源来源地址
-                origin: sourceInfo.origin
+                origin: sourceInfo.origin,
+                mode: 'presenter'
             }, view));
         }
 
@@ -1716,7 +1778,9 @@
 
                 },
                 rootScope: vnode.rootScope,
-                stroage: {},
+                stroage: {
+
+                },
                 //模板节点
                 templateVnode: vnode.clone()
 
@@ -1887,10 +1951,10 @@
                     case renderVnode === vnode:
                     case renderVnode.elm && renderVnode.elm === vnode.elm:
                         //检查是否渲染，并检查更新元素
-                        vnode.elm && this.vdomApi.cbs.update.forEach(function(updateHandle) {
-                            updateHandle(vnode, renderVnode);
+                        /*vnode.elm && this.vdomApi.cbs.update.forEach(function (updateHandle) {
+                            updateHandle(vnode,renderVnode);
                         })
-                        return;
+                        return;*/
                 }
 
                 vnode.innerVnode = renderVnode;
@@ -2507,6 +2571,7 @@
          * @param struct
          * @param scope
          * @param filter
+         * @param multiple
          */
         function analysis(struct, scope, filter, multiple) {
             var $this = this;
@@ -2520,7 +2585,6 @@
 
             this.lex(struct, function(resData) {
                 $this.resData = resData.value;
-
                 //获取监听key
                 delete $this.watchInfo;
                 if (resData.keys instanceof Array) {
@@ -2624,8 +2688,8 @@
                     break;
                     //成员表达式
                 case 'MemberExpression':
-                    this.lex(nowStruct.object, ob.watch('object'), isFilter)
-                    this.lex(nowStruct.property, ob.watch('property'), nowStruct.computed || 'noComputed');
+                    this.lex(nowStruct.object, ob.watch('object'), isFilter, nowStruct)
+                    this.lex(nowStruct.property, ob.watch('property'), nowStruct.computed ? false : 'noComputed');
 
                     ob.receive(function(data) {
 
@@ -2678,11 +2742,9 @@
                                 }
 
                             } else {
-
                                 callback({
                                     value: data.object.value[data.property.value]
                                 });
-
                                 console.warn('语法对象错误!')
                             }
                         }
@@ -2744,7 +2806,7 @@
                     break;
                     //过滤器表达式
                 case 'FilterExpression':
-                    this.lex(nowStruct.callee, ob.watch('callee'), true);
+                    this.lex(nowStruct.callee, ob.watch('callee'), true, nowStruct);
 
                     if (nowStruct.arguments.length) {
                         //遍历过滤器参数
@@ -2823,6 +2885,7 @@
                                     callback({
                                         value: nowStruct.value
                                     });
+
                                     break;
                                 default:
                                     obData = observer(this.scope, this.multiple);
@@ -4313,7 +4376,28 @@
             },
             insertBefore: function insertBefore(parentNode, newNode, referenceNode) {
                 referenceNode = referenceNode instanceof Array ? referenceNode[0] : referenceNode;
-                referenceNode = parentNode.contains(referenceNode) ? referenceNode : null;
+
+                //检查父文档片段中是否含有指定的元素
+                if (parentNode instanceof DocumentFragment) {
+                    var i = ~0,
+                        child,
+                        isChild,
+                        childNodes = [].slice.call(parentNode.childNodes),
+                        len = childNodes.length;
+
+                    while (++i < len) {
+                        child = childNodes[i];
+                        if (child === referenceNode || child.contains(referenceNode)) {
+                            isChild = true;
+                            break;
+                        }
+                    }
+                } else {
+                    isChild = parentNode.contains(referenceNode) ? true : false;
+                }
+
+                referenceNode = isChild ? referenceNode : null;
+
                 newNode instanceof Array ? newNode.forEach(function(child, key) {
                     parentNode.insertBefore(child, referenceNode);
                 }) : parentNode.insertBefore(newNode, referenceNode);
@@ -4380,6 +4464,8 @@
         function $vnode(conf) {
             var $this = this;
 
+            this.data = this.data || {};
+
             //配置继承
             Object.keys(conf).forEach(function(key) {
                 $this[key] = conf[key];
@@ -4428,6 +4514,18 @@
                             }
                             tmp[key] = attrsMap;
                             break
+                        case 'on':
+                            if (data[key] instanceof Object) {
+                                Object.keys(data[key]).forEach(function(eventName) {
+                                    var eventFn = data[key][eventName];
+                                    if (eventFn instanceof Array) {
+                                        eventFn = [].concat(eventFn);
+                                    }
+                                    attrsMap[eventName] = eventFn;
+                                })
+                            }
+                            tmp[key] = attrsMap;
+                            break;
                         default:
                             tmp[key] = data[key];
                     }
@@ -4474,6 +4572,297 @@
                     $this.$scope[key] = scope[key];
                 })
             }
+        }
+
+        //给虚拟dom添加事件监听
+        $vnode.prototype.addEventListener = function(type, eventFn) {
+            if (!this.data) {
+                console.log('-->>', '元素销毁，需要销毁指令 相关绑定')
+                return this;
+            }
+            //事件集合
+            var events = this.data.on = this.data.on || {};
+            //添加事件
+            (events[type] = events[type] || []).push(eventFn);
+
+            //检查元素是否存在
+            if (this.elm) {
+                //实时绑定
+                this.elm.addEventListener(type, eventFn, false);
+            }
+            return this;
+        };
+
+        //移除虚拟dom事件监听
+        $vnode.prototype.removeListener = function(type, eventFn) {
+            if (!this.data) return this;
+            //事件集合
+            var location,
+                events = this.data.on;
+
+            if (events && events[type]) {
+                if (events[type] instanceof Array) {
+                    location = events[type].indexOf(eventFn);
+                    if (location !== -1) {
+                        events[type].splice(location, 1);
+                        //检查元素是否存在
+                        if (this.elm) {
+                            //实时绑定
+                            this.elm.removeEventListener(type, eventFn, false);
+                        }
+                    }
+                } else if (events[type] instanceof Function && events[type] === eventFn) {
+                    delete events[type];
+                    //检查元素是否存在
+                    if (this.elm) {
+                        //实时绑定
+                        this.elm.removeEventListener(type, eventFn, false);
+                    }
+                }
+            }
+            return this;
+        };
+
+        //设置属性
+        $vnode.prototype.setAttr = function(attrName, val) {
+            var element = this.elm,
+                attrs = this.data.attrs = this.data.attrs || {};
+
+            attrs[attrName] = val;
+            if (element) {
+                switch (attrName) {
+                    case 'class':
+                        this.addClass(val);
+                        break;
+                    case 'checked':
+                    case 'readonly':
+                    case 'disabled':
+                    case 'selected':
+                        element[attrName] = !!val;
+                        val ? element.setAttribute(attrName, attrName) : element.removeAttribute(attrName);
+                        break;
+                    default:
+                        element.setAttribute(attrName, val);
+                }
+            }
+            return val;
+        };
+
+        //获取属性
+        $vnode.prototype.getAttr = function(attrName) {
+            return (this.data.attrs || {})[attrName];
+        };
+
+        //移除属性
+        $vnode.prototype.removeAttr = function(attrName) {
+            var attrVal,
+                element = this.elm,
+                attrs = this.data.attrs;
+
+            if (attrName === 'class') {
+                this.removeClass();
+            }
+
+            if (!attrs) return;
+
+            attrVal = attrs[attrName];
+            delete attrs[attrName];
+
+            if (element) {
+                delete element[attrName];
+                attrVal = element.getAttribute(attrName);
+            }
+            element.removeAttribute(attrName);
+            return attrVal;
+        };
+
+        //设置样式
+        $vnode.prototype.css = function(name, val) {
+            var styleVal,
+                element = this.elm,
+                style = this.data.style = this.data.style || {};
+
+            if (name instanceof Object) {
+
+                Object.keys(name).forEach(function(key) {
+                    var styleName = key.replace(/\-([a-z])/, function(str, $1) {
+                        return $1.toUpperCase();
+                    })
+                    style[styleName] = name[key];
+                    if (element) {
+                        element.style[styleName] = name[key]
+                    }
+                })
+
+            } else if (val !== undefined) {
+                var styleName = name.replace(/\-([a-z])/, function(str, $1) {
+                    return $1.toUpperCase();
+                });
+                style[styleName] = val;
+                if (element) {
+                    element.style[styleName] = val
+                }
+            }
+        };
+
+        //添加class
+        $vnode.prototype.addClass = function() {
+            var element = this.elm,
+                classList = [],
+                allClas = this.data['class'] = this.data['class'] = {};
+
+            //遍历所有参数
+            [].slice.call(arguments).forEach(function(classVal) {
+                if (typeof classVal === 'string') {
+                    classList = classList.concat(classVal.split(" "));
+                } else {
+                    classList = classList.concat(classVal);
+                }
+            });
+
+            //存入class相关数据
+            classList.forEach(function(className) {
+                allClas[className] = true;
+            });
+
+            if (element) {
+                element.classList.add.apply(element.classList, classList);
+            }
+        };
+
+        //移除class
+        $vnode.prototype.removeClass = function() {
+            var element = this.elm,
+                classList = [],
+                allClas = this.data['class'] = this.data['class'] || {};
+
+            if (arguments.length === 0) {
+                Object.keys(allClas).forEach(function(key) {
+                    classList.push(key);
+                })
+                if (element) {
+                    element.removeAttribute('class');
+                }
+            } else {
+                //遍历所有参数
+                [].slice.call(arguments).forEach(function(classVal) {
+                    if (typeof classVal === 'string') {
+                        classList = classList.concat(classVal.split(" "));
+                    } else {
+                        classList = classList.concat(classVal);
+                    }
+                });
+            }
+
+            classList.forEach(function(key) {
+                delete allClas[key];
+                if (element) {
+                    element.classList.remove(key)
+                }
+            })
+
+        };
+
+        //切换class
+        $vnode.prototype.toggleClass = function(className) {
+            var element = this.elm,
+                classList = [],
+                allClas = this.data['class'] = this.data['class'] || {};
+
+            //遍历所有参数
+            [].slice.call(arguments).forEach(function(classVal) {
+                if (typeof classVal === 'string') {
+                    classList = classList.concat(classVal.split(" "));
+                } else {
+                    classList = classList.concat(classVal);
+                }
+            });
+
+            classList.forEach(function(key) {
+                if (allClas[key]) {
+                    delete allClas[key];
+                    if (element) {
+                        element.classList.remove(key);
+                    }
+                } else {
+                    allClas[key] = true;
+                    if (element) {
+                        element.classList.add(key);
+                    }
+                }
+            })
+
+            if (Object.keys(allClas).length === 0 && element) {
+                element.removeAttribute('class');
+            }
+        };
+
+        //展示
+        $vnode.prototype.show = function() {
+            if (!this.isShow) {
+                this.isShow = true;
+                this.parentVnode.updateChildrenShow()
+            }
+        };
+
+        //隐藏
+        $vnode.prototype.hide = function() {
+            if (this.isShow) {
+                this.isShow = false;
+                this.parentVnode.updateChildrenShow()
+            }
+        };
+
+        //展示/隐藏切换
+        $vnode.prototype.toggle = function(className) {
+            this.isShow ? this.hide() : this.show();
+        };
+
+        //更新子元素是否展示
+        $vnode.prototype.updateChildrenShow = function() {
+
+            var elm,
+                children,
+                isInner = this.elm instanceof Array && this.elm;
+
+            if (this.elm instanceof Array) {
+                elm = this.elm[0].parentNode;
+                children = this.innerVnode;
+            } else {
+                elm = this.elm;
+                children = this.children;
+            }
+            //遍历检查子元素显示状态
+            children.forEach(function(ch, index) {
+                //子元素占位
+                var location = children.indexOf(ch);
+                //是否展示
+                if (ch.isShow) {
+
+                    if (!elm.contains(ch.elm)) {
+                        isInner && isInner.splice(location, 0, ch)
+                        htmlDomApi.insertBefore(elm, ch.elm, children[index + 1] ? children[index + 1].elm : null)
+                    }
+                } else {
+
+                    //移除子元素 elm 元素集合
+                    isInner && isInner.splice(location, [].concat(ch.elm).length)
+
+                    if (ch.elm instanceof Array) {
+                        ch.elm.forEach(function(celm) {
+                            if (elm.contains(celm)) {
+                                htmlDomApi.removeChild(elm, celm);
+                            }
+                        })
+
+                    } else {
+                        if (elm.contains(ch.elm)) {
+                            htmlDomApi.removeChild(elm, ch.elm);
+                        }
+                    }
+                }
+            })
+
         }
 
         //将观察的数据转换成作用域
@@ -4575,6 +4964,7 @@
                 middleScope: [],
                 rootScope: {},
                 children: children,
+                parentVnode: null,
                 text: text,
                 elm: elm,
                 isShow: true,
@@ -4746,6 +5136,9 @@
                 } else {
                     innerFilter = extraParameters.filter;
                 }
+
+                //传递父节点
+                if (parentNode) vnode.parentVnode = parentNode;
 
                 //检查并传递作用域
                 if (parentNode) {
@@ -5395,11 +5788,13 @@
                                 nowParentNode;
                             //创建新节点
                             createElm(Vnode, insertedVnodeQueue, function(ch, isRearrange) {
+
                                 if (isRearrange) {
                                     rearrangePatch(ch, oldVnode, oldVnode.elm.parentNode);
                                 } else {
                                     //新增节点到父元素容器中
                                     var location = containerVnode.indexOf(ch);
+
                                     if (tmpNode) {
                                         if (tmpNode instanceof Array) {
                                             tmpParent = tmpNode[0].parentNode;
@@ -5409,7 +5804,8 @@
                                     } else {
                                         tmpParent = parent;
                                     }
-                                    api.insertBefore(nowParentNode = tmpParent, ch.elm, containerVnode[location + 1] ? containerVnode[location + 1].elm : null);
+
+                                    api.insertBefore(nowParentNode = tmpParent || parent, ch.elm, containerVnode[location + 1] ? containerVnode[location + 1].elm : null);
                                 }
                                 oldVnode = ch.clone();
                                 tmpNode = ch.elm;
@@ -5729,55 +6125,29 @@
         function eventListenersModule() {
 
             function updateEventListeners(oldVnode, vnode) {
-                var oldOn = oldVnode.data.on,
-                    newListener = {},
-                    oldListener = oldVnode.listener,
+                var elm = (vnode && vnode.elm),
                     oldElm = oldVnode.elm,
                     on = vnode && vnode.data.on,
-                    elm = (vnode && vnode.elm),
-                    name;
-
-                if (vnode && oldVnode.listener === vnode.listener && oldOn === on && !on === !oldVnode.listener) {
-                    return;
-                }
+                    oldOn = oldVnode.data.on;
 
                 if (on === oldOn) return;
 
-                oldListener = oldListener || {};
-
                 if (!oldOn) {
                     //遍历所有事件类型
-                    Object.keys(on).forEach(function(eventName) {
-                        (newListener[eventName] = [].concat(on[eventName])).forEach(function(fn) {
+                    Object.keys(on || {}).forEach(function(eventName) {
+                        [].concat(on[eventName]).forEach(function(fn) {
                             elm.addEventListener(eventName, fn, false);
-                        })
+                        });
                     });
                 } else {
-                    Object.keys(on).forEach(function(eventName) {
-                        if (!oldListener[eventName]) {
-                            (newListener[eventName] = [].concat(on[eventName])).forEach(function(fn) {
-                                elm.addEventListener(eventName, fn, false);
-                            })
-                        } else {
-                            var oldOnEvents = [].concat(oldListener[eventName]);
-                            (newListener[eventName] = [].concat(on[eventName])).forEach(function(fn) {
-                                var location = oldOnEvents.indexOf(fn)
-                                if (location === -1) {
-                                    elm.addEventListener(eventName, fn, false);
-                                } else {
-                                    //移除已存在的
-                                    oldOnEvents.splice(location, 1);
-                                }
-                            })
-                            oldOnEvents.forEach(function(fn) {
-                                oldElm.removeEventListener(eventName, fn, false);
-                            })
-                        }
-
-                    });
+                    on = on || {};
+                    Object.keys(oldOn).forEach(function(eventName) {
+                        var onEvents = on[eventName] ? [].concat(on[eventName]) : [];
+                        [].concat(oldOn[eventName]).forEach(function(fn) {
+                            if (onEvents.indexOf(fn) === -1) oldElm.removeEventListener(eventName, fn, false);
+                        });
+                    })
                 }
-
-                vnode.newListener = newListener;
             }
 
             return {
@@ -6702,6 +7072,18 @@
             fileLength: 0
         };
 
+        // model view presenter记录 (以便页面切换销毁)
+        var mvpRecord = {
+            p: null,
+            v: null,
+            lp: [], //layout 内部的presenter
+            m: [], //由presenter获取的数据模型
+            lm: [] //由layout 内部的presenter获取的数据模型
+        }
+
+        //调度器存储器
+        var presenterSource = {};
+
         //框架内部配置
         var insideConf = {
             routeList: []
@@ -6793,7 +7175,9 @@
             stateData: stateData,
             insideConf: insideConf,
             innerConf: innerConf,
+            mvpRecord: mvpRecord,
             customConf: customConf,
+            presenterSource: presenterSource,
             customUseConf: customUseConf
         }
     }, {}],
@@ -9377,7 +9761,7 @@
             }
 
             //数据对比
-            listenStruct.prototype.diff = function(parentData) {
+            listenStruct.prototype.diff = function(parentData, isForce) {
                 var oldData = this.targetData,
                     oldParentData = this.parentData,
                     newData = parentData && typeof parentData === 'object' ? parentData[this.nowKey] : undefined,
@@ -9400,11 +9784,11 @@
                 }
 
                 //检查是否变化
-                if (!isEqual) {
+                if (!isEqual || isForce) {
 
                     //触发上一个级监听数据
                     if (this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set')) {
-                        this.berforDefineProperty.set(newData, this);
+                        this.berforDefineProperty.set(newData, this, isForce);
                     }
 
                     //标识有数据
@@ -9472,10 +9856,10 @@
                     Object.defineProperty(this.parentData, this.nowKey, this.nowDefineProperty = {
                         enumerable: true,
                         configurable: true,
-                        set: function(newData, transfer) {
+                        set: function(newData, transfer, isForce) {
                             var tmp = {};
                             tmp[This.nowKey] = newData;
-                            This.diff(tmp);
+                            This.diff(tmp, isForce);
                             //数据监听转移
                             transfer && (This.topListen = transfer);
                         },
@@ -9487,6 +9871,9 @@
                                     transfer.count = This.count + 1;
                                     break;
                                 case transfer === 'this':
+                                    return This;
+                                case transfer === 'update':
+                                    This.diff(This.parentData, true);
                                     return This;
                                 default:
                             }

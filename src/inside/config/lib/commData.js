@@ -10,6 +10,18 @@ var stateData={
     fileLength:0
 };
 
+// model view presenter记录 (以便页面切换销毁)
+var mvpRecord={
+    p:null,
+    v:null,
+    lp:[],  //layout 内部的presenter
+    m:[],   //由presenter获取的数据模型
+    lm:[]   //由layout 内部的presenter获取的数据模型
+}
+
+//调度器存储器
+var presenterSource={};
+
 //框架内部配置
 var insideConf={
     routeList:[]
@@ -101,6 +113,8 @@ module.exports={
     stateData:stateData,
     insideConf:insideConf,
     innerConf:innerConf,
+    mvpRecord:mvpRecord,
     customConf:customConf,
+    presenterSource:presenterSource,
     customUseConf:customUseConf
 }

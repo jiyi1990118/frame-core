@@ -23,47 +23,15 @@ model('gridConf',['$:custom/gridConf:gridStruct'],function (gridStruct) {
                     }
                 },
                 listConfig: function (data, rowData, index, gridListData) {
-                    var developScope = this.developScope,
-                        dataLen = gridListData.length,
-                        isSelf = false,
-                        scope = {
-                            developScope: developScope,
-                            onChange: function () {
-                                isSelf = true;
 
-                                developScope.allCheckedCount = this.checked ? developScope.allCheckedCount + 1 : developScope.allCheckedCount - 1;
-
-                                if (dataLen === developScope.allCheckedCount) {
-                                    developScope.allChecked = true;
-                                } else {
-                                    developScope.allChecked = false;
-                                }
-                            },
-                            onClick:function (e) {
-                                e.stopPropagation();
-                            }
-                        };
 
                     return {
-                        template: '<input v-on:change="onChange" v-on:click="onClick" $-model="$isChecked" type="checkbox" $-checked:false="developScope.isAllChecked|checkedHandle:[$,developScope.allCheckedTime]">',
-                        scope: scope,
+                        template: '<input $-model="$isChecked" type="checkbox" >',
+                        scope: {
+                            text:2
+                        },
                         filter: {
-                            checkedHandle: function (isAllChecked) {
 
-                                var isChecked = false;
-
-                                if (!isSelf || developScope.masterChange) {
-                                    isChecked = isAllChecked
-                                } else if (isSelf && isAllChecked) {
-                                    isChecked = true;
-                                }
-
-                                isSelf = false;
-                                developScope.masterChange = false;
-
-                                return isChecked;
-
-                            }
                         }
                     }
                 }
@@ -81,42 +49,12 @@ model('gridConf',['$:custom/gridConf:gridStruct'],function (gridStruct) {
                 name: '操作',
                 listConfig: function () {
 
+                    console.log(arguments)
                     return {
-                        template: '<span $-drop-menu="dropMenuConfig" v-on:click="onClick"  class="iconfont icon-fenlei"></span>',
+                        template: '<span  class="iconfont icon-fenlei"></span>',
                         scope: {
-                            dropMenuConfig: {
-                                config:{
-                                    position:'right'
-                                },
-                                list: [
-                                    {
-                                        content: '<span v-on:click="events.click">栏目一</span>',
-                                        scope:{
-                                            events:{
-                                                click:function () {
-                                                    // alert('ok')
-                                                }
-                                            }
-                                        },
-                                        filter:{
+                            menu:{
 
-                                        },
-                                        events:{
-                                            click:function () {
-                                                console.log('---------')
-                                            }
-                                        }
-                                    },
-                                    {
-                                        content: '栏目二'
-                                    },
-                                    {
-                                        content: '栏目三'
-                                    }
-                                ]
-                            },
-                            onClick:function (e) {
-                                e.stopPropagation();
                             }
                         },
                         events: {}

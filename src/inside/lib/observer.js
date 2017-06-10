@@ -212,7 +212,7 @@
     }
 
     //数据对比
-    listenStruct.prototype.diff = function (parentData) {
+    listenStruct.prototype.diff = function (parentData,isForce) {
         var oldData = this.targetData,
             oldParentData = this.parentData,
             newData = parentData && typeof parentData === 'object' ? parentData[this.nowKey] : undefined,
@@ -235,11 +235,11 @@
         }
 
         //检查是否变化
-        if (!isEqual) {
+        if (!isEqual || isForce) {
 
             //触发上一个级监听数据
             if(this.berforDefineProperty && this.berforDefineProperty.hasOwnProperty('set')){
-                this.berforDefineProperty.set(newData, this);
+                this.berforDefineProperty.set(newData, this,isForce);
             }
 
             //标识有数据
@@ -307,10 +307,10 @@
             Object.defineProperty(this.parentData, this.nowKey,this.nowDefineProperty= {
                 enumerable: true,
                 configurable: true,
-                set: function (newData, transfer) {
+                set: function (newData, transfer,isForce) {
                     var tmp = {};
                     tmp[This.nowKey] = newData;
-                    This.diff(tmp);
+                    This.diff(tmp,isForce);
                     //数据监听转移
                     transfer && (This.topListen = transfer);
                 },
@@ -322,6 +322,9 @@
                             transfer.count=This.count+1;
                             break;
                         case transfer === 'this':
+                            return This;
+                        case transfer === 'update':
+                            This.diff(This.parentData,true);
                             return This;
                         default:
                     }

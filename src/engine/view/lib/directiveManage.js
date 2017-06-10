@@ -61,7 +61,9 @@ function directiveClass(directiveConf, vnode, extraParameters, directiveName,vdo
 
         },
         rootScope: vnode.rootScope,
-        stroage: {},
+        stroage: {
+
+        },
         //模板节点
         templateVnode: vnode.clone()
 
@@ -232,10 +234,10 @@ directiveClass.prototype.render = function () {
             case renderVnode === vnode:
             case renderVnode.elm && renderVnode.elm === vnode.elm:
                 //检查是否渲染，并检查更新元素
-                vnode.elm && this.vdomApi.cbs.update.forEach(function (updateHandle) {
+                /*vnode.elm && this.vdomApi.cbs.update.forEach(function (updateHandle) {
                     updateHandle(vnode,renderVnode);
                 })
-                return;
+                return;*/
         }
 
         vnode.innerVnode=renderVnode;

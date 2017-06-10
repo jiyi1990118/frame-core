@@ -24,6 +24,7 @@ function extendExample(pathInfo,callbcak) {
         extendObj=extendStroage[url],
         state=extendLoadState[url];
 
+    //检查当前的扩展是否存在
     if(extendObj || state){
         if(extendObj){
             callbcak(extendObj);
@@ -35,6 +36,9 @@ function extendExample(pathInfo,callbcak) {
 
     extendLoadState[url]=1;
     extendWatch[url]=[];
+
+    //标识当前来源类型
+    pathInfo.originType='extend'
 
     //资源获取
     getSource(pathInfo, {

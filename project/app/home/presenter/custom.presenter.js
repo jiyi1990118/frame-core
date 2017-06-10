@@ -16,6 +16,7 @@ presenter('list',function () {
     gridConf.trigger('request',viewId);
 
     this.assign('gridConf',gridConf);
+    this.assign('test',{y:{c:'ffff'}});
 
     this.layout('@layout:default').display();
 

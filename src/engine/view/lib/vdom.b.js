@@ -238,6 +238,7 @@ $vnode.prototype.addEventListener=function (type,eventFn) {
     }
     //事件集合
     var events=this.data.on=this.data.on||{};
+window.e=this;
     //添加事件
     (events[type]=events[type]||[]).push(eventFn);
 
@@ -283,7 +284,6 @@ $vnode.prototype.removeListener=function (type,eventFn) {
 $vnode.prototype.setAttr=function (attrName,val) {
     var element=this.elm,
         attrs=this.data.attrs=this.data.attrs||{};
-
     attrs[attrName]=val;
     if(element){
         switch (attrName){
@@ -457,7 +457,7 @@ $vnode.prototype.toggleClass=function (className) {
 $vnode.prototype.show=function () {
     if(!this.isShow){
         this.isShow=true;
-        this.parentVnode.updateChildrenShow()
+        this.parentVnode.updateChildren()
     }
 };
 
@@ -465,7 +465,7 @@ $vnode.prototype.show=function () {
 $vnode.prototype.hide=function () {
     if(this.isShow){
         this.isShow=false;
-        this.parentVnode.updateChildrenShow()
+        this.parentVnode.updateChildren()
     }
 };
 
@@ -473,53 +473,6 @@ $vnode.prototype.hide=function () {
 $vnode.prototype.toggle=function (className) {
     this.isShow?this.hide():this.show();
 };
-
-//更新子元素是否展示
-$vnode.prototype.updateChildrenShow=function () {
-
-    var elm,
-        children,
-        isInner=this.elm instanceof Array && this.elm;
-
-    if(this.elm instanceof Array){
-        elm=this.elm[0].parentNode;
-        children=this.innerVnode;
-    }else{
-        elm=this.elm;
-        children=this.children;
-    }
-    //遍历检查子元素显示状态
-    children.forEach(function (ch,index) {
-        //子元素占位
-        var location=children.indexOf(ch);
-        //是否展示
-        if(ch.isShow ){
-
-            if( !elm.contains(ch.elm)){
-                isInner && isInner.splice(location,0,ch)
-                htmlDomApi.insertBefore(elm,ch.elm,children[index+1] ? children[index+1].elm:null)
-            }
-        }else{
-
-            //移除子元素 elm 元素集合
-            isInner && isInner.splice(location,[].concat(ch.elm).length)
-
-            if(ch.elm instanceof Array){
-                ch.elm.forEach(function (celm) {
-                    if(elm.contains(celm)){
-                        htmlDomApi.removeChild(elm,celm);
-                    }
-                })
-                
-            }else{
-                if(elm.contains(ch.elm)){
-                    htmlDomApi.removeChild(elm,ch.elm);
-                }
-            }
-        }
-    })
-
-}
 
 //将观察的数据转换成作用域
 $vnode.prototype.observerToScope = function (watchData, watchKey, scopeKey) {
@@ -621,7 +574,6 @@ function vnode(sel, data, children, text, elm) {
         middleScope: [],
         rootScope: {},
         children: children,
-        parentVnode:null,
         text: text,
         elm: elm,
         isShow: true,
@@ -791,9 +743,6 @@ function init(modules) {
         } else {
             innerFilter = extraParameters.filter;
         }
-
-        //传递父节点
-        if(parentNode)vnode.parentVnode=parentNode;
 
         //检查并传递作用域
         if (parentNode) {

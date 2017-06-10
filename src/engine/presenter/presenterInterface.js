@@ -9,7 +9,7 @@ var uid=require('../../inside/lib/encrypt/uid');
 
 var viewEngine=require('../view/exports');
 
-var appConf=require('../../inside/config/lib/commData').appConf;
+var commData=require('../../inside/config/lib/commData');
 
 var layoutEngine=require('../layout/index');
 
@@ -17,8 +17,12 @@ var modelEngine=require('../model/index');
 
 var sourcePathNormal=require('../../inside/source/sourcePathNormal');
 
+var appConf=commData.appConf;
+
+var mvpRecord=commData.mvpRecord;
+
 //调度器存储器
-var presenterSource={};
+var presenterSource=commData.presenterSource;
 
 /**
  * 数据属性设置
@@ -37,8 +41,8 @@ function def(obj, key, val, enumerable) {
 
 /**
  * 调度器接口(调度器的实现)
- * @param parameter
  * @param info
+ * @param view
  */
 function presenterInterface(info,view) {
     //调度器数据存储
@@ -52,6 +56,30 @@ function presenterInterface(info,view) {
         display: false,
         info: info
     };
+
+    //检查当前的presenter类型 并记录
+    if(info.isLayout){
+        info.originType='layout';
+        mvpRecord.lp.push(this);
+    }else{
+        //当前是主presenter （此处需销毁之前的相关数据）
+        if(mvpRecord.p){
+
+            //销毁之前页面的presenter
+            destroyPresenter(mvpRecord.p);
+
+            //销毁model
+
+        }
+
+        console.log(info,'>>>>>>>...',mvpRecord)
+
+
+
+        //标识当前资源类型
+        mvpRecord.p=this;
+        info.originType='presenter';
+    }
 
     //设置资源id不可写
     def(this, '__sourceId__');
@@ -261,8 +289,17 @@ function presenterExec(source,sourceInfo,pathInfo,view) {
         //当前资源路径(不包含文件 module路径、mode类型目录、文件module后缀、文件后缀)
         pathName:sourceInfo.pathName,
         //资源来源地址
-        origin:sourceInfo.origin
+        origin:sourceInfo.origin,
+        mode:'presenter'
     },view));
+}
+
+/**
+ * presenter销毁
+ * @param presenter
+ */
+function destroyPresenter(presenter) {
+    window.i=presenterSource[presenter.__sourceId__]
 }
 
 module.exports={

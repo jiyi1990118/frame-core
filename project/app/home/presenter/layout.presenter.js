@@ -3,9 +3,8 @@
  */
 
 presenter('default',function () {
-    var title='这是layout!'
 
-    this.assign('title',title);
+    this.assign('navStruct',this.model('@layout/default:navStruct'));
 
     this.display();
 

@@ -8,6 +8,9 @@ var getSource=require('../../../inside/source/getSource');
 var modelInterface=require('../modelInterface');
 var extendEngine=require('../../extend/index');
 var sourcePathNormal=require('../../../inside/source/sourcePathNormal');
+var commData=require('../../../inside/config/lib/commData');
+
+var mvpRecord=commData.mvpRecord;
 
 extendEngine.setModelExample(modelExample);
 
@@ -18,6 +21,20 @@ function modelExample(pathInfo) {
     this.useTrigger=[];
 
     var source=this.interface.__source__;
+
+    //请求来源
+    var origin=pathInfo.origin;
+    pathInfo.originType=origin.originType
+
+    //收集相关资源 提供后续资源销毁
+    switch(origin.originType){
+        case 'layout':
+            mvpRecord.lm.push(this)
+            break;
+        case 'presenter':
+            mvpRecord.m.push(this);
+            break;
+    }
 
     getSource(pathInfo, {
         mode:pathInfo.mode,

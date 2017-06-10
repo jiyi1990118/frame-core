@@ -1,0 +1,52 @@
+.page-layout{
+  height:100%;
+  //padding-top: 85px;
+  padding-top: 50px;
+  position: relative;
+  background-color: #EDF0F5;
+  .page-head{
+    top:0;
+    width:100%;
+    height:75px;
+    z-index: 9;
+    position: absolute;
+  }
+  .page-main{
+    width:100%;
+    height:100%;
+    overflow-y: scroll;
+    &::-webkit-scrollbar{
+      height:10px;
+      width:10px;
+    }
+
+    //表格右侧内容X轴滚动条默认底色颜色
+    &::-webkit-scrollbar-track{
+      background-color: #e4e8ea;
+      border-radius: 10px;
+    }
+    //表格右侧内容X轴滚动条鼠标初始化颜色
+    &::-webkit-scrollbar-thumb{
+      background-color: #acc1c0;
+      border-radius: 10px;
+    }
+    //表格右侧内容X轴滚动条鼠标划过颜色
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: #00b5a5;
+      border-radius: 10px;
+    }
+    //表格右侧内容X轴滚动条鼠标点击颜色
+    &::-webkit-scrollbar-thumb:active {
+      background-color: #00AC9D;
+      border-radius: 10px;
+    }
+    //表格右侧内容X轴滚动条高度
+    &::-webkit-scrollbar{
+      height:10px;
+    }
+
+  }
+  .page-footer{
+
+  }
+}

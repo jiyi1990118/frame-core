@@ -145,6 +145,7 @@ function operation(symbol, val1, val2, val3) {
  * @param struct
  * @param scope
  * @param filter
+ * @param multiple
  */
 function analysis(struct, scope, filter,multiple) {
     var $this = this;
@@ -158,7 +159,6 @@ function analysis(struct, scope, filter,multiple) {
 
     this.lex(struct, function (resData) {
         $this.resData = resData.value;
-
         //获取监听key
         delete $this.watchInfo;
         if(resData.keys instanceof Array){
@@ -262,8 +262,8 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
             break;
         //成员表达式
         case 'MemberExpression':
-            this.lex(nowStruct.object, ob.watch('object'), isFilter)
-            this.lex(nowStruct.property, ob.watch('property'), nowStruct.computed || 'noComputed');
+            this.lex(nowStruct.object, ob.watch('object'), isFilter,nowStruct)
+            this.lex(nowStruct.property, ob.watch('property'), nowStruct.computed ? false : 'noComputed');
 
             ob.receive(function (data) {
 
@@ -316,11 +316,9 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
                         }
 
                     }else{
-
                         callback({
                             value: data.object.value[data.property.value]
                         });
-
                         console.warn('语法对象错误!')
                     }
                 }
@@ -382,7 +380,7 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
             break;
         //过滤器表达式
         case 'FilterExpression':
-            this.lex(nowStruct.callee, ob.watch('callee'), true);
+            this.lex(nowStruct.callee, ob.watch('callee'), true,nowStruct);
 
             if (nowStruct.arguments.length) {
                 //遍历过滤器参数
@@ -461,6 +459,7 @@ analysis.prototype.lex = function (nowStruct, callback, isFilter) {
                             callback({
                                 value: nowStruct.value
                             });
+
                             break;
                         default:
                             obData = observer(this.scope,this.multiple);

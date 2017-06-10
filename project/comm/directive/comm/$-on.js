@@ -6,25 +6,19 @@ $on(function ($app) {
     $app.directive('$-on', {
         priority:100,
         //属性作用域
-        props: function (expStr) {
+        props: function (expStr,expInfo) {
+            var vnode=this.vnode,
+                oldEventFn;
 
-            // console.log(arguments,this)
             return [
                 {
-                    key:'on',
                     exp:expStr,
-                    type:[Array,Object],
-                    // autoRender:true
+                    watch:function (newEventFn) {
+                        vnode.removeListener(expInfo.type||'click',oldEventFn,false);
+                        vnode.addEventListener(expInfo.type||'click',oldEventFn=newEventFn,false);
+                    }
                 }
             ]
-        },
-        render: function (vnode, scope) {
-
-            vnode.data.on=vnode.data.on||{};
-
-            vnode.data.on[this.expInfo.type]=scope.on;
-
-            return vnode;
         }
     });
 

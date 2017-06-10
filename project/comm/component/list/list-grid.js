@@ -103,7 +103,7 @@ listGrid(function ($app) {
     //列表数据处理
     function dataListHandle(sendData,scope,resData,state) {
         var res,
-            $gridConf=scope.gridConf,
+            gridConf=scope.gridConf,
             //用于数据内部初始化处理
             dataInit=function (resData) {
                 //让出资源给标题先渲染
@@ -114,26 +114,27 @@ listGrid(function ($app) {
                         pageCount=Math.ceil(dataCount/sendData.pageSize);
 
                     //检查并执行数据初始化回调
-                    typeof $gridConf.dataInitConf === 'function' && $gridConf.dataInitConf(resData);
+                    typeof gridConf.dataInitConf === 'function' && gridConf.dataInitConf(resData);
 
                     //写入列表数据到作用域中
-                    // scope.gridListData=[];
                     scope.gridListData=resData.dataList;
 
-                    setTimeout(function () {
-                        scope.gridListData=[];
+                    console.log(resData,':::::',scope)
 
-                        setTimeout(function () {
-                            scope.gridListData=resData.dataList;
-                        },3000)
-                    },3000)
+                    /*setTimeout(function () {
+                        /!*var d=[].concat(resData.dataList);
+                        d.splice(1,1);
+                        scope.gridListData=d;
+                        console.log(scope.gridListData)*!/
+                        Object.getOwnPropertyDescriptor(gridList,'gridListData').get('update')
+                    },3000)*/
 
-                    console.log(scope,resData.dataList)
-
+                    window.gridList=scope;
                     //写入分页中
                     while (++index <= pageCount && index<= 5){
                         pagingListTag.push(index);
                     }
+
                     scope.pagingListTag=pagingListTag;
 
                     //写入列表的页数与条数
@@ -150,8 +151,8 @@ listGrid(function ($app) {
             };
 
         //检查是否有过滤函数
-        if(typeof $gridConf.filtration === 'function'){
-            if(res=$gridConf.filtration.call($gridConf,resData,callback))dataInit(res);
+        if(typeof gridConf.filtration === 'function'){
+            if(res=gridConf.filtration.call(gridConf,resData,callback))dataInit(res);
             res=null;
             //检查数据及状态
         }else if(state && ({}.toString.call(resData) === "[object Object]")){

@@ -12,6 +12,10 @@ apiMap(function ($app) {
             'gridData':'custom/C12002',
             //列表视图渲染
             'gridViewRender':'render/R01003',
+            //全部菜单数据
+            'menuList':'auth/A05007',
+            //快捷菜单
+            'shortcutMenuList':'auth/A05009',
         }
     });
 
