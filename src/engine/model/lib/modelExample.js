@@ -68,6 +68,7 @@ function modelExample(pathInfo) {
                             info.callback(source.trigger[info.name].apply(This,info.args));
                         }
                     });
+                    delete This.useTrigger;
                 }else if(calle instanceof Object){
                     console.log('暂不支持model 数据对象')
                 }

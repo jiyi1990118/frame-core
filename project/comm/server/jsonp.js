@@ -4,7 +4,8 @@
 
 jsonpServer(function ($app) {
 
-    var JSONP=vf.lib.net.jsonp;
+    var vf=this,
+        JSONP=vf.lib.net.jsonp;
 
     $app.server('jsonp',{
         request:function (option,sendData) {

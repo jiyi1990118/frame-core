@@ -12,6 +12,8 @@ var log = require('../../inside/log/log');
 
 var domApi = viewEngine.vdom.domApi;
 
+var destroyMP=require('../../inside/source/destroyMP');
+
 //布局存储器
 var layoutStroage = {
     //当前layout路径
@@ -171,8 +173,20 @@ function layout(layoutPath, originInfo, presenterExec) {
         if (layoutPathInfo.url === layoutStroage.url) {
             layoutStroage.isRepeat = true;
             return;
-        }
-        ;
+        };
+
+        //此处销毁上一个layout presenter资源
+        mvpRecord.lp.forEach(function (presenter) {
+            destroyMP.destroyPresenter(presenter);
+        });
+
+        //此处销毁上一个layout model
+        mvpRecord.lm.forEach(function (model) {
+            destroyMP.destroyModel(model);
+        });
+
+        mvpRecord.lp=[];
+        mvpRecord.lm=[];
 
         //销毁旧布局的布局块级节点
         Object.keys(layoutStroage.blockMap).forEach(function (blockInfo) {

@@ -77,6 +77,31 @@ server.prototype.send=function (data) {
     var innerConf=this.__innerConf__;
     //开始请求数据
     innerConf.serverConf.request.call(innerConf.example,innerConf.option,data);
+};
+
+//服务销毁
+server.prototype.destroy=function () {
+    var innerConf=this.__innerConf__;
+    delete this.__innerConf__;
+
+    //停止服务
+    if(innerConf.serverConf.stop instanceof Function)innerConf.serverConf.stop.call(innerConf.example,innerConf.option);
+
+    ['error','success','receive'].forEach(function (key) {
+        while (innerConf[key].length){
+            innerConf[key].pop();
+        }
+    });
+
+    ['option','example'].forEach(function (key) {
+        Object.keys(innerConf[key]).forEach(function (name) {
+            delete innerConf[key][name];
+        });
+    });
+
+    Object.keys(innerConf).forEach(function (key) {
+        delete innerConf[key];
+    });
 }
 
 module.exports=serverExec;

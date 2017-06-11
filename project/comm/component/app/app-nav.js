@@ -21,8 +21,6 @@ appNav(function ($app) {
         filter: {},
         render: function (vnode, scope) {
 
-            console.log(scope)
-
             return '<div class="app-nav">' +
                 '<div class="nav-befor">' +
                     '<ul>' +

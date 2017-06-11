@@ -16,10 +16,6 @@
     //初始化
     require('./init/index').exec();
 
-
-    return {
-        lib:require('./inside/lib/exports'),
-        engin:require('./engine/index'),
-        getConf:require('./inside/config/index').getCoustomConf
-    }
+    //对外接口
+    return require('./interface/index')
 },window)

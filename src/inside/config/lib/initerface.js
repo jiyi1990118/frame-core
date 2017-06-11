@@ -7,6 +7,7 @@ var path = require('../../lib/path');
 var jsonp = require('../../lib/net/jsonp');
 var commData = require('./commData');
 var routeConf = require('./routeConf');
+var vfInterace=require('../../../interface/index');
 var componentMange=require('./../../../engine/view/lib/componentManage');
 var directiveManage=require('./../../../engine/view/lib/directiveManage');
 var serverEngine=require('./../../../engine/server/index');
@@ -151,7 +152,17 @@ configIniterface.prototype.path = function (config) {
 };
 
 //组件注册
-configIniterface.prototype.component=componentMange.register;
+configIniterface.prototype.component=function (compName,compConf) {
+
+    switch (arguments.length){
+        case 2:
+            componentMange.register(compName,compConf)
+            break;
+        case 3:
+            console.log(arguments,stateData.nowUrl,'????')
+
+    }
+};
 
 //指令注册
 configIniterface.prototype.directive=directiveManage.register;
@@ -222,7 +233,7 @@ function configRead(confArgs, callback, url, parentInterface) {
     //避免配置错误导致无限循环
     try {
         //配置回调执行
-        confFn(parentInterface, commData.innerConf);
+        confFn.call(vfInterace,parentInterface, commData.innerConf);
     }
     catch (e) {
         callback();

@@ -12,18 +12,10 @@ function modelInterface() {
     this.__source__={
         trigger:{},
         isExec:false,
+        server:[],
         observer:observer(this)
     };
 }
-
-/**
- * 调用另一个model
- * @param modelPath
- */
-modelInterface.prototype.model=function (modelPath) {
-    
-}
-
 
 /**
  * 数据监控
@@ -135,7 +127,9 @@ modelInterface.prototype.trigger = function (name, fn) {
  * @param option
  */
 modelInterface.prototype.server = function (option) {
-    return serverEngine.serverExec(option)
+    var server=serverEngine.serverExec(option);
+    this.__source__.server.push(server)
+    return server;
 }
 
 module.exports=modelInterface;

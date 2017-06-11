@@ -4,7 +4,8 @@
 
 apiServer(function ($app) {
 
-    var URL=vf.lib.url,
+    var vf=this,
+        URL=vf.lib.url,
         PATH=vf.lib.path,
         API_URL_MAP=null;
 
@@ -28,7 +29,7 @@ apiServer(function ($app) {
             //请求类型
             option.type = (new RegExp(option.type,'ig').exec('GET,DELETE,POST,PUT,HEAD,FORM').toString() || 'GET');
 
-            var xhr=api.xhr=new XMLHttpRequest();
+            var xhr=api.xhr=option.xhr=new XMLHttpRequest();
 
             xhr.onreadystatechange =function(){
 
@@ -190,6 +191,10 @@ apiServer(function ($app) {
             timeout:600,
             method:'post',
             dataType: 'json'
+        },
+        stop:function (option) {
+            //停止当前请求
+            option.xhr.abort()
         }
 
     })

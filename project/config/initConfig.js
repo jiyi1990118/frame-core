@@ -33,7 +33,7 @@ config(function($app,$innerConfig){
 });
 
 
-config('sys',function($app,$innerConfig){
+config(function($app,$innerConfig){
 
     /*路由模式 【  hash 与  html5 】默认hash */
     $app.routeMode('hash');

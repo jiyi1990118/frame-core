@@ -135,8 +135,8 @@
         }
     }, {
         "../../inside/lib/path": 56,
-        "../../inside/source/getSource": 62,
-        "../../inside/source/sourcePathNormal": 63,
+        "../../inside/source/getSource": 63,
+        "../../inside/source/sourcePathNormal": 64,
         "../model/index": 5,
         "./lib/extenInterface": 2
     }],
@@ -203,7 +203,7 @@
         }
 
     }, {
-        "../inside/source/getSource": 62,
+        "../inside/source/getSource": 63,
         "./presenter/index": 8,
         "./view/exports": 15
     }],
@@ -221,6 +221,8 @@
         var log = require('../../inside/log/log');
 
         var domApi = viewEngine.vdom.domApi;
+
+        var destroyMP = require('../../inside/source/destroyMP');
 
         //布局存储器
         var layoutStroage = {
@@ -384,6 +386,19 @@
                     return;
                 };
 
+                //此处销毁上一个layout presenter资源
+                mvpRecord.lp.forEach(function(presenter) {
+                    destroyMP.destroyPresenter(presenter);
+                });
+
+                //此处销毁上一个layout model
+                mvpRecord.lm.forEach(function(model) {
+                    destroyMP.destroyModel(model);
+                });
+
+                mvpRecord.lp = [];
+                mvpRecord.lm = [];
+
                 //销毁旧布局的布局块级节点
                 Object.keys(layoutStroage.blockMap).forEach(function(blockInfo) {
                     blockInfo.vnode.destroy();
@@ -485,8 +500,9 @@
     }, {
         "../../engine/view/exports": 15,
         "../../inside/log/log": 61,
-        "../../inside/source/getSource": 62,
-        "../../inside/source/sourcePathNormal": 63
+        "../../inside/source/destroyMP": 62,
+        "../../inside/source/getSource": 63,
+        "../../inside/source/sourcePathNormal": 64
     }],
     5: [function(require, module, exports) {
         /**
@@ -578,6 +594,7 @@
                                     info.callback(source.trigger[info.name].apply(This, info.args));
                                 }
                             });
+                            delete This.useTrigger;
                         } else if (calle instanceof Object) {
                             console.log('暂不支持model 数据对象')
                         }
@@ -661,8 +678,8 @@
         module.exports = modelExample;
     }, {
         "../../../inside/config/lib/commData": 33,
-        "../../../inside/source/getSource": 62,
-        "../../../inside/source/sourcePathNormal": 63,
+        "../../../inside/source/getSource": 63,
+        "../../../inside/source/sourcePathNormal": 64,
         "../../extend/index": 1,
         "../modelInterface": 7
     }],
@@ -681,18 +698,10 @@
             this.__source__ = {
                 trigger: {},
                 isExec: false,
+                server: [],
                 observer: observer(this)
             };
         }
-
-        /**
-         * 调用另一个model
-         * @param modelPath
-         */
-        modelInterface.prototype.model = function(modelPath) {
-
-        }
-
 
         /**
          * 数据监控
@@ -804,7 +813,9 @@
          * @param option
          */
         modelInterface.prototype.server = function(option) {
-            return serverEngine.serverExec(option)
+            var server = serverEngine.serverExec(option);
+            this.__source__.server.push(server)
+            return server;
         }
 
         module.exports = modelInterface;
@@ -842,6 +853,8 @@
         var viewEngine = require('../view/exports');
 
         var commData = require('../../inside/config/lib/commData');
+
+        var destroyMP = require('../../inside/source/destroyMP');
 
         var layoutEngine = require('../layout/index');
 
@@ -894,17 +907,19 @@
                 info.originType = 'layout';
                 mvpRecord.lp.push(this);
             } else {
+
                 //当前是主presenter （此处需销毁之前的相关数据）
                 if (mvpRecord.p) {
-
                     //销毁之前页面的presenter
-                    window.i = presenterSource[mvpRecord.p.__sourceId__]
+                    destroyMP.destroyPresenter(mvpRecord.p);
 
+                    //销毁model
+                    mvpRecord.m.forEach(function(model) {
+                        destroyMP.destroyModel(model);
+                    });
+
+                    mvpRecord.m = [];
                 }
-
-                console.log(info, '>>>>>>>...', mvpRecord)
-
-
 
                 //标识当前资源类型
                 mvpRecord.p = this;
@@ -936,6 +951,9 @@
          */
         presenterInterface.prototype.assign = function(key, val) {
             var source = presenterSource[this.__sourceId__];
+
+            //检查资源是否存在/销毁
+            if (!source) return;
 
             //检查此key之前是否存在model数据类型中
             if (source.assignReal[key]) {
@@ -1139,7 +1157,8 @@
     }, {
         "../../inside/config/lib/commData": 33,
         "../../inside/lib/encrypt/uid": 47,
-        "../../inside/source/sourcePathNormal": 63,
+        "../../inside/source/destroyMP": 62,
+        "../../inside/source/sourcePathNormal": 64,
         "../layout/index": 4,
         "../model/index": 5,
         "../view/exports": 15
@@ -1253,6 +1272,31 @@
             var innerConf = this.__innerConf__;
             //开始请求数据
             innerConf.serverConf.request.call(innerConf.example, innerConf.option, data);
+        };
+
+        //服务销毁
+        server.prototype.destroy = function() {
+            var innerConf = this.__innerConf__;
+            delete this.__innerConf__;
+
+            //停止服务
+            if (innerConf.serverConf.stop instanceof Function) innerConf.serverConf.stop.call(innerConf.example, innerConf.option);
+
+            ['error', 'success', 'receive'].forEach(function(key) {
+                while (innerConf[key].length) {
+                    innerConf[key].pop();
+                }
+            });
+
+            ['option', 'example'].forEach(function(key) {
+                Object.keys(innerConf[key]).forEach(function(name) {
+                    delete innerConf[key][name];
+                });
+            });
+
+            Object.keys(innerConf).forEach(function(key) {
+                delete innerConf[key];
+            });
         }
 
         module.exports = serverExec;
@@ -1317,6 +1361,9 @@
 
         //数据请求失败
         serverInterface.prototype.error = function() {
+            //检查当前是否销毁
+            if (!this.__innerConf__) return;
+
             var This = this,
                 resData,
                 agrs = [].slice.call(arguments),
@@ -6335,8 +6382,8 @@
 
         module.exports = viewSourc;
     }, {
-        "../../../inside/source/getSource": 62,
-        "../../../inside/source/sourcePathNormal": 63
+        "../../../inside/source/getSource": 63,
+        "../../../inside/source/sourcePathNormal": 64
     }],
     23: [function(require, module, exports) {
         /**
@@ -7372,6 +7419,7 @@
         var jsonp = require('../../lib/net/jsonp');
         var commData = require('./commData');
         var routeConf = require('./routeConf');
+        var vfInterace = require('../../../interface/index');
         var componentMange = require('./../../../engine/view/lib/componentManage');
         var directiveManage = require('./../../../engine/view/lib/directiveManage');
         var serverEngine = require('./../../../engine/server/index');
@@ -7516,7 +7564,17 @@
         };
 
         //组件注册
-        configIniterface.prototype.component = componentMange.register;
+        configIniterface.prototype.component = function(compName, compConf) {
+
+            switch (arguments.length) {
+                case 2:
+                    componentMange.register(compName, compConf)
+                    break;
+                case 3:
+                    console.log(arguments, stateData.nowUrl, '????')
+
+            }
+        };
 
         //指令注册
         configIniterface.prototype.directive = directiveManage.register;
@@ -7587,7 +7645,7 @@
             //避免配置错误导致无限循环
             try {
                 //配置回调执行
-                confFn(parentInterface, commData.innerConf);
+                confFn.call(vfInterace, parentInterface, commData.innerConf);
             } catch (e) {
                 callback();
                 return log.warn(e)
@@ -7650,6 +7708,7 @@
             configIniterface: configIniterface
         };
     }, {
+        "../../../interface/index": 65,
         "../../lib/net/jsonp": 53,
         "../../lib/path": 56,
         "../../log/log": 61,
@@ -12312,6 +12371,84 @@
     }, {}],
     62: [function(require, module, exports) {
         /**
+         * Created by xiyuan on 17-6-11.
+         */
+
+        var commData = require('../../inside/config/lib/commData');
+
+        //调度器存储器
+        var presenterSource = commData.presenterSource;
+
+        /**
+         * presenter销毁
+         * @param presenter
+         */
+        function destroyPresenter(presenter) {
+            var source = presenterSource[presenter.__sourceId__];
+
+            //销毁presenter数据资源记录
+            delete presenterSource[presenter.__sourceId__];
+
+            ['assign', 'filter', 'assignReal', 'info'].forEach(function(type) {
+                //销毁数据
+                Object.keys(source[type]).forEach(function(key) {
+                    delete source[type][key];
+                });
+            });
+
+            //销毁当前presenter数据
+            Object.keys(source).forEach(function(key) {
+                delete source[key];
+            });
+        }
+
+        /**
+         * model销毁
+         * @param model
+         */
+        function destroyModel(model) {
+
+            var Interface = model.interface,
+                source = Interface.__source__;
+
+            delete Interface.exports;
+
+            //销毁触发器
+            Object.keys(source.trigger).forEach(function(key) {
+                delete source.trigger[key];
+            });
+
+            //销毁数据通道
+            source.observer.destroy();
+
+            //销毁内部server
+            source.server.forEach(function(server) {
+                server.destroy();
+            })
+
+            //销毁资源
+            Object.keys(source).forEach(function(key) {
+                delete source[key];
+            });
+
+            //销毁资源
+            Object.keys(Interface).forEach(function(key) {
+                delete Interface[key];
+            });
+
+
+
+        }
+
+        module.exports = {
+            destroyModel: destroyModel,
+            destroyPresenter: destroyPresenter
+        }
+    }, {
+        "../../inside/config/lib/commData": 33
+    }],
+    63: [function(require, module, exports) {
+        /**
          * 资源获取 （model view presenter ...）
          * Created by xiyuan on 17-6-1.
          */
@@ -12444,7 +12581,7 @@
         "../lib/path": 56,
         "../log/log": 61
     }],
-    63: [function(require, module, exports) {
+    64: [function(require, module, exports) {
         /**
          * 转换真实资源路径
          * Created by xiyuan on 17-6-1.
@@ -12540,7 +12677,32 @@
         "../lib/object": 54,
         "../lib/path": 56
     }],
-    64: [function(require, module, exports) {
+    65: [function(require, module, exports) {
+        /**
+         * Created by xiyuan on 17-6-11.
+         */
+
+        var object = require('../inside/lib/object');
+
+        var commData = require('../inside/config/lib/commData');
+
+        module.exports = {
+            //虚拟dom
+            vdom: require('../engine/view/lib/vdom'),
+            //内置方法库
+            lib: require('../inside/lib/exports'),
+            //获取自定义配置
+            getConf: function(key) {
+                return object.get(commData.customUseConf, key)
+            }
+        }
+    }, {
+        "../engine/view/lib/vdom": 21,
+        "../inside/config/lib/commData": 33,
+        "../inside/lib/exports": 49,
+        "../inside/lib/object": 54
+    }],
+    66: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-9.
          */
@@ -12560,17 +12722,11 @@
             //初始化
             require('./init/index').exec();
 
-
-            return {
-                lib: require('./inside/lib/exports'),
-                engin: require('./engine/index'),
-                getConf: require('./inside/config/index').getCoustomConf
-            }
+            //对外接口
+            return require('./interface/index')
         }, window)
     }, {
-        "./engine/index": 3,
         "./init/index": 31,
-        "./inside/config/index": 32,
-        "./inside/lib/exports": 49
+        "./interface/index": 65
     }]
-}, {}, [64]);
+}, {}, [66]);

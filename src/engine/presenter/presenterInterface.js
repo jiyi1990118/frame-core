@@ -11,6 +11,8 @@ var viewEngine=require('../view/exports');
 
 var commData=require('../../inside/config/lib/commData');
 
+var destroyMP=require('../../inside/source/destroyMP');
+
 var layoutEngine=require('../layout/index');
 
 var modelEngine=require('../model/index');
@@ -62,19 +64,19 @@ function presenterInterface(info,view) {
         info.originType='layout';
         mvpRecord.lp.push(this);
     }else{
+
         //当前是主presenter （此处需销毁之前的相关数据）
         if(mvpRecord.p){
-
             //销毁之前页面的presenter
-            destroyPresenter(mvpRecord.p);
+            destroyMP.destroyPresenter(mvpRecord.p);
 
             //销毁model
+            mvpRecord.m.forEach(function (model) {
+                destroyMP.destroyModel(model);
+            });
 
+            mvpRecord.m=[];
         }
-
-        console.log(info,'>>>>>>>...',mvpRecord)
-
-
 
         //标识当前资源类型
         mvpRecord.p=this;
@@ -106,6 +108,9 @@ presenterInterface.prototype.title = function (title) {
  */
 presenterInterface.prototype.assign = function (key, val) {
     var source=presenterSource[this.__sourceId__];
+
+    //检查资源是否存在/销毁
+    if(!source)return;
 
     //检查此key之前是否存在model数据类型中
     if(source.assignReal[key] ){
@@ -292,14 +297,6 @@ function presenterExec(source,sourceInfo,pathInfo,view) {
         origin:sourceInfo.origin,
         mode:'presenter'
     },view));
-}
-
-/**
- * presenter销毁
- * @param presenter
- */
-function destroyPresenter(presenter) {
-    window.i=presenterSource[presenter.__sourceId__]
 }
 
 module.exports={

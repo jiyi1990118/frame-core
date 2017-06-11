@@ -54,6 +54,9 @@ serverInterface.prototype.success=function () {
 
 //数据请求失败
 serverInterface.prototype.error=function () {
+    //检查当前是否销毁
+    if(!this.__innerConf__)return;
+
     var This=this,
         resData,
         agrs=[].slice.call(arguments),

@@ -7,7 +7,8 @@ components(function ($app) {
     $app.include({
         'listGrid':'./list/list-grid.js',
         'template':'./comm/template.js',
-        'appNav':'./app/app-nav.js'
+        'appNav':'./app/app-nav.js',
+        'test':'./app/test.js'
     });
 
 })
