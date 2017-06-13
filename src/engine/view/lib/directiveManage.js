@@ -152,6 +152,9 @@ directiveClass.prototype.init = function () {
 
                         syntaxExample = syntaxHandle(strcut, scopes, extraParameters.filter, true);
 
+                        //记录到虚拟节点上，以便后续销毁使用
+                        (vnode.data.syntaxExample=vnode.data.syntaxExample||[]).push(syntaxExample);
+
                         //读取表达式返回的值
                         if (!syntaxExample.read(function (newData) {
                                 $api.scope[propConf.key] = newData;

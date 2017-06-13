@@ -118,6 +118,7 @@
      * @returns {boolean}
      */
     function diff(newData, oldData) {
+        var isPass;
         if (getType(newData) !== getType(oldData)) {
             return false;
         }
@@ -126,7 +127,20 @@
                 //检查对象实例是否一致
                 if (!isInstance(newData, oldData))return false;
             case 'Array':
-                return Object.keys(newData).sort().toString() === Object.keys(oldData).sort().toString();
+                var key,
+                    keys=Object.keys(newData);
+                if(isPass=keys.sort().toString() === Object.keys(oldData).sort().toString()){
+                    var i=~0,
+                        len=keys.length;
+                    while (++i<len){
+                        key=keys[i];
+                        if(!diff(newData[key], oldData[key]))return false;
+                    };
+                    return true;
+                }else{
+                    return false;
+                }
+
                 break;
             case 'Date':
                 return String(newData) === String(oldData);

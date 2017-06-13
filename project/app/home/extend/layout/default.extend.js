@@ -58,7 +58,6 @@ extend('shortcutMenuList',['$::menuListConversion'],function (menuListConversion
         if(shortcutMenuData)return defaultModel.exports.shortcutMenuList=shortcutMenuData;
 
         getData(function (resData) {
-            console.log(resData,'???')
             defaultModel.exports.shortcutMenuList=resData;
         })
 

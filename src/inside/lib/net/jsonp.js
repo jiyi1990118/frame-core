@@ -69,6 +69,8 @@ function getJs(option) {
         }
     };
 
+    window[callback].amd=true;
+
     //初始化回调(用于包处理 define.amd 赋值)
     option.init.call(js, window[callback]);
 

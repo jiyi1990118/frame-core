@@ -10,8 +10,7 @@ appNav(function ($app) {
             conf: {
                 key: 'conf',
                 type: Object,
-                // default: {},
-                // autoRender: true
+                autoRender: true
             },
         },
         isReplace: true,
@@ -28,10 +27,10 @@ appNav(function ($app) {
                         '<li>' +
                             '<div class="app-menu" style="position: relative;">' +
                                 '<ul class="app-menu-content" style="column-count:4;-moz-column-count:4;-webkit-column-count:4;">' +
-                                    '<li  for="menuGroup in conf.menuList">' +
+                                    '<li v-for="menuGroup in conf.menuList">' +
                                         '<a><span>{{menuGroup.name}}</span></a>' +
                                         '<ul class="app-menu-group-content">' +
-                                            '<li for="menuData in menuGroup.list">' +
+                                            '<li v-for="menuData in menuGroup.list">' +
                                                 '<a href="">' +
                                                     '<i style="color:" class="iconfont icon-aIcon aIcon-sousuo"></i>' +
                                                     '<span>{{menuData.name}}</span>' +
@@ -44,11 +43,11 @@ appNav(function ($app) {
                             '</div>' +
                         '</li>' +
                         '<li><a href="home/index"><i class="iconfont icon-index-copy"></i></a></li>' +
-                        '<li for="menuGroup in conf.shortcutMenuList">' +
+                        '<li v-for="menuGroup in conf.shortcutMenuList">' +
                             '<a href="home/custom/list>{{menuGroup.name}}</a>' +
                             '<i class="iconfont icon-down"></i>' +
                             '<ul class="nav-menu">' +
-                                '<li for="menuData in menuGroup.list"><a>{{menuData.name}}</a></li>' +
+                                '<li v-for="menuData in menuGroup.list"><a>{{menuData.name}}</a></li>' +
                             '</ul>' +
                         '</li>' +
                     '</ul>' +

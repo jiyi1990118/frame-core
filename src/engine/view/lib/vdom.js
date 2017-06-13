@@ -488,6 +488,7 @@ $vnode.prototype.updateChildrenShow=function () {
         elm=this.elm;
         children=this.children;
     }
+
     //遍历检查子元素显示状态
     children.forEach(function (ch,index) {
         //子元素占位
@@ -495,10 +496,16 @@ $vnode.prototype.updateChildrenShow=function () {
         //是否展示
         if(ch.isShow ){
 
-            if( !elm.contains(ch.elm)){
-                isInner && isInner.splice(location,0,ch)
+            if(ch.elm instanceof Array){
+                ch.elm.forEach(function (_elm,_i) {
+                    isInner && isInner.splice(location+_i-1,0,_elm)
+                    htmlDomApi.insertBefore(elm,_elm,children[index+1] ? children[index+1].elm:null)
+                })
+            }else if(!elm.contains(ch.elm)){
+                isInner && isInner.splice(location,0,ch.elm)
                 htmlDomApi.insertBefore(elm,ch.elm,children[index+1] ? children[index+1].elm:null)
             }
+
         }else{
 
             //移除子元素 elm 元素集合
@@ -556,12 +563,12 @@ $vnode.prototype.destroy = function (type) {
                     }
                     delete $this.data.exps[index];
                 });
-        }
-        ;
+        };
 
     }
 
     if (this.elm) {
+
         if (this.elm instanceof Array) {
             switch (type) {
                 case false:
@@ -595,6 +602,25 @@ $vnode.prototype.destroy = function (type) {
             htmlDomApi.removeChild(this.elm.parentNode, this.elm);
         }
     }
+
+    //检查节点上的语法表达式
+    (this.data.syntaxExample||[]).forEach(function (syntaxExample) {
+        var structRes=syntaxExample.structRes;
+
+        //销毁语法上的监听
+        structRes.observers.forEach(function (obs) {
+            obs.destroy();
+        });
+
+        Object.keys(structRes).forEach(function (key) {
+            delete structRes[key];
+        });
+
+        Object.keys(syntaxExample).forEach(function (key) {
+            delete syntaxExample[key];
+        });
+
+    });
 
     Object.keys(this.$scope || {}).forEach(function (key) {
         delete $this.$scope[key];

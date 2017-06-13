@@ -43,7 +43,7 @@
         //扩展监听
         var extendWatch = {};
 
-        function extendExample(pathInfo, callbcak) {
+        function extendExample(pathInfo, callback) {
 
             var url = PATH.resolve(pathInfo.url + '/' + pathInfo.slice),
                 extendObj = extendStroage[url],
@@ -52,9 +52,9 @@
             //检查当前的扩展是否存在
             if (extendObj || state) {
                 if (extendObj) {
-                    callbcak(extendObj);
+                    callback(extendObj);
                 } else {
-                    extendWatch[url].push(callbcak);
+                    extendWatch[url].push(callback);
                 }
                 return;
             }
@@ -95,7 +95,7 @@
                         //资源状态
                         extendLoadState[url] = 2;
                         //返回数据
-                        callbcak(extendObj);
+                        callback(extendObj);
                         //执行监听
                         while (watchFn = extendWatch[url].pop()) {
                             watchFn(extendObj);
@@ -134,9 +134,9 @@
             }
         }
     }, {
-        "../../inside/lib/path": 56,
-        "../../inside/source/getSource": 63,
-        "../../inside/source/sourcePathNormal": 64,
+        "../../inside/lib/path": 57,
+        "../../inside/source/getSource": 64,
+        "../../inside/source/sourcePathNormal": 65,
         "../model/index": 5,
         "./lib/extenInterface": 2
     }],
@@ -162,7 +162,7 @@
 
         module.exports = extendInterface;
     }, {
-        "../../../inside/lib/exports": 49,
+        "../../../inside/lib/exports": 50,
         "../../server/index": 10
     }],
     3: [function(require, module, exports) {
@@ -203,7 +203,7 @@
         }
 
     }, {
-        "../inside/source/getSource": 63,
+        "../inside/source/getSource": 64,
         "./presenter/index": 8,
         "./view/exports": 15
     }],
@@ -235,7 +235,7 @@
             //是否重复布局
             isRepeat: null,
             //当前presenter
-            presenter: null,
+            presenter: {},
             //当前layout块级
             blockMap: {}
         }
@@ -244,6 +244,7 @@
         function render() {
 
             var pageContainer = document.body,
+                oldPresenter = layoutStroage.presenter.vnode,
                 emptyNode = viewEngine.vdom.node2vnode(pageContainer);
 
             //检查当前是否需要渲染布局
@@ -261,10 +262,9 @@
                     });
                 }
                 pageContainer = layoutStroage.main;
-            }
+            };
 
             //传递父节点信息给 presenter视图元素
-            ;
             [].concat(layoutStroage.presenter.vnode).forEach(function(childVnode) {
                 if (pageContainer.vnode) {
                     childVnode.parentVnode = pageContainer.vnode;
@@ -282,7 +282,6 @@
                     mainElm,
                     parentVnode = pageContainer.parentNode,
                     presenterBlockMap = layoutStroage.presenter.source.layoutInfo.blockMap;
-
 
                 //检查布局主体是否存在
                 if (layoutStroage.vnode && layoutStroage.main) {
@@ -334,14 +333,18 @@
                     if (parentVnode) {
                         //获取 layout-main 元素在父节点内部的位置
                         location = parentVnode.children.indexOf(pageContainer.vnode);
-
                         //更改layout-main元素的子元素
+                        ;
                         [].splice.apply(parentVnode.children, [location, 1].concat(layoutStroage.presenter.vnode));
                     }
 
                     // console.log(mainElm.parentNode, containerElm, mainElm,pageContainer)
                     //插入presenter 视图
-                    domApi.insertBefore(mainElm.parentNode || document.body, containerElm, mainElm)
+                    if (mainElm) {
+                        domApi.insertBefore(mainElm.parentNode || document.body, containerElm, mainElm)
+                    } else {
+                        pageContainer.vnode.parentVnode.updateChildrenShow();
+                    }
 
                     //销毁旧的 layout-main 子元素
                     pageContainer.vnode.innerVnode.forEach(function(vnode) {
@@ -415,7 +418,7 @@
             layoutStroage.vnode = null;
             layoutStroage.blockMap = {};
             layoutStroage.isRepeat = null;
-            layoutStroage.presenter = null;
+            layoutStroage.presenter = {};
 
             layoutStroage.url = layoutPathInfo.url;
 
@@ -451,6 +454,7 @@
                 //检查 presenter 是否完全加载
                 if (layoutStroage.presenter) render();
             } else {
+                layoutStroage.oldPresenterVnode = layoutStroage.presenter.vnode;
                 //记录当前资源
                 layoutStroage.presenter = {
                     vnode: vnode,
@@ -499,10 +503,10 @@
         };
     }, {
         "../../engine/view/exports": 15,
-        "../../inside/log/log": 61,
-        "../../inside/source/destroyMP": 62,
-        "../../inside/source/getSource": 63,
-        "../../inside/source/sourcePathNormal": 64
+        "../../inside/log/log": 62,
+        "../../inside/source/destroyMP": 63,
+        "../../inside/source/getSource": 64,
+        "../../inside/source/sourcePathNormal": 65
     }],
     5: [function(require, module, exports) {
         /**
@@ -678,8 +682,8 @@
         module.exports = modelExample;
     }, {
         "../../../inside/config/lib/commData": 33,
-        "../../../inside/source/getSource": 63,
-        "../../../inside/source/sourcePathNormal": 64,
+        "../../../inside/source/getSource": 64,
+        "../../../inside/source/sourcePathNormal": 65,
         "../../extend/index": 1,
         "../modelInterface": 7
     }],
@@ -691,6 +695,7 @@
 
         var observer = require('../../inside/lib/observer');
         var serverEngine = require('../server/index');
+        var lib = require('../../inside/lib/exports')
 
         function modelInterface() {
 
@@ -809,6 +814,11 @@
         };
 
         /**
+         * 内部方法库
+         */
+        modelInterface.prototype.lib = lib;
+
+        /**
          * 服务请求
          * @param option
          */
@@ -820,7 +830,8 @@
 
         module.exports = modelInterface;
     }, {
-        "../../inside/lib/observer": 55,
+        "../../inside/lib/exports": 50,
+        "../../inside/lib/observer": 56,
         "../server/index": 10
     }],
     8: [function(require, module, exports) {
@@ -837,7 +848,7 @@
             exec: presenterEngine.presenterExec
         }
     }, {
-        "../../inside/log/log": 61,
+        "../../inside/log/log": 62,
         "./presenterInterface": 9
     }],
     9: [function(require, module, exports) {
@@ -1156,9 +1167,9 @@
 
     }, {
         "../../inside/config/lib/commData": 33,
-        "../../inside/lib/encrypt/uid": 47,
-        "../../inside/source/destroyMP": 62,
-        "../../inside/source/sourcePathNormal": 64,
+        "../../inside/lib/encrypt/uid": 48,
+        "../../inside/source/destroyMP": 63,
+        "../../inside/source/sourcePathNormal": 65,
         "../layout/index": 4,
         "../model/index": 5,
         "../view/exports": 15
@@ -1643,8 +1654,10 @@
                             var scopes = [vnode.rootScope].concat(vnode.middleScope);
                             scopes.push(vnode.$scope);
 
-
                             syntaxExample = syntaxHandle(strcut, scopes, extraParameters.filter, true);
+
+                            //记录到虚拟节点上，以便后续销毁使用
+                            (vnode.data.syntaxExample = vnode.data.syntaxExample || []).push(syntaxExample);
 
                             //读取表达式返回的值
                             if (!syntaxExample.read(function(newData) {
@@ -1915,6 +1928,9 @@
                                 }
 
                                 syntaxExample = syntaxHandle(strcut, scopes, extraParameters.filter, true);
+
+                                //记录到虚拟节点上，以便后续销毁使用
+                                (vnode.data.syntaxExample = vnode.data.syntaxExample || []).push(syntaxExample);
 
                                 //读取表达式返回的值
                                 if (!syntaxExample.read(function(newData) {
@@ -2466,7 +2482,7 @@
         };
 
     }, {
-        "../../../inside/lib/string": 58,
+        "../../../inside/lib/string": 59,
         "./syntaxStruct": 20,
         "./vdom": 21
     }],
@@ -3029,8 +3045,8 @@
             return new structHandle(syntaxStruct, scope, filter, multiple);
         }
     }, {
-        "../../../inside/lib/observer": 55,
-        "../../../inside/log/log": 61
+        "../../../inside/lib/observer": 56,
+        "../../../inside/log/log": 62
     }],
     20: [function(require, module, exports) {
         /**
@@ -4879,6 +4895,7 @@
                 elm = this.elm;
                 children = this.children;
             }
+
             //遍历检查子元素显示状态
             children.forEach(function(ch, index) {
                 //子元素占位
@@ -4886,10 +4903,16 @@
                 //是否展示
                 if (ch.isShow) {
 
-                    if (!elm.contains(ch.elm)) {
-                        isInner && isInner.splice(location, 0, ch)
+                    if (ch.elm instanceof Array) {
+                        ch.elm.forEach(function(_elm, _i) {
+                            isInner && isInner.splice(location + _i - 1, 0, _elm)
+                            htmlDomApi.insertBefore(elm, _elm, children[index + 1] ? children[index + 1].elm : null)
+                        })
+                    } else if (!elm.contains(ch.elm)) {
+                        isInner && isInner.splice(location, 0, ch.elm)
                         htmlDomApi.insertBefore(elm, ch.elm, children[index + 1] ? children[index + 1].elm : null)
                     }
+
                 } else {
 
                     //移除子元素 elm 元素集合
@@ -4952,6 +4975,7 @@
             }
 
             if (this.elm) {
+
                 if (this.elm instanceof Array) {
                     switch (type) {
                         case false:
@@ -4985,6 +5009,25 @@
                     htmlDomApi.removeChild(this.elm.parentNode, this.elm);
                 }
             }
+
+            //检查节点上的语法表达式
+            (this.data.syntaxExample || []).forEach(function(syntaxExample) {
+                var structRes = syntaxExample.structRes;
+
+                //销毁语法上的监听
+                structRes.observers.forEach(function(obs) {
+                    obs.destroy();
+                });
+
+                Object.keys(structRes).forEach(function(key) {
+                    delete structRes[key];
+                });
+
+                Object.keys(syntaxExample).forEach(function(key) {
+                    delete syntaxExample[key];
+                });
+
+            });
 
             Object.keys(this.$scope || {}).forEach(function(key) {
                 delete $this.$scope[key];
@@ -6349,7 +6392,7 @@
         };
 
     }, {
-        "../../../inside/lib/observer": 55,
+        "../../../inside/lib/observer": 56,
         "./componentManage": 16,
         "./directiveManage": 17,
         "./syntaxHandle": 19
@@ -6382,8 +6425,8 @@
 
         module.exports = viewSourc;
     }, {
-        "../../../inside/source/getSource": 63,
-        "../../../inside/source/sourcePathNormal": 64
+        "../../../inside/source/getSource": 64,
+        "../../../inside/source/sourcePathNormal": 65
     }],
     23: [function(require, module, exports) {
         /**
@@ -6468,8 +6511,8 @@
         };
     }, {
         "../../inside/config/lib/commData": 33,
-        "../../inside/lib/path": 56,
-        "../../inside/lib/url": 60,
+        "../../inside/lib/path": 57,
+        "../../inside/lib/url": 61,
         "./route/exec": 24,
         "./route/index": 26,
         "./route/pathConvert": 27,
@@ -6706,9 +6749,9 @@
     }, {
         "../../../engine/index": 3,
         "../../../inside/config/index": 32,
-        "../../../inside/event/insideEvent": 39,
-        "../../../inside/lib/path": 56,
-        "../../../inside/log/log": 61,
+        "../../../inside/event/insideEvent": 40,
+        "../../../inside/lib/path": 57,
+        "../../../inside/log/log": 62,
         "./getRouteInfo": 25,
         "./pathConvert": 27,
         "./routeData": 29
@@ -6852,7 +6895,7 @@
             getNowPath: getNowPath
         };
     }, {
-        "../../../inside/lib/url": 60
+        "../../../inside/lib/url": 61
     }],
     28: [function(require, module, exports) {
         /**
@@ -6927,8 +6970,8 @@
         module.exports = redirect;
     }, {
         "../../../inside/config/index": 32,
-        "../../../inside/lib/path": 56,
-        "../../../inside/lib/url": 60,
+        "../../../inside/lib/path": 57,
+        "../../../inside/lib/url": 61,
         "./exec": 24,
         "./routeData": 29
     }],
@@ -6950,7 +6993,7 @@
         }
 
     }, {
-        "../../../inside/lib/path": 56
+        "../../../inside/lib/path": 57
     }],
     30: [function(require, module, exports) {
         /**
@@ -7043,7 +7086,7 @@
         module.exports = watch;
     }, {
         "../../../inside/config/index": 32,
-        "../../../inside/lib/path": 56,
+        "../../../inside/lib/path": 57,
         "./exec": 24,
         "./pathConvert": 27,
         "./redirect": 28,
@@ -7079,7 +7122,7 @@
         }
     }, {
         "../inside/config/index": 32,
-        "../inside/event/insideEvent": 39,
+        "../inside/event/insideEvent": 40,
         "./boot/index": 23
     }],
     32: [function(require, module, exports) {
@@ -7102,7 +7145,7 @@
             }
         }
     }, {
-        "../../inside/lib/object": 54,
+        "../../inside/lib/object": 55,
         "./lib/commData": 33,
         "./lib/loadUrlConf": 36
     }],
@@ -7407,7 +7450,7 @@
         module.exports = configEndHandle;
     }, {
         "../../../inside/config/lib/commData": 33,
-        "../../../inside/lib/string": 58
+        "../../../inside/lib/string": 59
     }],
     35: [function(require, module, exports) {
         /**
@@ -7424,6 +7467,7 @@
         var directiveManage = require('./../../../engine/view/lib/directiveManage');
         var serverEngine = require('./../../../engine/server/index');
 
+        var deps = require('../../deps/deps');
 
         //空方法
         var noop = function() {
@@ -7564,20 +7608,36 @@
         };
 
         //组件注册
-        configIniterface.prototype.component = function(compName, compConf) {
-
+        configIniterface.prototype.component = function(compName, compConf, optionCallback) {
+            var nowUrl = this.nowUrl;
             switch (arguments.length) {
                 case 2:
                     componentMange.register(compName, compConf)
                     break;
                 case 3:
-                    console.log(arguments, stateData.nowUrl, '????')
-
+                    var depsPackage = [].concat(compConf);
+                    deps.nowUrl = nowUrl;
+                    deps(depsPackage, function() {
+                        componentMange.register(compName, optionCallback.apply(this, arguments))
+                    });
             }
         };
 
         //指令注册
-        configIniterface.prototype.directive = directiveManage.register;
+        configIniterface.prototype.directive = function(compName, compConf, optionCallback) {
+            var nowUrl = this.nowUrl;
+            switch (arguments.length) {
+                case 2:
+                    directiveManage.register(compName, compConf)
+                    break;
+                case 3:
+                    var depsPackage = [].concat(compConf);
+                    deps.nowUrl = nowUrl;
+                    deps(depsPackage, function() {
+                        directiveManage.register(compName, optionCallback.apply(this, arguments))
+                    });
+            }
+        };
 
         //服务注册
         configIniterface.prototype.server = serverEngine.serverRegister;
@@ -7631,6 +7691,7 @@
                 parentInterface = new configIniterface();
                 stateData.interface = parentInterface;
             }
+            parentInterface.nowUrl = path.resolve(url);
 
             switch (confArgs.length) {
                 case 1:
@@ -7708,10 +7769,11 @@
             configIniterface: configIniterface
         };
     }, {
-        "../../../interface/index": 65,
-        "../../lib/net/jsonp": 53,
-        "../../lib/path": 56,
-        "../../log/log": 61,
+        "../../../interface/index": 66,
+        "../../deps/deps": 38,
+        "../../lib/net/jsonp": 54,
+        "../../lib/path": 57,
+        "../../log/log": 62,
         "./../../../engine/server/index": 10,
         "./../../../engine/view/lib/componentManage": 16,
         "./../../../engine/view/lib/directiveManage": 17,
@@ -7773,8 +7835,8 @@
 
         module.exports = loadUrlConf
     }, {
-        "../../lib/net/jsonp": 53,
-        "../../log/log": 61,
+        "../../lib/net/jsonp": 54,
+        "../../log/log": 62,
         "./commData": 33,
         "./configEndHandle": 34,
         "./initerface": 35
@@ -7888,6 +7950,248 @@
         "./commData": 33
     }],
     38: [function(require, module, exports) {
+        /*load(['file:1', 'file:2'], function ($1, $2) {
+
+        })*/
+
+        var PATH = require('../lib/path');
+        var log = require('../log/log');
+        var jsonp = require('../lib/net/jsonp');
+        var commData = require('../config/lib/commData');
+
+        var appConf = commData.appConf;
+
+        var depsStroageMap = {};
+
+        //扩展状态
+        var depsLoadState = {};
+
+        //扩展监听
+        var depsWatch = {};
+
+        function load() {
+
+            var args = [].slice.call(arguments),
+                argsLen = args.length,
+                callbackFn,
+                count = 0,
+                fileSources = [],
+                fileQueue = [];
+
+            switch (true) {
+                case argsLen === 2:
+                    fileQueue = fileQueue.concat(args[0]);
+                    callbackFn = args[1];
+                    break;
+                case argsLen > 2:
+                    argsLen -= 1;
+                    for (var i = 0; i < argsLen; i++) {
+                        fileQueue = fileQueue.concat(args[i]);
+                    }
+                    callbackFn = args[argsLen];
+                    break;
+                case argsLen === 1:
+                    callbackFn = args[0];
+                    break;
+            }
+
+            if (typeof callbackFn !== "function") {
+                fileQueue = fileQueue.concat(callbackFn);
+                callbackFn = function() {};
+            }
+
+            fileQueue.forEach(function(filePath, index) {
+                //文件获取
+                getFile(filePath, function(source) {
+                    fileSources[index] = source;
+                    if (++count === fileQueue.length) {
+                        //调用文件资源回调
+                        callbackFn.apply(this, fileSources)
+                    }
+                }, load.nowUrl)
+            });
+            delete load.nowUrl;
+        }
+
+        function getFile(filePath, callback, nowUrl) {
+
+            //路径解析
+            //匹配配置中的path
+            var i = ~0,
+                pathInfo,
+                sliceName = 'index',
+                fileSuffix = '.js',
+                pl = appConf.pathList.length;
+
+            //检查是否当前模块 路径
+            if (nowUrl && /^\:/.test(filePath)) filePath = nowUrl + filePath;
+
+            //获取资源切片
+            filePath = filePath.replace(/:([^\:\\\/]*)$/, function(str, $1) {
+                sliceName = $1;
+                return '';
+            });
+
+            while (++i < pl) {
+                pathInfo = appConf.pathList[i];
+                if (pathInfo.regExp.test(filePath)) {
+                    filePath = filePath.replace(pathInfo.regExp, function(str, $1) {
+                        return pathInfo.path + '/' + ($1 || '');
+                    });
+                    break;
+                }
+            }
+
+            //获取文件后缀
+            filePath = filePath.replace(/\.[^\/\\]+$/i, function(str) {
+                fileSuffix = str;
+                return '';
+            });
+
+            //获取当前文件的绝对地址
+            filePath = PATH.normalize(PATH.resolve(filePath, nowUrl) + fileSuffix);
+
+            //依赖数据
+            var depsObj = depsStroageMap[filePath] = depsStroageMap[filePath] || {},
+                states = depsLoadState[filePath] = depsLoadState[filePath] || {};
+
+            depsWatch[filePath] = depsWatch[filePath] || {};
+
+            //添加资源监听挂载
+            (depsWatch[filePath][sliceName] = depsWatch[filePath][sliceName] || []).push(callback);
+
+            //检查当前的模块是否存在
+            switch (states[sliceName]) {
+                case 1:
+                    return;
+                case 2:
+                    return callback(depsObj[sliceName]);
+            }
+
+            //标识当前模块正在加载
+            depsLoadState[filePath][sliceName] = 1;
+
+            //获取模块
+            jsonp({
+                url: filePath,
+                jsonpCallback: 'define',
+                complete: function(data) {
+                    //检查返回的状态
+                    if (this.state) {
+                        var despModels = this.many ? [].slice.call(arguments) : [
+                                [].slice.call(arguments)
+                            ],
+                            despQueue = [];
+
+                        //检查是否多个jsonp切片
+                        despModels.forEach(function(confArgs) {
+
+                            var resFn,
+                                desp = [],
+                                moduleName = 'index';
+
+                            //提取相关资源
+                            Object.keys(confArgs).forEach(function(key) {
+                                switch (true) {
+                                    case confArgs[key] instanceof Array:
+                                        desp = desp.concat(confArgs[key]);
+                                        break;
+                                    case confArgs[key] instanceof Function:
+                                        resFn = confArgs[key]
+                                        break;
+                                    case typeof confArgs[key] === 'string':
+                                        moduleName = confArgs[key];
+                                        break;
+                                }
+                            });
+
+                            //收集依赖
+                            if (desp.length) {
+                                despQueue.push({
+                                    resFn: resFn,
+                                    desp: desp,
+                                    moduleName: moduleName
+                                });
+
+                            } else {
+                                if (resFn instanceof Function) resFn = resFn();
+                                depsStroageMap[filePath][moduleName] = resFn;
+                                depsLoadState[filePath][moduleName] = 2;
+
+                                if (despModels.length === 1) {
+                                    depsStroageMap[filePath]['index'] = resFn;
+                                    depsLoadState[filePath]['index'] = 2;
+
+                                    //数据回调触发
+                                    (depsWatch[filePath]['index'] = depsWatch[filePath]['index'] || []).forEach(function(callbackFn) {
+                                        callbackFn(resFn);
+                                    });
+                                    depsWatch[filePath]['index'] = [];
+                                }
+
+                                //数据回调触发
+                                (depsWatch[filePath][moduleName] = depsWatch[filePath][moduleName] || []).forEach(function(callbackFn) {
+                                    callbackFn(resFn);
+                                });
+
+                                depsWatch[filePath][moduleName] = [];
+                            }
+
+                        });
+
+                        var queueCount = despQueue.length
+
+                        //遍历有依赖的模块
+                        despQueue.forEach(function(info) {
+                            load.nowUrl = filePath;
+                            //加载相关依赖的模块
+                            load.apply(this, info.desp.concat(function() {
+                                var resFn = info.resFn;
+                                //资源获取
+                                if (resFn instanceof Function) resFn = resFn.apply(this, arguments);
+                                //标识资源状态
+                                depsStroageMap[filePath][info.moduleName] = resFn;
+                                depsLoadState[filePath][info.moduleName] = 2;
+
+                                //检查依赖队列是否完全加载
+                                if (!--queueCount) {
+                                    despQueue.forEach(function(info) {
+                                        //数据回调触发
+                                        (depsWatch[filePath][info.moduleName] = depsWatch[filePath][info.moduleName] || []).forEach(function(callbackFn) {
+                                            callbackFn(depsStroageMap[filePath][info.moduleName]);
+                                        });
+                                    })
+                                    depsWatch[filePath][info.moduleName] = [];
+
+                                    //如果内部只有一个模块 则也定义为 内部 index
+                                    if (despModels.length === 1) {
+                                        (depsStroageMap[filePath] = depsStroageMap[filePath] || {})['index'] = resFn;
+                                        (depsLoadState[filePath] = depsLoadState[filePath] || {})['index'] = 2;
+                                        //数据回调触发
+                                        (depsWatch[filePath]['index'] = depsWatch[filePath]['index'] || []).forEach(function(callbackFn) {
+                                            callbackFn(resFn);
+                                        });
+                                        depsWatch[filePath]['index'] = [];
+                                    }
+                                }
+
+                            }));
+                        })
+
+                    } else {
+                        log.warn('加载外部依赖文件失败，请检查！ (' + this.option.url + ')');
+                    }
+                }
+            });
+        }
+        module.exports = load;
+    }, {
+        "../config/lib/commData": 33,
+        "../lib/net/jsonp": 54,
+        "../lib/path": 57,
+        "../log/log": 62
+    }],
+    39: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-12-2.
          */
@@ -7925,7 +8229,7 @@
 
         module.exports = eventInterface;
     }, {}],
-    39: [function(require, module, exports) {
+    40: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -7968,9 +8272,9 @@
 
         module.exports = insideEvent;
     }, {
-        "./eventInterface": 38
+        "./eventInterface": 39
     }],
-    40: [function(require, module, exports) {
+    41: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-11-30.
          */
@@ -8009,7 +8313,7 @@
 
 
     }, {}],
-    41: [function(require, module, exports) {
+    42: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-3-7.
          */
@@ -8146,7 +8450,7 @@
         }
 
     }, {}],
-    42: [function(require, module, exports) {
+    43: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-11-30.
          */
@@ -8247,7 +8551,7 @@
 
 
     }, {}],
-    43: [function(require, module, exports) {
+    44: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-27.
          */
@@ -8544,9 +8848,9 @@
 
 
     }, {
-        "./base64": 42
+        "./base64": 43
     }],
-    44: [function(require, module, exports) {
+    45: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-27.
          */
@@ -8559,13 +8863,13 @@
             sha256: require('./sha256'),
         }
     }, {
-        "./base64": 42,
-        "./md5": 45,
-        "./sha256": 46,
-        "./uid": 47,
-        "./utf8": 48
+        "./base64": 43,
+        "./md5": 46,
+        "./sha256": 47,
+        "./uid": 48,
+        "./utf8": 49
     }],
-    45: [function(require, module, exports) {
+    46: [function(require, module, exports) {
 
         "use strict";
 
@@ -8579,10 +8883,10 @@
             return commLib.rstr2hex(commLib.rstrexports(str2rstr_utf8(s)));
         };
     }, {
-        "./commLib": 43,
-        "./utf8": 48
+        "./commLib": 44,
+        "./utf8": 49
     }],
-    46: [function(require, module, exports) {
+    47: [function(require, module, exports) {
 
 
         var b64pad = "=";
@@ -8779,9 +9083,9 @@
 
         module.exports = sha256
     }, {
-        "./commLib": 43
+        "./commLib": 44
     }],
-    47: [function(require, module, exports) {
+    48: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-26.
          */
@@ -8795,7 +9099,7 @@
         }
 
     }, {}],
-    48: [function(require, module, exports) {
+    49: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-11-30.
          */
@@ -8833,7 +9137,7 @@
         }
 
     }, {}],
-    49: [function(require, module, exports) {
+    50: [function(require, module, exports) {
         /**
          * 内部处理库
          * Created by xiyuan on 17-5-9.
@@ -8855,20 +9159,20 @@
             platform: require('./platform')
         }
     }, {
-        "./buffer": 40,
-        "./date": 41,
-        "./encrypt/exports": 44,
-        "./json": 50,
-        "./net/exports": 52,
-        "./object": 54,
-        "./observer": 55,
-        "./path": 56,
-        "./platform": 57,
-        "./string": 58,
-        "./type": 59,
-        "./url": 60
+        "./buffer": 41,
+        "./date": 42,
+        "./encrypt/exports": 45,
+        "./json": 51,
+        "./net/exports": 53,
+        "./object": 55,
+        "./observer": 56,
+        "./path": 57,
+        "./platform": 58,
+        "./string": 59,
+        "./type": 60,
+        "./url": 61
     }],
-    50: [function(require, module, exports) {
+    51: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-3-7.
          */
@@ -8899,7 +9203,7 @@
         };
 
     }, {}],
-    51: [function(require, module, exports) {
+    52: [function(require, module, exports) {
         /**
          * Created by xiyuan on 16-12-5.
          */
@@ -9071,10 +9375,10 @@
 
         module.exports = ajax;
     }, {
-        "../json": 50,
-        "../url": 60
+        "../json": 51,
+        "../url": 61
     }],
-    52: [function(require, module, exports) {
+    53: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-27.
          */
@@ -9085,10 +9389,10 @@
             jsonp: require('./jsonp')
         }
     }, {
-        "./ajax": 51,
-        "./jsonp": 53
+        "./ajax": 52,
+        "./jsonp": 54
     }],
-    53: [function(require, module, exports) {
+    54: [function(require, module, exports) {
         'use strict';
 
         var url = require('../url');
@@ -9163,6 +9467,8 @@
                     jsonpStorage = [].slice.call(arguments);
                 }
             };
+
+            window[callback].amd = true;
 
             //初始化回调(用于包处理 define.amd 赋值)
             option.init.call(js, window[callback]);
@@ -9249,10 +9555,10 @@
 
 
     }, {
-        "../path": 56,
-        "../url": 60
+        "../path": 57,
+        "../url": 61
     }],
-    54: [function(require, module, exports) {
+    55: [function(require, module, exports) {
         'use strict';
 
         /**
@@ -9605,7 +9911,7 @@
             get: get
         }
     }, {}],
-    55: [function(require, module, exports) {
+    56: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-3-7.
          */
@@ -9726,6 +10032,7 @@
              * @returns {boolean}
              */
             function diff(newData, oldData) {
+                var isPass;
                 if (getType(newData) !== getType(oldData)) {
                     return false;
                 }
@@ -9734,7 +10041,20 @@
                         //检查对象实例是否一致
                         if (!isInstance(newData, oldData)) return false;
                     case 'Array':
-                        return Object.keys(newData).sort().toString() === Object.keys(oldData).sort().toString();
+                        var key,
+                            keys = Object.keys(newData);
+                        if (isPass = keys.sort().toString() === Object.keys(oldData).sort().toString()) {
+                            var i = ~0,
+                                len = keys.length;
+                            while (++i < len) {
+                                key = keys[i];
+                                if (!diff(newData[key], oldData[key])) return false;
+                            };
+                            return true;
+                        } else {
+                            return false;
+                        }
+
                         break;
                     case 'Date':
                         return String(newData) === String(oldData);
@@ -10462,7 +10782,7 @@
             };
         }(), this);
     }, {}],
-    56: [function(require, module, exports) {
+    57: [function(require, module, exports) {
         /**
          * 路径处理
          * Created by xiyuan on 17-3-7.
@@ -10567,9 +10887,9 @@
         }
 
     }, {
-        "./url": 60
+        "./url": 61
     }],
-    57: [function(require, module, exports) {
+    58: [function(require, module, exports) {
         (function(global) {
             'use strict';
 
@@ -11870,7 +12190,7 @@
             module.exports = parse();
         }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
     }, {}],
-    58: [function(require, module, exports) {
+    59: [function(require, module, exports) {
         'use strict';
 
         /*字符串处理（与PHP的 trim功能相同）*/
@@ -11970,7 +12290,7 @@
             escapeToRegexp: escapeToRegexp
         }
     }, {}],
-    59: [function(require, module, exports) {
+    60: [function(require, module, exports) {
         function getType(value) {
             if (isElement(value)) return 'element';
             var type = typeof(value);
@@ -12155,7 +12475,7 @@
             equals: equals,
         }
     }, {}],
-    60: [function(require, module, exports) {
+    61: [function(require, module, exports) {
         /**
          * 网址处理
          * Created by xiyuan on 17-3-7.
@@ -12324,7 +12644,7 @@
         }
 
     }, {}],
-    61: [function(require, module, exports) {
+    62: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-29.
          */
@@ -12369,7 +12689,7 @@
             fatal: fatal
         }
     }, {}],
-    62: [function(require, module, exports) {
+    63: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-6-11.
          */
@@ -12447,7 +12767,7 @@
     }, {
         "../../inside/config/lib/commData": 33
     }],
-    63: [function(require, module, exports) {
+    64: [function(require, module, exports) {
         /**
          * 资源获取 （model view presenter ...）
          * Created by xiyuan on 17-6-1.
@@ -12576,12 +12896,12 @@
         module.exports = getSource;
     }, {
         "../config/lib/commData": 33,
-        "../lib/net/ajax": 51,
-        "../lib/net/jsonp": 53,
-        "../lib/path": 56,
-        "../log/log": 61
+        "../lib/net/ajax": 52,
+        "../lib/net/jsonp": 54,
+        "../lib/path": 57,
+        "../log/log": 62
     }],
-    64: [function(require, module, exports) {
+    65: [function(require, module, exports) {
         /**
          * 转换真实资源路径
          * Created by xiyuan on 17-6-1.
@@ -12674,10 +12994,10 @@
         module.exports = sourcePathNormal;
     }, {
         "../config/lib/commData": 33,
-        "../lib/object": 54,
-        "../lib/path": 56
+        "../lib/object": 55,
+        "../lib/path": 57
     }],
-    65: [function(require, module, exports) {
+    66: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-6-11.
          */
@@ -12699,10 +13019,10 @@
     }, {
         "../engine/view/lib/vdom": 21,
         "../inside/config/lib/commData": 33,
-        "../inside/lib/exports": 49,
-        "../inside/lib/object": 54
+        "../inside/lib/exports": 50,
+        "../inside/lib/object": 55
     }],
-    66: [function(require, module, exports) {
+    67: [function(require, module, exports) {
         /**
          * Created by xiyuan on 17-5-9.
          */
@@ -12727,6 +13047,6 @@
         }, window)
     }, {
         "./init/index": 31,
-        "./interface/index": 65
+        "./interface/index": 66
     }]
-}, {}, [66]);
+}, {}, [67]);

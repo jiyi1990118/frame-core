@@ -1,9 +1,9 @@
 /**
  * Created by xiyuan on 17-6-5.
  */
-For(function ($app) {
+vFor(function ($app) {
 
-    $app.directive('for', {
+    $app.directive('v-for', {
         priority:100,
         scope: {
             listData: []

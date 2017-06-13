@@ -3,7 +3,7 @@
  */
 
 
-date(function ($app) {
+vDate(function ($app) {
 
 
     /**
@@ -304,8 +304,8 @@ date(function ($app) {
 
 
 
-    //列表组件
-    $app.directive('date', {
+    //日期指令
+    $app.directive('v-date', {
         hook: {
             create: function (oldVnode,newVnode) {
 

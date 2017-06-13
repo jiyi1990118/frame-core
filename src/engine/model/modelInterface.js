@@ -5,6 +5,7 @@
 
 var observer = require('../../inside/lib/observer');
 var serverEngine=require('../server/index');
+var lib=require('../../inside/lib/exports')
 
 function modelInterface() {
 
@@ -121,6 +122,11 @@ modelInterface.prototype.write = function (key, data) {
 modelInterface.prototype.trigger = function (name, fn) {
     this.__source__.trigger[name]=fn;
 };
+
+/**
+ * 内部方法库
+ */
+modelInterface.prototype.lib=lib;
 
 /**
  * 服务请求

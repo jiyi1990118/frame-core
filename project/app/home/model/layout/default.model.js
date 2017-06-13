@@ -8,6 +8,10 @@
 model('navStruct',['$::menuList','$::shortcutMenuList'],function (menuList,shortcutMenuList) {
     this.exports={};
 
+    this.watch(function (val) {
+        console.log('yes',val)
+    })
+
     //从扩展中获取所有菜单数据
     menuList(this);
 

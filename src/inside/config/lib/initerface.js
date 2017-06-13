@@ -12,6 +12,7 @@ var componentMange=require('./../../../engine/view/lib/componentManage');
 var directiveManage=require('./../../../engine/view/lib/directiveManage');
 var serverEngine=require('./../../../engine/server/index');
 
+var deps=require('../../deps/deps');
 
 //空方法
 var noop = function () {
@@ -152,20 +153,36 @@ configIniterface.prototype.path = function (config) {
 };
 
 //组件注册
-configIniterface.prototype.component=function (compName,compConf) {
-
+configIniterface.prototype.component=function (compName,compConf,optionCallback) {
+    var nowUrl=this.nowUrl;
     switch (arguments.length){
         case 2:
             componentMange.register(compName,compConf)
             break;
         case 3:
-            console.log(arguments,stateData.nowUrl,'????')
-
+            var depsPackage=[].concat(compConf);
+            deps.nowUrl=nowUrl;
+            deps(depsPackage,function () {
+                componentMange.register(compName,optionCallback.apply(this,arguments))
+            });
     }
 };
 
 //指令注册
-configIniterface.prototype.directive=directiveManage.register;
+configIniterface.prototype.directive=function (compName,compConf,optionCallback) {
+    var nowUrl=this.nowUrl;
+    switch (arguments.length){
+        case 2:
+            directiveManage.register(compName,compConf)
+            break;
+        case 3:
+            var depsPackage=[].concat(compConf);
+            deps.nowUrl=nowUrl;
+            deps(depsPackage,function () {
+                directiveManage.register(compName,optionCallback.apply(this,arguments))
+            });
+    }
+};
 
 //服务注册
 configIniterface.prototype.server=serverEngine.serverRegister;
@@ -219,6 +236,7 @@ function configRead(confArgs, callback, url, parentInterface) {
         parentInterface = new configIniterface();
         stateData.interface = parentInterface;
     }
+    parentInterface.nowUrl=path.resolve(url);
 
     switch (confArgs.length) {
         case 1:

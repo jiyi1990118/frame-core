@@ -3,7 +3,9 @@
  */
 directive(function ($app) {
     $app.include({
-        comm:'./comm/index.js',
-        'date':'./form/date/date.js',
+        vIf:'./comm/v-if.js',
+        vFor:'./comm/v-for.js',
+        vOn:'./comm/v-on.js',
+        vDate:'./form/date/v-date.js',
     })
 })

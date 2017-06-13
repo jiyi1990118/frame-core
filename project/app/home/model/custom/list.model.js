@@ -49,7 +49,7 @@ model('gridConf',['$:custom/gridConf:gridStruct'],function (gridStruct) {
                 name: '操作',
                 listConfig: function () {
 
-                    console.log(arguments)
+                    // console.log(arguments)
                     return {
                         template: '<span  class="iconfont icon-fenlei"></span>',
                         scope: {
@@ -63,8 +63,6 @@ model('gridConf',['$:custom/gridConf:gridStruct'],function (gridStruct) {
             }
         ]
     }
-
-
 
 
     //数据请求触发器

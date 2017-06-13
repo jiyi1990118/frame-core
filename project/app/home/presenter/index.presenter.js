@@ -9,19 +9,25 @@ presenter('index',function () {
 
     this.title(title);
 
-    this.assign('window',window);
+    window.scope={}
+
+    this.assign('window',window.scope);
 
     this.layout('@layout:default').display();
+
+    this.assign('selectConf',[8,9,4,1])
 
     This.assign('click',function () {
         console.log('ok!')
     })
 
     setTimeout(function () {
-
         This.assign('click',function () {
             console.log('on!')
         })
-    },3000)
+    },3000);
+
+
+    this.assign('downConf',[1,2,3]);
 
 });

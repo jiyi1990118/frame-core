@@ -25,7 +25,7 @@ var layoutStroage = {
     //是否重复布局
     isRepeat: null,
     //当前presenter
-    presenter: null,
+    presenter: {},
     //当前layout块级
     blockMap: {}
 }
@@ -34,6 +34,7 @@ var layoutStroage = {
 function render() {
 
     var pageContainer = document.body,
+        oldPresenter=layoutStroage.presenter.vnode,
         emptyNode=viewEngine.vdom.node2vnode(pageContainer);
 
     //检查当前是否需要渲染布局
@@ -51,10 +52,10 @@ function render() {
             });
         }
         pageContainer = layoutStroage.main;
-    }
+    };
 
     //传递父节点信息给 presenter视图元素
-    ;[].concat(layoutStroage.presenter.vnode).forEach(function (childVnode) {
+    [].concat(layoutStroage.presenter.vnode).forEach(function (childVnode) {
         if(pageContainer.vnode){
             childVnode.parentVnode=pageContainer.vnode;
         }else{
@@ -71,7 +72,6 @@ function render() {
             mainElm,
             parentVnode = pageContainer.parentNode,
             presenterBlockMap = layoutStroage.presenter.source.layoutInfo.blockMap;
-
 
         //检查布局主体是否存在
         if (layoutStroage.vnode && layoutStroage.main) {
@@ -123,14 +123,17 @@ function render() {
             if (parentVnode) {
                 //获取 layout-main 元素在父节点内部的位置
                 location = parentVnode.children.indexOf(pageContainer.vnode);
-
                 //更改layout-main元素的子元素
-                [].splice.apply(parentVnode.children, [location, 1].concat(layoutStroage.presenter.vnode));
+                ;[].splice.apply(parentVnode.children, [location, 1].concat(layoutStroage.presenter.vnode));
             }
 
             // console.log(mainElm.parentNode, containerElm, mainElm,pageContainer)
             //插入presenter 视图
-            domApi.insertBefore(mainElm.parentNode||document.body, containerElm, mainElm)
+            if(mainElm){
+                domApi.insertBefore(mainElm.parentNode||document.body, containerElm, mainElm)
+            }else{
+                pageContainer.vnode.parentVnode.updateChildrenShow();
+            }
 
             //销毁旧的 layout-main 子元素
             pageContainer.vnode.innerVnode.forEach(function (vnode) {
@@ -204,7 +207,7 @@ function layout(layoutPath, originInfo, presenterExec) {
     layoutStroage.vnode = null;
     layoutStroage.blockMap = {};
     layoutStroage.isRepeat = null;
-    layoutStroage.presenter = null;
+    layoutStroage.presenter = {};
 
     layoutStroage.url = layoutPathInfo.url;
 
@@ -240,6 +243,7 @@ function display(viewSource, presenterSource) {
         //检查 presenter 是否完全加载
         if (layoutStroage.presenter) render();
     } else {
+        layoutStroage.oldPresenterVnode=layoutStroage.presenter.vnode;
         //记录当前资源
         layoutStroage.presenter = {
             vnode: vnode,

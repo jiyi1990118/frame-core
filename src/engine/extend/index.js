@@ -18,7 +18,7 @@ var extendLoadState={};
 //扩展监听
 var extendWatch={};
 
-function extendExample(pathInfo,callbcak) {
+function extendExample(pathInfo,callback) {
 
     var url=PATH.resolve(pathInfo.url+'/'+pathInfo.slice),
         extendObj=extendStroage[url],
@@ -27,9 +27,9 @@ function extendExample(pathInfo,callbcak) {
     //检查当前的扩展是否存在
     if(extendObj || state){
         if(extendObj){
-            callbcak(extendObj);
+            callback(extendObj);
         }else{
-            extendWatch[url].push(callbcak);
+            extendWatch[url].push(callback);
         }
         return;
     }
@@ -70,7 +70,7 @@ function extendExample(pathInfo,callbcak) {
                 //资源状态
                 extendLoadState[url]=2;
                 //返回数据
-                callbcak(extendObj);
+                callback(extendObj);
                 //执行监听
                 while (watchFn=extendWatch[url].pop()){
                     watchFn(extendObj);

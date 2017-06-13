@@ -8,14 +8,14 @@ listGrid(function ($app) {
         '<div class="grid-table-left">' +
         '<div class="grid-header-group">' +
         '<ul class="grid-header-row">' +
-        '<li for=" actionData in gridConf.leftColsModel">' +
+        '<li v-for=" actionData in gridConf.leftColsModel">' +
         '<template config="actionData|:colHeaderHandle($)"></template>' +
         '</li>' +
         '</ul>' +
         '</div>' +
-        '<div class="grid-row-group" v-on:mouseout="eventManage.bodyMouseout" $-render="eles|setContainer:[$,\'leftContainer\']">' +
-            '<ul class="grid-body-row" for="(rowKey ,rowData ) in gridListData" v-on:click="eventManage.rowClick(rowKey,rowData)" v-on:mouseover="eventManage.rowHover(rowKey,rowData)" $-class="{row-hover:gridConf.rowHoverIndex == rowKey }">' +
-                '<li for="(actionKey , actionData) in gridConf.leftColsModel">' +
+        '<div class="grid-row-group" $-on:mouseout="eventManage.bodyMouseout" $-render="eles|setContainer:[$,\'leftContainer\']">' +
+            '<ul class="grid-body-row" v-for="(rowKey ,rowData ) in gridListData" $-on:click="eventManage.rowClick(rowKey,rowData)" $-on:mouseover="eventManage.rowHover(rowKey,rowData)" $-class="{row-hover:gridConf.rowHoverIndex == rowKey }">' +
+                '<li v-for="(actionKey , actionData) in gridConf.leftColsModel">' +
                     '<template config="actionData|:colDataHandle($,rowData,rowKey,gridListData,eles)"></template>' +
                 '</li>' +
             '</ul>' +
@@ -26,15 +26,15 @@ listGrid(function ($app) {
         '<div class="grid-table-right">' +
             '<div class="grid-header-group">' +
             '<ul class="grid-header-row">' +
-                '<li class="content-center" $-class="{desc:colModel.order == \'desc\',asc:colModel.order == \'asc\'}" $-on:click="headerClick(colKey,colModel,allScope)" for=" ( colKey , colModel ) in gridConf.colsModel">' +
+                '<li class="content-center" $-class="{desc:colModel.order == \'desc\',asc:colModel.order == \'asc\'}" v-on:click="headerClick(colKey,colModel,allScope)" v-for=" ( colKey , colModel ) in gridConf.colsModel">' +
                     '<div class="table-cell"><template config="colModel|:colHeaderHandle($)"></template>' +
                     '<span $-if="colModel.order" $-show="gridConf.orderIndex == colKey "><i class="iconfont icon-down-copy-asc"></i><i class="iconfont icon-down-copy-desc"></i></span></div>' +
                 '</li>' +
             '</ul>' +
             '</div>' +
-            '<div class="grid-row-group" v-on:mouseout="eventManage.bodyMouseout" $-render="eles|setContainer:[$,\'rightContainer\']">' +
-                '<ul class="grid-body-row" for="(rowKey , rowData) in gridListData" v-on:click="eventManage.rowClick(rowKey,rowData)" v-on:mouseover="eventManage.rowHover(rowKey,rowData)" $-class="{row-hover:gridConf.rowHoverIndex == rowKey }">' +
-                '<li for=" ( colKey , colModel ) in gridConf.colsModel"  $-render="eventManage.render(rowKey,colKey)">' +
+            '<div class="grid-row-group" $-on:mouseout="eventManage.bodyMouseout" $-render="eles|setContainer:[$,\'rightContainer\']">' +
+                '<ul class="grid-body-row" v-for="(rowKey , rowData) in gridListData" $-on:click="eventManage.rowClick(rowKey,rowData)" $-on:mouseover="eventManage.rowHover(rowKey,rowData)" $-class="{row-hover:gridConf.rowHoverIndex == rowKey }">' +
+                '<li v-for=" ( colKey , colModel ) in gridConf.colsModel"  $-render="eventManage.render(rowKey,colKey)">' +
                 '<template config="colModel|:colDataHandle($,rowData,rowKey,gridListData,eles)"></template>' +
                 '</li>' +
                 '</ul>' +
@@ -47,20 +47,20 @@ listGrid(function ($app) {
     var footerHtml='<ul>' +
         '<li class="footer-left">' +
         '<ul class="grid-paging-left">' +
-            '<li v-on:click="eventManage.pageTurn(1)" $-class="{disabled:gridConf.pageNumber == 1}">首页</li>' +
+            '<li $-on:click="eventManage.pageTurn(1)" $-class="{disabled:gridConf.pageNumber == 1}">首页</li>' +
         '</ul>' +
         '<ul class="grid-paging-center">' +
-            '<li v-on:click="eventManage.pageTurn(gridConf.pageNumber-1)" $-class="{disabled:gridConf.pageNumber == 1}"><i class="iconfont icon-left"></i></li>' +
-            '<li v-on:click="eventManage.pageTurn(pagingTag)" $-class="{focus:gridConf.pageNumber == pagingTag}" for="pagingTag in pagingListTag"><span>{{pagingTag}}</span></li>' +
-            '<li v-on:click="eventManage.pageTurn(gridConf.pageNumber+1)" $-class="{disabled:gridConf.pageNumber == pageCount}"><i class="iconfont icon-right"></i></li>' +
+            '<li $-on:click="eventManage.pageTurn(gridConf.pageNumber-1)" $-class="{disabled:gridConf.pageNumber == 1}"><i class="iconfont icon-left"></i></li>' +
+            '<li $-on:click="eventManage.pageTurn(pagingTag)" $-class="{focus:gridConf.pageNumber == pagingTag}" v-for="pagingTag in pagingListTag"><span>{{pagingTag}}</span></li>' +
+            '<li $-on:click="eventManage.pageTurn(gridConf.pageNumber+1)" $-class="{disabled:gridConf.pageNumber == pageCount}"><i class="iconfont icon-right"></i></li>' +
         '</ul>' +
         '<ul class="grid-paging-right">' +
-            '<li v-on:click="eventManage.pageTurn(pageCount)" $-class="{disabled:gridConf.pageNumber == pageCount}">尾页</li>' +
+            '<li $-on:click="eventManage.pageTurn(pageCount)" $-class="{disabled:gridConf.pageNumber == pageCount}">尾页</li>' +
         '</ul>' +
-        '<div class=toPage>第<input type="text" $-model="searchVal" $-valid="pageCount|searchValid" name="pageNumber">页<button v-on:click="searchVal|toPage:[$,pageCount]" class="page-search">确定</button>共<strong>{{pageCount}}</strong>页</div>' +
+        '<div class=toPage>第<input type="text" $-model="searchVal" $-valid="pageCount|searchValid" name="pageNumber">页<button $-on:click="searchVal|toPage:[$,pageCount]" class="page-search">确定</button>共<strong>{{pageCount}}</strong>页</div>' +
         '</li>' +
         '<li class="footer-right">' +//<select config="gridConf.pageSizeList|pageSizeListHandle" ></select>条
-            '<span class="split">每页</span><ul><li for="size in gridConf.pageSizeList"><button v-on:click="eventManage.pageSize(size)" $-class="{focus:gridConf.pageSize == size}">{{size}}条</button></li></ul>' +
+            '<span class="split">每页</span><ul><li v-for="size in gridConf.pageSizeList"><button $-on:click="eventManage.pageSize(size)" $-class="{focus:gridConf.pageSize == size}">{{size}}条</button></li></ul>' +
             '<span>共<strong>{{dataCount}}</strong>条</span>' +
         '</li>' +
         '</ul>';
@@ -119,7 +119,7 @@ listGrid(function ($app) {
                     //写入列表数据到作用域中
                     scope.gridListData=resData.dataList;
 
-                    console.log(resData,':::::',scope)
+                    // console.log(resData,':::::',scope)
 
                     /*setTimeout(function () {
                         /!*var d=[].concat(resData.dataList);

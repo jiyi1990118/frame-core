@@ -6,11 +6,15 @@
 <input type="text" date:dateTime></input>
 <input type="text" date:dateTime></input>-->
 
-<h4 $-on:click="click">{{window.title}}click</h4>
+<h4 v-on:click="click" v-if="window.if">{{window.title}}click</h4>
+
+<!--<down-menu conf="[1,6,9]"></down-menu>-->
 
 <ul>
-    <li for="(key ,val) in window.list">{{key}}:{{val}}</li>
+    <!--<li v-for="(key ,val) in window.list">{{key}}:{{val}}</li>-->
 </ul>
+
+<select-multi conf="selectConf"></select-multi>
 <!--
 <layout-block loaction="head">
 
