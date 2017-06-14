@@ -5,10 +5,10 @@
 
 'use strict';
 
-var frameConf=require('../../../inside/config/index');
+var commData=require('../../../inside/config/lib/commData');
 
 function getRouteInfo(nowInfo) {
-    return queryRoute(nowInfo.path,frameConf.insideConf.routeMaps);
+    return queryRoute(nowInfo.path,commData.insideConf.routeMaps);
 }
 
 //路由查询

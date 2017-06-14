@@ -15,7 +15,7 @@ presenter('index',function () {
 
     this.layout('@layout:default').display();
 
-    this.assign('selectConf',[8,9,4,1])
+    this.assign('selectConf',[8,9,4,1]);
 
     This.assign('click',function () {
         console.log('ok!')

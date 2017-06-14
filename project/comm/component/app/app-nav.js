@@ -31,7 +31,7 @@ appNav(function ($app) {
                                         '<a><span>{{menuGroup.name}}</span></a>' +
                                         '<ul class="app-menu-group-content">' +
                                             '<li v-for="menuData in menuGroup.list">' +
-                                                '<a href="">' +
+                                                '<a  v-href="menuData.href">' +
                                                     '<i style="color:" class="iconfont icon-aIcon aIcon-sousuo"></i>' +
                                                     '<span>{{menuData.name}}</span>' +
                                                 '</a>' +
@@ -47,7 +47,7 @@ appNav(function ($app) {
                             '<a href="home/custom/list>{{menuGroup.name}}</a>' +
                             '<i class="iconfont icon-down"></i>' +
                             '<ul class="nav-menu">' +
-                                '<li v-for="menuData in menuGroup.list"><a>{{menuData.name}}</a></li>' +
+                                '<li v-for="menuData in menuGroup.list"><a v-href="menuData.href">{{menuData.name}}</a></li>' +
                             '</ul>' +
                         '</li>' +
                     '</ul>' +

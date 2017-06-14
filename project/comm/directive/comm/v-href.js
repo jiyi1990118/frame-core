@@ -1,17 +1,17 @@
 /**
- * Created by xiyuan on 17-6-12.
+ * Created by xiyuan on 17-6-14.
  */
-vIf(function ($app) {
+vHref(function ($app) {
 
-    $app.directive('v-if',{
+    $app.directive('v-href',{
         props: function (exp) {
             var vnode=this.vnode;
             return {
                 exp:exp,
-                key:'isShow',
+                key:'href',
                 default: true,
                 watch:function (data) {
-                    data?vnode.show():vnode.hide();
+                    vnode.setAttr('href',data);
                 }
             }
         }

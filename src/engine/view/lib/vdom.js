@@ -612,14 +612,6 @@ $vnode.prototype.destroy = function (type) {
             obs.destroy();
         });
 
-        Object.keys(structRes).forEach(function (key) {
-            delete structRes[key];
-        });
-
-        Object.keys(syntaxExample).forEach(function (key) {
-            delete syntaxExample[key];
-        });
-
     });
 
     Object.keys(this.$scope || {}).forEach(function (key) {
@@ -988,6 +980,7 @@ function init(modules) {
                         api.appendChild(elm, api.createTextNode(vnode.text));
                     }
                 } else {
+
                     //字符串内容表达式检查
                     if (vnode.data && vnode.data.exps) {
                         var text,
@@ -1001,9 +994,8 @@ function init(modules) {
 
                                 //表达式监听
                                 (exps[index] = syntaxHandle(exp, scopes, extraParameters.filter, true)).readWatch(function (data) {
-                                    // console.log('this is text ', data, vnode.$scope);
                                     //检查文本是否以存在 则重新合并文本内容
-                                    if (text) {
+                                    if (text !== undefined) {
                                         text = concatTextExp(exps);
                                         if (vnode.text !== text) {
                                             api.setTextContent(vnode.elm, vnode.text = text);

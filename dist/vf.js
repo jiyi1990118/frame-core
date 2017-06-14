@@ -1842,7 +1842,11 @@
 
                 },
                 //模板节点
-                templateVnode: vnode.clone()
+                templateVnode: vnode.clone(),
+                //对外提供数据出口
+                exports: function() {
+
+                }
 
             }
         }
@@ -1875,7 +1879,9 @@
             if (conf.hook) {
                 vnode.data.hook = vnode.data.hook || {};
                 Object.keys(conf.hook).forEach(function(hookName) {
-                    vnode.data.hook[hookName] = conf.hook[hookName];
+                    vnode.data.hook[hookName] = function() {
+                        conf.hook[hookName].apply($api, arguments)
+                    };
                 })
             }
 
@@ -5019,14 +5025,6 @@
                     obs.destroy();
                 });
 
-                Object.keys(structRes).forEach(function(key) {
-                    delete structRes[key];
-                });
-
-                Object.keys(syntaxExample).forEach(function(key) {
-                    delete syntaxExample[key];
-                });
-
             });
 
             Object.keys(this.$scope || {}).forEach(function(key) {
@@ -5397,6 +5395,7 @@
                                 api.appendChild(elm, api.createTextNode(vnode.text));
                             }
                         } else {
+
                             //字符串内容表达式检查
                             if (vnode.data && vnode.data.exps) {
                                 var text,
@@ -5410,9 +5409,8 @@
 
                                         //表达式监听
                                         (exps[index] = syntaxHandle(exp, scopes, extraParameters.filter, true)).readWatch(function(data) {
-                                            // console.log('this is text ', data, vnode.$scope);
                                             //检查文本是否以存在 则重新合并文本内容
-                                            if (text) {
+                                            if (text !== undefined) {
                                                 text = concatTextExp(exps);
                                                 if (vnode.text !== text) {
                                                     api.setTextContent(vnode.elm, vnode.text = text);
@@ -6764,10 +6762,10 @@
 
         'use strict';
 
-        var frameConf = require('../../../inside/config/index');
+        var commData = require('../../../inside/config/lib/commData');
 
         function getRouteInfo(nowInfo) {
-            return queryRoute(nowInfo.path, frameConf.insideConf.routeMaps);
+            return queryRoute(nowInfo.path, commData.insideConf.routeMaps);
         }
 
         //路由查询
@@ -6821,7 +6819,7 @@
         module.exports = getRouteInfo;
 
     }, {
-        "../../../inside/config/index": 32
+        "../../../inside/config/lib/commData": 33
     }],
     26: [function(require, module, exports) {
         /**
@@ -6909,10 +6907,10 @@
         var URL = require('../../../inside/lib/url');
         var PATH = require('../../../inside/lib/path');
         var routeData = require('./routeData');
-        var frameConf = require('../../../inside/config/index');
+        var commData = require('../../../inside/config/lib/commData');
 
-        var appConf = frameConf.appConf;
-        var insideConf = frameConf.insideConf;
+        var appConf = commData.appConf;
+        var insideConf = commData.insideConf;
 
         /**
          * 页面重定向
@@ -6969,7 +6967,7 @@
 
         module.exports = redirect;
     }, {
-        "../../../inside/config/index": 32,
+        "../../../inside/config/lib/commData": 33,
         "../../../inside/lib/path": 57,
         "../../../inside/lib/url": 61,
         "./exec": 24,
@@ -7267,6 +7265,8 @@
             innerConf: innerConf,
             mvpRecord: mvpRecord,
             customConf: customConf,
+            finalCallback: null,
+            extendFileCount: 0,
             presenterSource: presenterSource,
             customUseConf: customUseConf
         }
@@ -7478,7 +7478,7 @@
 
         /*配置对象接口*/
         function configIniterface() {
-
+            this.fileLength = 0
         };
 
         /*系统配置*/
@@ -7617,8 +7617,13 @@
                 case 3:
                     var depsPackage = [].concat(compConf);
                     deps.nowUrl = nowUrl;
+                    commData.extendFileCount++;
                     deps(depsPackage, function() {
                         componentMange.register(compName, optionCallback.apply(this, arguments))
+                        //计数器
+                        if (!--commData.extendFileCount) {
+                            commData.finalCallback();
+                        }
                     });
             }
         };
@@ -7633,8 +7638,13 @@
                 case 3:
                     var depsPackage = [].concat(compConf);
                     deps.nowUrl = nowUrl;
+                    commData.extendFileCount++;
                     deps(depsPackage, function() {
-                        directiveManage.register(compName, optionCallback.apply(this, arguments))
+                        directiveManage.register(compName, optionCallback.apply(this, arguments));
+                        //计数器
+                        if (!--commData.extendFileCount) {
+                            commData.finalCallback();
+                        }
                     });
             }
         };
@@ -7650,6 +7660,7 @@
                 nowUrl = stateData.nowUrl;
 
             function callback() {
+                --This.fileLength
                 if (--fileLength === 0) {
                     //加载完毕后恢复当前资源URL
                     stateData.nowUrl = nowUrl;
@@ -7661,12 +7672,14 @@
             if (config instanceof Array) {
                 config.forEach(function(confUrl) {
                     fileLength++;
-                    getConfig(confUrl, This, 'config', callback);
+                    This.fileLength++
+                        getConfig(confUrl, This, 'config', callback);
                 });
             } else if (config instanceof Object) {
                 Object.keys(config).forEach(function(key) {
                     fileLength++;
-                    getConfig(config[key], This, key, callback);
+                    This.fileLength++
+                        getConfig(config[key], This, key, callback);
                 })
             }
         };
@@ -7808,16 +7821,23 @@
                             var agrs = (this.many ? [].slice.call(arguments) : [
                                 [].slice.call(arguments)
                             ]);
-                            var count = agrs.length;
+                            commData.extendFileCount += agrs.length;
+
+                            //主要记录配置加载
+                            commData.finalCallback = function() {
+                                //调用配置处理
+                                configEndHandle();
+                                callback(true);
+                                delete commData.finalCallback
+                                delete commData.extendFileCount
+                            }
 
                             //返回的数据处理(检查是否有多个回调)
                             agrs.forEach(function(confArgs) {
                                 //请求完毕后处理配置解析
                                 confAPI.configRead(confArgs, function() {
-                                    if (--count === 0 && typeof callback === "function") {
-                                        //调用配置处理
-                                        configEndHandle();
-                                        callback(true);
+                                    if (--commData.extendFileCount === 0 && typeof callback === "function" && commData) {
+                                        commData.finalCallback();
                                     }
                                 }, configUrl);
                             });
@@ -13011,14 +13031,20 @@
             vdom: require('../engine/view/lib/vdom'),
             //内置方法库
             lib: require('../inside/lib/exports'),
+            //加载依赖
+            loadPlugins: require('../inside/deps/deps'),
             //获取自定义配置
             getConf: function(key) {
                 return object.get(commData.customUseConf, key)
-            }
+            },
+            //页面重定向
+            redirect: require('../init/boot/route/redirect')
         }
     }, {
         "../engine/view/lib/vdom": 21,
+        "../init/boot/route/redirect": 28,
         "../inside/config/lib/commData": 33,
+        "../inside/deps/deps": 38,
         "../inside/lib/exports": 50,
         "../inside/lib/object": 55
     }],

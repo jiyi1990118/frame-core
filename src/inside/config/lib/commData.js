@@ -115,6 +115,8 @@ module.exports={
     innerConf:innerConf,
     mvpRecord:mvpRecord,
     customConf:customConf,
+    finalCallback:null,
+    extendFileCount:0,
     presenterSource:presenterSource,
     customUseConf:customUseConf
 }

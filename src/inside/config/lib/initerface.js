@@ -23,7 +23,7 @@ var noop = function () {
 
 /*配置对象接口*/
 function configIniterface() {
-
+    this.fileLength=0
 };
 
 /*系统配置*/
@@ -162,8 +162,13 @@ configIniterface.prototype.component=function (compName,compConf,optionCallback)
         case 3:
             var depsPackage=[].concat(compConf);
             deps.nowUrl=nowUrl;
+            commData.extendFileCount++;
             deps(depsPackage,function () {
                 componentMange.register(compName,optionCallback.apply(this,arguments))
+                //计数器
+                if(!--commData.extendFileCount){
+                    commData.finalCallback();
+                }
             });
     }
 };
@@ -178,8 +183,13 @@ configIniterface.prototype.directive=function (compName,compConf,optionCallback)
         case 3:
             var depsPackage=[].concat(compConf);
             deps.nowUrl=nowUrl;
+            commData.extendFileCount++;
             deps(depsPackage,function () {
-                directiveManage.register(compName,optionCallback.apply(this,arguments))
+                directiveManage.register(compName,optionCallback.apply(this,arguments));
+                //计数器
+                if(!--commData.extendFileCount){
+                    commData.finalCallback();
+                }
             });
     }
 };
@@ -195,6 +205,7 @@ configIniterface.prototype.include = function (config) {
         nowUrl = stateData.nowUrl;
 
     function callback() {
+        --This.fileLength
         if (--fileLength === 0) {
             //加载完毕后恢复当前资源URL
             stateData.nowUrl = nowUrl;
@@ -206,11 +217,13 @@ configIniterface.prototype.include = function (config) {
     if (config instanceof Array) {
         config.forEach(function (confUrl) {
             fileLength++;
+            This.fileLength++
             getConfig(confUrl, This, 'config', callback);
         });
     } else if (config instanceof Object) {
         Object.keys(config).forEach(function (key) {
             fileLength++;
+            This.fileLength++
             getConfig(config[key], This, key, callback);
         })
     }

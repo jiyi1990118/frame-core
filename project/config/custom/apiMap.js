@@ -16,6 +16,8 @@ apiMap(function ($app) {
             'menuList':'auth/A05007',
             //快捷菜单
             'shortcutMenuList':'auth/A05009',
+            //详情视图渲染
+            'detailViewRendering':'render/R01004',
         }
     });
 

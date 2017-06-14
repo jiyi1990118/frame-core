@@ -65,7 +65,11 @@ function directiveClass(directiveConf, vnode, extraParameters, directiveName,vdo
 
         },
         //模板节点
-        templateVnode: vnode.clone()
+        templateVnode: vnode.clone(),
+        //对外提供数据出口
+        exports:function () {
+
+        }
 
     }
 }
@@ -98,7 +102,9 @@ directiveClass.prototype.init = function () {
     if(conf.hook){
         vnode.data.hook=vnode.data.hook||{};
         Object.keys(conf.hook).forEach(function (hookName) {
-            vnode.data.hook[hookName]=conf.hook[hookName];
+            vnode.data.hook[hookName]=function () {
+                conf.hook[hookName].apply($api,arguments)
+            };
         })
     }
 

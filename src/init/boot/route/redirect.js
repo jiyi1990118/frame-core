@@ -9,10 +9,10 @@ var exec=require('./exec');
 var URL=require('../../../inside/lib/url');
 var PATH=require('../../../inside/lib/path');
 var routeData=require('./routeData');
-var frameConf=require('../../../inside/config/index');
+var commData=require('../../../inside/config/lib/commData');
 
-var appConf=frameConf.appConf;
-var insideConf=frameConf.insideConf;
+var appConf=commData.appConf;
+var insideConf=commData.insideConf;
 
 /**
  * 页面重定向

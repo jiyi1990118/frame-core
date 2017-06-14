@@ -23,16 +23,23 @@ function loadUrlConf(callback) {
                 //检查返回的状态
                 if (this.state) {
                     var agrs=(this.many ? [].slice.call(arguments) : [[].slice.call(arguments)]);
-                    var count =agrs.length;
+                    commData.extendFileCount+=agrs.length;
+
+                    //主要记录配置加载
+                    commData.finalCallback=function () {
+                        //调用配置处理
+                        configEndHandle();
+                        callback(true);
+                        delete commData.finalCallback
+                        delete commData.extendFileCount
+                    }
 
                     //返回的数据处理(检查是否有多个回调)
                     agrs.forEach(function (confArgs) {
                         //请求完毕后处理配置解析
                         confAPI.configRead(confArgs, function () {
-                            if (--count === 0 && typeof callback === "function") {
-                                //调用配置处理
-                                configEndHandle();
-                                callback(true);
+                            if (--commData.extendFileCount === 0 && typeof callback === "function" && commData) {
+                                commData.finalCallback();
                             }
                         }, configUrl);
                     });

@@ -20,4 +20,22 @@ presenter('list',function () {
 
     this.layout('@layout:default').display();
 
-})
+});
+
+//详情页面
+presenter('detail',function () {
+    this.title('详情页面');
+    //
+    // var gridApi=this.model();
+    //
+    // this.assign('gridApi',gridApi);
+
+    var formLayout = this.model('@custom/detail:detailBasicInfo');
+
+    formLayout.trigger('detailConf',$_GET['viewId']?$_GET['viewId']:162,'')
+
+    this.assign('formLayout',formLayout);console.log(formLayout)
+
+    this.layout('@layout:default').display();
+
+});
