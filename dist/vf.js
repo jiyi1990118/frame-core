@@ -1449,14 +1449,12 @@
          * @param filter    [过滤器]
          */
         function render(html, scope, filter) {
-            return html2vdom(html)
+            var vDOM = html2vdom(html);
+            return vdom.patch(null, vDOM, {
+                scope: scope,
+                filter: filter
+            });
         }
-
-        //虚拟Dom或实体Dom销毁
-        function destroy(vnode) {
-
-        }
-
 
         //对外提供基础接口
         exports.vdom = vdom;
@@ -1469,9 +1467,6 @@
 
         //对外提供视图渲染接口
         exports.render = render;
-
-        //对外提供视图销毁接口
-        exports.destroy = destroy;
 
         exports.viewSourc = viewSourc;
 
@@ -5807,6 +5802,8 @@
             return function patch(oldVnode, Vnode, option, parentVnode, callback) {
                 option = option || {};
 
+                console.log(option, '::::');
+
                 var i, elm, parent, nextElm;
                 var insertedVnodeQueue = [];
 
@@ -5947,6 +5944,7 @@
                             patchVnode(oldVnode, Vnode, insertedVnodeQueue, extraParameters);
                         } else {
 
+                            console.log(extraParameters, ':++++:');
                             //创建新节点
                             createElm(Vnode, insertedVnodeQueue, function(ch, isRearrange) {
                                 var _oldVnode;
@@ -8127,7 +8125,7 @@
                                 moduleName = 'index';
 
                             //提取相关资源
-                            Object.keys(confArgs).forEach(function(key) {
+                            Object.keys(confArgs).forEach(function(key, index) {
                                 switch (true) {
                                     case confArgs[key] instanceof Array:
                                         desp = desp.concat(confArgs[key]);
@@ -8135,9 +8133,13 @@
                                     case confArgs[key] instanceof Function:
                                         resFn = confArgs[key]
                                         break;
-                                    case typeof confArgs[key] === 'string':
+                                    case confArgs.length === (index + 1):
+                                        resFn = confArgs[key];
+                                        break;
+                                    case typeof confArgs[key] === 'string' && index === 0:
                                         moduleName = confArgs[key];
                                         break;
+
                                 }
                             });
 
@@ -13076,6 +13078,8 @@
         module.exports = {
             //虚拟dom
             vdom: require('../engine/view/lib/vdom'),
+            //视图渲染
+            renderView: require('../engine/view/exports').render,
             //内置方法库
             lib: require('../inside/lib/exports'),
             //加载依赖
@@ -13088,6 +13092,7 @@
             redirect: require('../init/boot/route/redirect')
         }
     }, {
+        "../engine/view/exports": 15,
         "../engine/view/lib/vdom": 21,
         "../init/boot/route/redirect": 28,
         "../inside/config/lib/commData": 33,

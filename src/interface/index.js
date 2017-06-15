@@ -9,6 +9,8 @@ var commData=require('../inside/config/lib/commData');
 module.exports={
     //虚拟dom
     vdom:require('../engine/view/lib/vdom'),
+    //视图渲染
+    renderView:require('../engine/view/exports').render,
     //内置方法库
     lib:require('../inside/lib/exports'),
     //加载依赖

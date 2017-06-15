@@ -1,0 +1,212 @@
+.modal-dialog{
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999;
+  position: fixed;
+  background-color: rgba(0,0,0,0);
+  .transition(background-color 0.3s);
+  &.open {
+    background-color: rgba(72, 72, 72, 0.3);
+    .modal-dialog-main.center {
+      top: 0;
+      opacity: 1;
+      .transform(scale3d(1, 1, 1));
+    }
+  }
+  &.fullscreen .modal-dialog-main{
+    width:100% !important;
+    height:100% !important;
+    transition-timing-function:cubic-bezier(1,-0.19,.03,.38);
+    .title-btns{
+      .icon-fangda{
+        &:before{
+          opacity: 0;
+        }
+        &:after{
+          opacity: 1;
+        }
+      }
+    }
+    .body-content{
+      width:100% !important;
+    }
+  }
+}
+.modal-dialog-main{
+  z-index: 999;
+  position: absolute;
+  display: table;
+  background-color: white;
+  border: 1px solid rgba(0,0,0,.1);
+  box-shadow: 1px 1px 5px rgba(0,0,0,.2);
+
+  top: -100%;
+  opacity: 0;
+  .transform(scale3d(0.7,0.7,1));
+
+  transition-timing-function:cubic-bezier(.81,.37,.13,1.01);
+  .transition(~'width 0.3s ,height 0.3s ,top 0.3s ease,opacity 0.3s ease,transform 0.3s ease');
+
+  &.center{
+    left: 0;
+    bottom: 0;
+    right: 0;
+    margin: auto;
+  }
+
+  .dialog-header,.dialog-body,.dialog-footer{
+    display: table-row;
+  }
+  .dialog-header{
+    height: 40px;
+  }
+  .header-conent{
+    height:40px;
+    display: flex;
+    align-items: center;
+    background-color: #E0E5ED;
+    border-bottom: solid 1px #d4d4d4;
+    .textNoSelect();
+  }
+
+  .title-name{
+    flex: 1;
+    color: #67676f;
+    font-size: 16px;
+    font-weight: 100;
+    padding-left: 10px;
+  }
+  .title-btns{
+    width:100px;
+    color:#A3B3CE;
+    text-align: right;
+    padding-right: 15px;
+    vertical-align: middle;
+    .icon-fangda,.icon-close{
+      cursor: pointer;
+      font-size: 18px;
+      &:hover{
+        color:#e4b75b;
+      }
+    }
+
+    .icon-fangda{
+      padding-right: 15px;
+      position: relative;
+      &:after,&:before{
+        .transition(opacity 0.3s);
+      }
+      &:after{
+        left: 0;
+        opacity: 0;
+        content: '\e6a6';
+        position: absolute;
+      }
+    }
+
+  }
+
+  .body-content{
+    overflow: auto;
+    height: 100%;
+    width:100%;
+    //右侧内容X轴滚动条默认底色颜色
+    &::-webkit-scrollbar-track{
+      background-color: #e7eaec;
+      border-radius: 10px;
+    }
+    //右侧内容X轴滚动条鼠标初始化颜色
+    &::-webkit-scrollbar-thumb{
+      background-color: rgba(153, 163, 173, 0.49);
+      border-radius: 10px;
+    }
+    //右侧内容X轴滚动条鼠标划过颜色
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(153, 163, 173, 0.89);
+      border-radius: 10px;
+    }
+    //右侧内容X轴滚动条鼠标点击颜色
+    &::-webkit-scrollbar-thumb:active {
+      background-color: rgba(153, 163, 173, 1);
+      border-radius: 10px;
+    }
+    //右侧内容X轴滚动条高度
+    &::-webkit-scrollbar{
+      height:10px;
+      width:10px;
+    }
+  }
+
+  .dialog-footer{
+    height:40px;
+  }
+
+  .footer-content{
+    height:100%;
+    display: flex;
+    align-items: center;
+    justify-content:flex-end;
+    border-top: solid 1px #f9f9f9;
+    padding-right: 10px;
+    @color:#00BEAF;
+    button{
+      color: @color;
+      outline: none;
+      font-size: 14px;
+      padding: 5px 15px;
+      background-color: transparent;
+      border: solid 1px @color;
+      .transition(all 0.3s);
+      &.primary{
+        @color:#3071a9;
+        color:@color;
+        border-color:@color;
+        &:hover{
+          background-color:@color ;
+        }
+      }
+      &.success{
+        @color:#4cae4c;
+        color:@color;
+        border-color:@color;
+        &:hover{
+          background-color:@color ;
+        }
+      }
+      &.info{
+        @color:#46b8da;
+        color:@color;
+        border-color:@color;
+        &:hover{
+          background-color:@color ;
+        }
+      }
+      &.warning{
+        @color:#eea236;
+        color:@color;
+        border-color:@color;
+        &:hover{
+          background-color:@color ;
+        }
+      }
+      &.danger{
+        @color:#d43f3a;
+        color:@color;
+        border-color:@color;
+        &:hover{
+          background-color:@color ;
+        }
+      }
+      &:hover{
+        color:white;
+        background-color:@color ;
+      }
+    }
+    li{
+      padding: 0 5px;
+    }
+  }
+  
+}

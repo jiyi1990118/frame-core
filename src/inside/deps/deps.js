@@ -137,7 +137,7 @@ function getFile(filePath,callback,nowUrl) {
                         moduleName='index';
 
                     //提取相关资源
-                    Object.keys(confArgs).forEach(function (key) {
+                    Object.keys(confArgs).forEach(function (key,index) {
                         switch (true){
                             case confArgs[key] instanceof Array:
                                 desp=desp.concat(confArgs[key]);
@@ -145,9 +145,13 @@ function getFile(filePath,callback,nowUrl) {
                             case confArgs[key] instanceof Function:
                                 resFn=confArgs[key]
                                 break;
-                            case typeof confArgs[key] === 'string':
+                            case confArgs.length === (index+1):
+                                resFn=confArgs[key];
+                                break;
+                            case typeof confArgs[key] === 'string' && index === 0:
                                 moduleName=confArgs[key];
                                 break;
+
                         }
                     });
 

@@ -6,6 +6,7 @@ directive(function ($app) {
         vIf:'./comm/v-if.js',
         vFor:'./comm/v-for.js',
         vOn:'./comm/v-on.js',
+        vStyle:'./comm/v-style.js',
         vClass:'./comm/v-class.js',
         vHref:'./comm/v-href.js',
         vAttr:'./comm/v-attr.js',

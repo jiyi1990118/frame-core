@@ -31,14 +31,9 @@ var directiveMange=require('./lib/directiveManage');
  * @param filter    [过滤器]
  */
 function render(html, scope, filter) {
-    return html2vdom(html)
+    var vDOM=html2vdom(html);
+    return vdom.patch(null, vDOM, {scope:scope, filter:filter});
 }
-
-//虚拟Dom或实体Dom销毁
-function destroy(vnode) {
-
-}
-
 
 //对外提供基础接口
 exports.vdom = vdom;
@@ -51,9 +46,6 @@ exports.directiveMange = directiveMange;
 
 //对外提供视图渲染接口
 exports.render = render;
-
-//对外提供视图销毁接口
-exports.destroy=destroy;
 
 exports.viewSourc=viewSourc;
 
