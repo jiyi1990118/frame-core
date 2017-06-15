@@ -4,7 +4,7 @@
 
 select(function ($app) {
 
-    $app.component('select', ['PLUGINS/form/selectize:selectize'], function ($) {
+    $app.component('select', ['PLUGINS/form/selectize:selectize','PLUGINS/comm/jquery'], function ($,j) {
 
         return {
             props: {

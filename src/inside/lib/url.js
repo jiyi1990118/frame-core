@@ -38,7 +38,7 @@ function hostName(url) {
 /*domain name*/
 function domain(url) {
     if (typeof url === "string"){
-        if(url=url.match(/^(\w+:)?\/\/(\w[\w\.]*(:\d+)?)/))return (url[1]?url[1]:window.location.protocol)+'//'+url[2]+(url[3]||'');
+        if(url=url.match(/^(\w+:)?\/\/(\w[\w\.]*(:\d+)?)/))return (url[1]?url[1]:window.location.protocol)+'//'+url[2];
     };
     return window.location.protocol+'//'+window.location.host;
 };

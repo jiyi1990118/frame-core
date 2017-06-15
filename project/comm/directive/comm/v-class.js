@@ -15,6 +15,7 @@ vClass(function ($app) {
                 key:'class',
                 default: {},
                 watch:function (data) {
+
                     var classList=Object.keys(data).reduce(function (list,key) {
                         if(data[key]){
                             list.push(key);

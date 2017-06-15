@@ -2582,6 +2582,22 @@
                     return val1.value / val2.value;
                 case '%':
                     return val1.value % val2.value;
+                case '|':
+                    return val1.value | val2.value;
+                case '&':
+                    return val1.value & val2.value;
+                case '||':
+                    return val1.value || val2.value;
+                case '&&':
+                    return val1.value || val2.value;
+                case '==':
+                    return val1.value == val2.value;
+                case '>=':
+                    return val1.value >= val2.value;
+                case '<=':
+                    return val1.value <= val2.value;
+                case '===':
+                    return val1.value === val2.value;
                     //三元运算
                 case '?':
                     return val1.value ? val2.value : val3.value;
@@ -2599,7 +2615,7 @@
                 case 'Object':
                     var obj = {};
                     Object.keys(val1).forEach(function(key) {
-                        obj[key] = val1[key];
+                        obj[key] = val1[key].value;
                     })
                     return obj;
                     //方法执行
@@ -9423,10 +9439,7 @@
         var noop = function() {},
             //存储jsonp处理中的数据
             recordJsonpStroage = {},
-            //标识是否是多回调
-            many = false,
             //jsonp数据缓存对象 (哪个请求先回调也就哪个请求先加载完毕 ,也就是哪个先写入缓存哪个就先得到缓存)
-            jsonpStorage = null,
             cssElement = window.document.createElement('link'),
             jsElement = window.document.createElement('script'),
             headElement = window.document.getElementsByTagName('head')[0] || window.document.documentElement;
@@ -9443,29 +9456,45 @@
         jsElement.async = 'async';
         jsElement.charset = "utf-8";
 
+        var jsonpState = {},
+            //jsonp数据监听
+            jsonpWatchs = {},
+            //jsonp数据存储
+            jsonpStorageMap = {};
+
+        var jsonpStorage = [];
+
         /* js脚本获取 */
         function getJs(option) {
+
+            //回调处理
+            var callbackHandle = function(resInfo) {
+
+                var resData = resInfo.many ? resInfo.resData : resInfo.resData[0];
+
+                option.complete.apply(resInfo, resData);
+
+                resInfo.state ? option.success.apply(resInfo, resData) : option.error.apply(resInfo);;
+            };
+
+            //资源监听
+            (jsonpWatchs[option.url] = jsonpWatchs[option.url] || []).push(callbackHandle);
+
+            //检查jsonp状态
+            switch (jsonpState[option.url]) {
+                case 1:
+                    return;
+                case 2:
+                    return callbackHandle(jsonpStorageMap[option.url]);
+            }
+
             var callback = option.jsonpCallback,
                 done = false,
-                js = jsElement.cloneNode(),
-                complete = function() {
-                    --recordJsonpStroage[callback].sum;
-                    //方法调用完毕后还原备份方法
-                    if (recordJsonpStroage[callback].sum < 1) {
-                        typeof recordJsonpStroage[callback].windowCallback === "undefined" ? delete window[callback] : (window[callback] = recordJsonpStroage[callback].windowCallback);
-                        delete recordJsonpStroage[callback];
-                    }
-                    option.element || headElement.removeChild(js);
-                    var object = {
-                        dom: this,
-                        option: option,
-                        many: many
-                    };
-                    object.state = jsonpStorage ? true : false;
-                    option.complete.apply(object, jsonpStorage);
-                };
+                scriptNode = jsElement.cloneNode();
 
-            js.src = option.url;
+            scriptNode.src = option.url;
+
+            jsonpState[option.url] = 1;
 
             //作为之前已存在的方法作为一个备份
             if (recordJsonpStroage[callback]) {
@@ -9479,50 +9508,68 @@
 
             //文件加载完毕后调用jsonpCallback方法
             window[callback] = function() {
-                //用来处理一个请求里有多个回调
-                if (jsonpStorage) {
-                    !many && (jsonpStorage = [jsonpStorage], many = true)
-                    jsonpStorage.push([].slice.call(arguments));
-                } else {
-                    jsonpStorage = [].slice.call(arguments);
-                }
+                //用来存储回调数据
+                jsonpStorage.push([].slice.call(arguments));
             };
 
+            //标识当前请求为amd模式
             window[callback].amd = true;
 
             //初始化回调(用于包处理 define.amd 赋值)
-            option.init.call(js, window[callback]);
+            option.init.call(scriptNode, window[callback]);
+
+            function complete() {
+                //接收计数器
+                --recordJsonpStroage[callback].sum;
+                //方法调用完毕后还原备份方法
+                if (recordJsonpStroage[callback].sum < 1) {
+                    typeof recordJsonpStroage[callback].windowCallback === "undefined" ? delete window[callback] : (window[callback] = recordJsonpStroage[callback].windowCallback);
+                    delete recordJsonpStroage[callback];
+                }
+                //是否移除scirpt节点
+                option.element || headElement.removeChild(scriptNode);
+                //对挂载的监听进行反馈
+                jsonpWatchs[option.url].forEach(function(fn) {
+                    fn(jsonpStorageMap[option.url])
+                })
+                //清空jsonp数据容器
+                jsonpStorage = [];
+            };
 
             //js获取成功后处理
-            js.onload = js.onreadystatechange = function() {
+            scriptNode.onload = scriptNode.onreadystatechange = function() {
                 if (!done && (!this.readyState || this.readyState === 'loaded' || this.readyState === 'complete')) {
-                    complete();
+                    //标识资源请求完成
                     done = true;
+                    //销毁相关监听
                     this.onload = this.onreadystatechange = null;
-                    option.success.apply({
+                    //成功接收后的回调数据
+                    jsonpState[option.url] = 2;
+                    jsonpStorageMap[option.url] = {
                         dom: this,
+                        state: true,
                         option: option,
-                        many: many
-                    }, jsonpStorage);
-                    //清空jsonp数据容器
-                    jsonpStorage = null;
-                    many = false;
+                        resData: jsonpStorage,
+                        many: jsonpStorage.length > 1
+                    }
+                    complete();
                 }
             };
 
             //js获取失败后处理
-            js.onerror = function() {
-                complete();
-                option.error.apply({
+            scriptNode.onerror = function() {
+                jsonpState[option.url] = 2;
+                jsonpStorageMap[option.url] = {
                     dom: this,
-                    option: option
-                });
+                    option: option,
+                    state: false
+                };
+                complete();
             };
 
             //想文档中添加js节点，使其开始加载文件
-            headElement.appendChild(js);
+            headElement.appendChild(scriptNode);
         };
-
 
         //默认的jsonp配置
         var defaulteOption = {
@@ -9535,7 +9582,7 @@
             complete: noop, //不管成功还是失败都回调
             callbackName: 'callback', //jsonp发送的参数名称
             jsonpCallback: 'callback', //jsonp回调成功执行的方法名
-            element: true, //是否保留创建的javascript或link标签
+            element: false, //是否保留创建的javascript或link标签
             jsonpParameter: true //是否保留url中的jsonp参数
         };
 
@@ -12536,7 +12583,7 @@
         /*domain name*/
         function domain(url) {
             if (typeof url === "string") {
-                if (url = url.match(/^(\w+:)?\/\/(\w[\w\.]*(:\d+)?)/)) return (url[1] ? url[1] : window.location.protocol) + '//' + url[2] + (url[3] || '');
+                if (url = url.match(/^(\w+:)?\/\/(\w[\w\.]*(:\d+)?)/)) return (url[1] ? url[1] : window.location.protocol) + '//' + url[2];
             };
             return window.location.protocol + '//' + window.location.host;
         };

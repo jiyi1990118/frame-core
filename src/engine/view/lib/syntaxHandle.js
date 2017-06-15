@@ -87,6 +87,22 @@ function operation(symbol, val1, val2, val3) {
             return val1.value / val2.value;
         case '%':
             return val1.value % val2.value;
+        case '|':
+            return val1.value | val2.value;
+        case '&':
+            return val1.value & val2.value;
+        case '||':
+            return val1.value || val2.value;
+        case '&&':
+            return val1.value || val2.value;
+        case '==':
+            return val1.value == val2.value;
+        case '>=':
+            return val1.value >= val2.value;
+        case '<=':
+            return val1.value <= val2.value;
+        case '===':
+            return val1.value === val2.value;
         //三元运算
         case '?':
             return val1.value ? val2.value : val3.value;
@@ -104,7 +120,7 @@ function operation(symbol, val1, val2, val3) {
         case 'Object':
             var obj = {};
             Object.keys(val1).forEach(function (key) {
-                obj[key] = val1[key];
+                obj[key] = val1[key].value;
             })
             return obj;
         //方法执行
