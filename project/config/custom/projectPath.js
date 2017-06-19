@@ -5,8 +5,8 @@ projectPath(function ($app,$innerConfig) {
 
     $app.custom({
         PROJECT_PATH:{
-            config:$innerConfig.projectPath+'/project/config',
-            serverData:$innerConfig.projectPath+'/project/serverData'
+            config:$innerConfig.projectPath+'/config',
+            serverData:$innerConfig.projectPath+'/serverData'
         }
     })
 })

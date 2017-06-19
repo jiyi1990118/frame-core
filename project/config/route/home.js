@@ -32,6 +32,16 @@ route(function ($appConf) {
             view: 'HOME',
             suffix:'html'
         })
+    });
+
+    $appConf.route('demo',function ($route) {
+        //自动路由
+        $route.autoRoute({
+            presenter: 'DEMO',
+            view: 'DEMO',
+            suffix:'html'
+        })
     })
+
 
 })

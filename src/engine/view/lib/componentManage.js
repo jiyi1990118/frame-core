@@ -23,7 +23,8 @@ function compClass(compConf, vnode, extraParameters,vdomApi) {
     vnode.innerScope={};
 
     if(compConf.scope instanceof Function){
-        vnode.innerScope=compConf.scope();
+        var _scope=compConf.scope();
+        if(_scope) vnode.innerScope=_scope;
     }else if(compConf.scope instanceof Object){
         Object.keys(compConf.scope||{}).forEach(function (key) {
             vnode.innerScope[key]=compConf.scope[key];
@@ -103,8 +104,8 @@ compClass.prototype.init = function () {
     //处理观察的属性
     function propHandle(propName, prop) {
         var proData={};
-        if (!attrsMap[propName]) {
-            return console.warn('组件数据属性 ' + propName + ' 未定义!');
+        if (!attrsMap[propName] ) {
+            return prop.isEmpty || console.warn('组件数据属性 ' + propName + ' 未定义!');
         }
 
         if (prop instanceof Function) {
@@ -134,6 +135,16 @@ compClass.prototype.init = function () {
             isRender = true;
             $this.render();
         }
+    }
+
+    //写入钩子
+    if(conf.hook){
+        vnode.data.hook=vnode.data.hook||{};
+        Object.keys(conf.hook).forEach(function (hookName) {
+            vnode.data.hook[hookName]=function () {
+                conf.hook[hookName].apply($api,arguments)
+            };
+        })
     }
 
     //检查模板
@@ -178,8 +189,8 @@ compClass.prototype.init = function () {
 
                             //监听当前语法
                             if(propConf.watch instanceof Function){
-                                propConf.watch.apply(this,arguments);
-                                syntaxExample.watch(propConf.watch )
+                                propConf.watch.apply($api,arguments);
+                                syntaxExample.watch(propConf.watch.bind($api))
                             }
 
                             //获取当前值的watchKey
@@ -215,9 +226,12 @@ compClass.prototype.init = function () {
                             }
 
                         })) {
+
                         //检查是否有默认数据
-                        if (propConf.hasOwnProperty('default')) {
+                        if (propConf.hasOwnProperty('default') ) {
                             $api.scope[propConf.key] = propConf['default'];
+                            renderTrigger();
+                        }else if(propConf.isEmpty){
                             renderTrigger();
                         }
                     }

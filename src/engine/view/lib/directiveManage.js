@@ -133,7 +133,7 @@ directiveClass.prototype.init = function () {
     //检查观察的属性 中数据是否完全加载
     if (conf.props) {
         if (props instanceof Function) {
-            props = props.call($api, exp,this.expInfo);
+            props = props.call($api, exp,this.expInfo,vnode);
             watchProps = watchProps.concat(props)
 
             if (watchProps.length) {
@@ -167,8 +167,8 @@ directiveClass.prototype.init = function () {
 
                                 //监听当前语法
                                 if (propConf.watch instanceof Function) {
-                                    propConf.watch.apply(this, arguments);
-                                    syntaxExample.watch(propConf.watch)
+                                    propConf.watch.apply($api,arguments);
+                                    syntaxExample.watch(propConf.watch.bind($api))
                                 }
 
                                 //获取当前值的watchKey

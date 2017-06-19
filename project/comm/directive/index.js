@@ -11,6 +11,6 @@ directive(function ($app) {
         vHref:'./comm/v-href.js',
         vAttr:'./comm/v-attr.js',
         vModel:'./form/v-model.js',
-        vDate:'./form/date/v-date.js',
+        inputType:'./form/form-input-type.js',
     })
 })

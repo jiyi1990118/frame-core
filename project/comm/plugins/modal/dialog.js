@@ -30,7 +30,7 @@ define(function () {
             // '<template config="innerConf|:templateHandle($,innerConf.content)"></template>' +
             '</div></div>' +
             '<div v-if="innerConf.btns|:btnLen"  class="dialog-footer">' +
-            '<ul class="footer-content"><li v-for="btnInfo in innerConf.btns"><button type="button" $-attr:class="btnInfo.theme" v-style="btnInfo.style" v-on:click="btnInfo|:trigger($,interface,innerConf)">{{btnInfo.name}}</button></li></ul>' +
+            '<ul class="footer-content"><li v-for="btnInfo in innerConf.btns"><button type="button" v-attr:class="btnInfo.theme" v-style="btnInfo.style" v-on:click="btnInfo|:trigger($,interface,innerConf)">{{btnInfo.name}}</button></li></ul>' +
             '</div>' +
             '</div></div>';
 
@@ -94,8 +94,6 @@ define(function () {
                 }
             },
             dialogEle=scope.ele.dialogEle=vf.renderView(dialogTemplate,scope,filter).elm;
-
-        console.log(dialogEle,scope);
 
         document.body.appendChild(dialogEle);
 

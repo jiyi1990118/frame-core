@@ -22,6 +22,7 @@ config(function($app,$innerConfig){
         devCustom:'./custom/dev.js',
         proCustom:'./custom/pro.js',
         apiMap:'./custom/apiMap.js',
+        projectPath:'./custom/projectPath.js',
         server:'../comm/server/index.js',
         directive:'../comm/directive/index.js',
         components:'../comm/component/index.js'

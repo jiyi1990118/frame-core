@@ -61,6 +61,7 @@ function routeFormat(route, parentInfo) {
     if (parentInfo && !routeInfo.routeType) {
         nowInfo = parentInfo
     } else {
+        routeInfo.conf=routeInfo.conf||{};
         suffix=routeInfo.conf.suffix = routeInfo.conf.suffix || parentInfo.suffix;
         nowInfo = {
             paths: [],

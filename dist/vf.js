@@ -1506,7 +1506,8 @@
             vnode.innerScope = {};
 
             if (compConf.scope instanceof Function) {
-                vnode.innerScope = compConf.scope();
+                var _scope = compConf.scope();
+                if (_scope) vnode.innerScope = _scope;
             } else if (compConf.scope instanceof Object) {
                 Object.keys(compConf.scope || {}).forEach(function(key) {
                     vnode.innerScope[key] = compConf.scope[key];
@@ -1587,7 +1588,7 @@
             function propHandle(propName, prop) {
                 var proData = {};
                 if (!attrsMap[propName]) {
-                    return console.warn('组件数据属性 ' + propName + ' 未定义!');
+                    return prop.isEmpty || console.warn('组件数据属性 ' + propName + ' 未定义!');
                 }
 
                 if (prop instanceof Function) {
@@ -1617,6 +1618,16 @@
                     isRender = true;
                     $this.render();
                 }
+            }
+
+            //写入钩子
+            if (conf.hook) {
+                vnode.data.hook = vnode.data.hook || {};
+                Object.keys(conf.hook).forEach(function(hookName) {
+                    vnode.data.hook[hookName] = function() {
+                        conf.hook[hookName].apply($api, arguments)
+                    };
+                })
             }
 
             //检查模板
@@ -1661,8 +1672,8 @@
 
                                     //监听当前语法
                                     if (propConf.watch instanceof Function) {
-                                        propConf.watch.apply(this, arguments);
-                                        syntaxExample.watch(propConf.watch)
+                                        propConf.watch.apply($api, arguments);
+                                        syntaxExample.watch(propConf.watch.bind($api))
                                     }
 
                                     //获取当前值的watchKey
@@ -1698,9 +1709,12 @@
                                     }
 
                                 })) {
+
                                 //检查是否有默认数据
                                 if (propConf.hasOwnProperty('default')) {
                                     $api.scope[propConf.key] = propConf['default'];
+                                    renderTrigger();
+                                } else if (propConf.isEmpty) {
                                     renderTrigger();
                                 }
                             }
@@ -1905,7 +1919,7 @@
             //检查观察的属性 中数据是否完全加载
             if (conf.props) {
                 if (props instanceof Function) {
-                    props = props.call($api, exp, this.expInfo);
+                    props = props.call($api, exp, this.expInfo, vnode);
                     watchProps = watchProps.concat(props)
 
                     if (watchProps.length) {
@@ -1939,8 +1953,8 @@
 
                                         //监听当前语法
                                         if (propConf.watch instanceof Function) {
-                                            propConf.watch.apply(this, arguments);
-                                            syntaxExample.watch(propConf.watch)
+                                            propConf.watch.apply($api, arguments);
+                                            syntaxExample.watch(propConf.watch.bind($api))
                                         }
 
                                         //获取当前值的watchKey
@@ -4540,6 +4554,21 @@
 
         var patch = init([compAndDirectiveInspect(), attributesModule(), classModule(), propsModule(), styleModule(), eventListenersModule()])
 
+        //调用销毁钩子
+        function invokeDestroyHook(vnode) {
+            var i, j, data = vnode.data;
+
+            if (isDef(data)) {
+                //触发虚拟节点中的销毁钩子
+                if (isDef(i = data.hook) && isDef(i = i.destroy)) i(vnode);
+            }
+
+            //触发model中的销毁钩子
+            cbs.destroy.forEach(function(destroyHook) {
+                destroyHook(vnode);
+            });
+        }
+
         //虚拟节点对象
         function $vnode(conf) {
             var $this = this;
@@ -4966,6 +4995,8 @@
         $vnode.prototype.destroy = function(type) {
             var $this = this;
 
+            if (!this.hasOwnProperty('sel')) return;
+
             //检查是否文本
             if (isUndef(this.sel) && this.data && this.data.exps) {
                 switch (type) {
@@ -4992,7 +5023,8 @@
             }
 
             if (this.elm) {
-
+                //调用销毁钩子
+                invokeDestroyHook(this)
                 if (this.elm instanceof Array) {
                     switch (type) {
                         case false:
@@ -5028,7 +5060,7 @@
             }
 
             //检查节点上的语法表达式
-            (this.data.syntaxExample || []).forEach(function(syntaxExample) {
+            this.isClone || (this.data.syntaxExample || []).forEach(function(syntaxExample) {
                 var structRes = syntaxExample.structRes;
 
                 //销毁语法上的监听
@@ -5141,6 +5173,12 @@
         function rearrangePatch(newVnode, oldVnode, parentElm) {
             htmlDomApi.insertBefore(parentElm, newVnode.elm, oldVnode.elm);
             oldVnode.destroy();
+            if (oldVnode.elm !== newVnode.elm) {
+                //触发队列中的insert钩子
+                [newVnode].forEach(function(ivq) {
+                    ivq.data.hook.insert(ivq);
+                });
+            }
         }
 
         //重新摆放列表元素
@@ -5203,7 +5241,6 @@
                 return function rmCb() {
                     if (--listeners === 0) {
                         ch.destroy();
-
                         //检查是否是innerVnode容器
                         if (containerElm) {
                             containerElm.elm = []
@@ -5296,8 +5333,8 @@
 
                 //初始化创建
                 function initCreate() {
-                    var isElm = undefined;
-                    if (initCount && --initCount) return
+                    if (initCount && --initCount) return;
+
                     //检查当前元素是否替换成innerVnode
                     if (vnode.isReplace) {
                         switch (true) {
@@ -5310,13 +5347,17 @@
                             case vnode.innerVnode instanceof Array:
                             case vnode.innerVnode instanceof Object:
 
+
                                 if (!(vnode.innerVnode instanceof Array)) {
                                     vnode.innerVnode = [vnode.innerVnode];
                                 }
 
                                 //检查节点是否被渲染，此处需要做元素对比
                                 if (vnode.elm && vnode.elm.length) {
-                                    patch(oldVnode, vnode, rootScope, extraParameters.filter, parentNode);
+                                    patch(oldVnode, vnode, {
+                                        scope: rootScope,
+                                        filter: extraParameters.filter
+                                    }, parentNode);
 
                                     //销毁对象但不销毁元素
                                     oldVnode.destroy('elm');
@@ -5393,9 +5434,9 @@
                                                 rearrangePatch(ch, oldVnode, vnode.elm);
                                             } else {
                                                 api.appendChild(elm, ch.elm);
+                                                //销毁旧节点
+                                                oldVnode && oldVnode.destroy();
                                             }
-                                            //销毁旧节点
-                                            oldVnode && oldVnode.destroy();
                                             oldVnode = ch.clone();
                                         }, extraParameters, vnode);
                                     } else {
@@ -5455,7 +5496,7 @@
                     callback(vnode, isRearrange);
 
                     //销毁旧节点
-                    oldVnode && oldVnode.destroy();
+                    // oldVnode && oldVnode.destroy();
 
                     //节点备份
                     oldVnode = vnode.clone();
@@ -5518,32 +5559,6 @@
                 }
             }
 
-            //调用销毁钩子
-            function invokeDestroyHook(vnode) {
-                var i, j, data = vnode.data;
-
-                if (isDef(data)) {
-
-                    //触发虚拟节点中的销毁钩子
-                    if (isDef(i = data.hook) && isDef(i = i.destroy)) i(vnode);
-
-                    //触发model中的销毁钩子
-                    cbs.destroy.forEach(function(destroyHook) {
-                        destroyHook(vnode);
-                    })
-
-                    if (isDef(vnode.children)) {
-                        //触发子元素的销毁钩子
-                        vnode.children.forEach(function(children) {
-                            if (children instanceof Object) {
-                                invokeDestroyHook(children);
-                            }
-                        })
-                    }
-
-                }
-            }
-
             //删除虚拟节点
             function removeVnodes(parentElm, vnodes, startIdx, endIdx, containerElm) {
 
@@ -5555,8 +5570,6 @@
 
                     if (ch instanceof Object) {
                         if (isDef(ch.sel)) {
-                            //调用销毁钩子
-                            invokeDestroyHook(ch);
 
                             //监听并删除元素
                             listeners = cbs.remove.length + 1;
@@ -5802,8 +5815,6 @@
             return function patch(oldVnode, Vnode, option, parentVnode, callback) {
                 option = option || {};
 
-                console.log(option, '::::');
-
                 var i, elm, parent, nextElm;
                 var insertedVnodeQueue = [];
 
@@ -5882,6 +5893,7 @@
                         var containerVnode = Vnode,
                             tmpNode,
                             tmpParent = parent;
+
                         //创建新节点
                         Vnode.forEach(function(Vnode) {
 
@@ -5944,13 +5956,18 @@
                             patchVnode(oldVnode, Vnode, insertedVnodeQueue, extraParameters);
                         } else {
 
-                            console.log(extraParameters, ':++++:');
                             //创建新节点
                             createElm(Vnode, insertedVnodeQueue, function(ch, isRearrange) {
                                 var _oldVnode;
                                 if (parent !== null) {
                                     if (isRearrange) {
                                         rearrangePatch(ch, _oldVnode, parent);
+                                        if (oldVnode.elm !== ch.elm) {
+                                            //触发队列中的insert钩子
+                                            [ch].forEach(function(ivq) {
+                                                ivq.data.hook.insert(ivq);
+                                            });
+                                        }
                                     } else {
                                         //新增节点到父元素容器中
                                         api.insertBefore(parent, Vnode.elm, api.nextSibling(elm));
@@ -5969,15 +5986,15 @@
                     postHook();
                 });
 
-                //触发队列中的insert钩子
-                insertedVnodeQueue.forEach(function(ivq) {
-                    ivq.data.hook.insert(ivq);
-                });
-
                 //检查是否有回调
                 if (callback instanceof Function) callback(parent, function(newParent) {
                     parent = newParent
                 })
+
+                //触发队列中的insert钩子
+                insertedVnodeQueue.forEach(function(ivq) {
+                    ivq.data.hook.insert(ivq);
+                });
 
                 return Vnode;
             };
@@ -7349,6 +7366,7 @@
             if (parentInfo && !routeInfo.routeType) {
                 nowInfo = parentInfo
             } else {
+                routeInfo.conf = routeInfo.conf || {};
                 suffix = routeInfo.conf.suffix = routeInfo.conf.suffix || parentInfo.suffix;
                 nowInfo = {
                     paths: [],

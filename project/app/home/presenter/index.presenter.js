@@ -25,6 +25,8 @@ presenter('index',function () {
         This.assign('click',function () {
             console.log('on!')
         })
+
+        This.assign('selectConf',[18,19,4,1,'werrwe','wer23333','ppweire']);
     },3000);
 
 

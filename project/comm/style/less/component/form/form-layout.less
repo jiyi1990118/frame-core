@@ -1,0 +1,112 @@
+.form-layout {
+  width: 100%;
+  > ul {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    -webkit-flex-direction: row;
+    > li {
+      width: 50%;
+      display: flex;
+      padding: 3px 0;
+      > label {
+        color: #808993;
+        width: 100px;
+        font-size: 14px;
+        font-weight: normal;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      > ins {
+        flex-grow: 1;
+        padding: 0 15px;
+        display: flex;
+        max-width: 300px;
+        flex-wrap: wrap;
+        align-items: center;
+        line-height: 30px;
+        text-decoration: none;
+        > label {
+          display: inline-block;
+          padding-right: 10px;
+          span {
+            color: #749c99;
+            padding-left: 5px;
+          }
+        }
+      }
+    }
+  }
+
+  input:not([type="radio"]):not([type="checkbox"]):not([type="hidden"]), textarea, .select-document, select, .selectize-control, .input-file {
+    color: #5ccac0;
+    color: #20a599;
+    @color: #20a599;
+    font-size: 14px;
+    padding-left: 5px;
+    width: 250px;
+    border: solid 1px #e3ecf7;
+    .placeholder(#9bb8bd, 12px, 0);
+    &:only-of-type {
+      //flex-grow: 1;
+    }
+    min-height: 30px;
+    &:focus {
+      border-color: #57bfb6;
+    }
+    &.noWrite {
+      color: #c3c3c3;
+      pointer-events: none;
+      background-color: #f7f7f7;
+    }
+    &.err {
+      border-color: red;
+    }
+    .select-input {
+      color: @color;
+    }
+    &[type="color"] {
+      width: 30px;
+      padding: 0;
+      margin: 0;
+      background-color: transparent;
+    }
+    &[type="icons"] {
+      width: 30px;
+      padding: 0;
+      margin: 0;
+    }
+    &.readonly {
+      color: #c3c3c3;
+      pointer-events: none;
+      background-color: #f7f7f7;
+    }
+  }
+  input[type="text"], .input-file {
+    height: 30px;
+  }
+  select {
+    height: 30px;
+    background-color: transparent;
+  }
+  textarea {
+    height: 80px;
+  }
+
+  .selectize-control, .selectize-input, .selectize-control.multi .selectize-input.has-items {
+    padding: 0;
+  }
+  .selectize-control {
+    border: none;
+  }
+  .selectize-input {
+    padding-left: 5px;
+    border: solid 1px #e3ecf7;
+    .transition(border-color 0.5s);
+    &.focus {
+      border-color: #57bfb6;
+    }
+  }
+}
