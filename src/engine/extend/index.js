@@ -2,6 +2,7 @@
  * Created by xiyuan on 17-6-8.
  */
 
+var log=require('../../inside/log/log');
 var PATH=require('../../inside/lib/path');
 var extendInterface=require('./lib/extenInterface');
 var getSource=require('../../inside/source/getSource');
@@ -44,13 +45,18 @@ function extendExample(pathInfo,callback) {
     getSource(pathInfo, {
         mode:pathInfo.mode,
     },function (resSource) {
+        if(resSource === undefined){
+            log.warn(pathInfo.mode+'文件 ['+this.url+']缺失 "'+pathInfo.slice +'" 操作！');
+            return;
+        }
+
         var extendLib=[];
         var count=0;
         var isExec;
         var calle=resSource[0];
 
         if(resSource === false){
-            log.error(pathInfo.mode+'文件 ['+this.responseURL+']缺失！');
+            log.warn(pathInfo.mode+'文件 ['+this.url+']缺失！');
             return;
         }
 

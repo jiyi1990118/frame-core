@@ -5,7 +5,7 @@
 presenter('form-layout',function () {
     var This=this;
 
-    this.assign('selectConf',this.model(':selectConf'));
+    This.assign('selectConf',This.model(':selectConf'));
 
-    this.layout('HOME@layout:default').display();
+    this/*.layout('HOME@layout:default')*/.display();
 })

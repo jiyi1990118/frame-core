@@ -100,11 +100,18 @@ directiveClass.prototype.init = function () {
 
     //写入钩子
     if(conf.hook){
-        vnode.data.hook=vnode.data.hook||{};
+        var hooks=vnode.data.hook=vnode.data.hook||{};
         Object.keys(conf.hook).forEach(function (hookName) {
-            vnode.data.hook[hookName]=function () {
-                conf.hook[hookName].apply($api,arguments)
-            };
+            //检查并创建
+            hooks[hookName]=hooks[hookName]||[];
+            hooks[hookName]=[].concat(hooks[hookName]);
+
+            //合并
+            hooks[hookName]=hooks[hookName].concat(function () {
+                conf.hook[hookName].apply($api,arguments);
+            });
+
+            vnode.data.hook=hooks;
         })
     }
 

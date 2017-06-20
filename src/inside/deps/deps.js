@@ -58,6 +58,10 @@ function load() {
             }
         },load.nowUrl)
     });
+    if(fileQueue.length === 0){
+        callbackFn();
+    }
+
     delete load.nowUrl;
 }
 

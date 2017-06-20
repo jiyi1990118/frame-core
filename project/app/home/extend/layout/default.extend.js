@@ -3,7 +3,7 @@
  */
 
 //主菜单
-extend('menuList',['$::menuListConversion'],function (menuListConversion) {
+extend(['$::menuListConversion'],function (menuListConversion) {
 
     var This=this;
 

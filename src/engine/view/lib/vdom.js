@@ -122,7 +122,11 @@ function invokeDestroyHook(vnode) {
 
     if (isDef(data)) {
         //触发虚拟节点中的销毁钩子
-        if (isDef(i = data.hook) && isDef(i = i.destroy)) i(vnode);
+        if (isDef(i = data.hook) && isDef(i = i.destroy)){
+            [].concat(i).forEach(function (destroy) {
+                destroy(vnode);
+            })
+        } ;
     }
 
     //触发model中的销毁钩子
@@ -1045,7 +1049,9 @@ function init(modules) {
             if ( isDef(i)) {
                 //检查并触发create类型钩子
                 if (i.create)
-                    i.create(emptyNode, vnode);
+                    [].concat(i.create).forEach(function (create) {
+                        create(emptyNode, vnode);
+                    })
 
                 //收集并存储插入类型钩子
                 if (i.insert)
@@ -1068,7 +1074,9 @@ function init(modules) {
         //获取并执行 虚拟节点中的初始化钩子
         if (isDef(data) && isDef(i = data.hook) && isDef(i = i.init)) {
             initCount++;
-            i(vnode, initCreate, extraParameters);
+            [].concat(i).forEach(function (init) {
+                init(vnode, initCreate, extraParameters);
+            })
         } else if (!initCount) {
             initCreate()
         }
@@ -1288,7 +1296,11 @@ function init(modules) {
             i = vnode.data.hook;
 
             //触发节点中的update钩子
-            if (isDef(i) && isDef(i = i.update)) i(oldVnode, vnode);
+            if (isDef(i) && isDef(i = i.update)){
+                [].concat(i).forEach(function (update) {
+                    update(oldVnode, vnode);
+                })
+            };
         }
 
         //检查节点中的文本
@@ -1544,11 +1556,13 @@ function init(modules) {
         //检查是否有回调
         if (callback instanceof Function) callback(parent, function (newParent) {
             parent = newParent
-        })
+        });
 
         //触发队列中的insert钩子
         insertedVnodeQueue.forEach(function (ivq) {
-            ivq.data.hook.insert(ivq);
+            [].concat(ivq.data.hook.insert).forEach(function (insert) {
+                insert(ivq);
+            })
         });
 
         return Vnode;

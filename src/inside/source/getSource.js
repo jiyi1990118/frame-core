@@ -110,7 +110,7 @@ function getSource(url,option,callback) {
                         return map;
                     },{});
 
-                    callback(sourceMap[sliceName],info)
+                    callback.call(this.option,sourceMap[sliceName],info)
 
                 } else {
                     log.error(option.mode + '文件【' + this.option.url + '】不存在!');

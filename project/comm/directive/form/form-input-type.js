@@ -24,7 +24,7 @@ inputType(function ($app) {
                         case 'color':
                             newVnode.setAttr('type','text');
                             newVnode.setAttr('value',newVnode.getAttr('value')||'white');
-                            newVnode.addClass('jscolor');
+                            new jscolor(newVnode.elm);
                             break;
                         //日期组件
                         case 'date':

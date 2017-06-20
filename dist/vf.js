@@ -27,6 +27,7 @@
          * Created by xiyuan on 17-6-8.
          */
 
+        var log = require('../../inside/log/log');
         var PATH = require('../../inside/lib/path');
         var extendInterface = require('./lib/extenInterface');
         var getSource = require('../../inside/source/getSource');
@@ -69,13 +70,18 @@
             getSource(pathInfo, {
                 mode: pathInfo.mode,
             }, function(resSource) {
+                if (resSource === undefined) {
+                    log.warn(pathInfo.mode + '文件 [' + this.url + ']缺失 "' + pathInfo.slice + '" 操作！');
+                    return;
+                }
+
                 var extendLib = [];
                 var count = 0;
                 var isExec;
                 var calle = resSource[0];
 
                 if (resSource === false) {
-                    log.error(pathInfo.mode + '文件 [' + this.responseURL + ']缺失！');
+                    log.warn(pathInfo.mode + '文件 [' + this.url + ']缺失！');
                     return;
                 }
 
@@ -135,6 +141,7 @@
         }
     }, {
         "../../inside/lib/path": 57,
+        "../../inside/log/log": 62,
         "../../inside/source/getSource": 64,
         "../../inside/source/sourcePathNormal": 65,
         "../model/index": 5,
@@ -841,14 +848,12 @@
          */
         "use strict";
 
-        var log = require('../../inside/log/log');
         var presenterEngine = require('./presenterInterface');
 
         module.exports = {
             exec: presenterEngine.presenterExec
         }
     }, {
-        "../../inside/log/log": 62,
         "./presenterInterface": 9
     }],
     9: [function(require, module, exports) {
@@ -1622,11 +1627,18 @@
 
             //写入钩子
             if (conf.hook) {
-                vnode.data.hook = vnode.data.hook || {};
+                var hooks = vnode.data.hook = vnode.data.hook || {};
                 Object.keys(conf.hook).forEach(function(hookName) {
-                    vnode.data.hook[hookName] = function() {
-                        conf.hook[hookName].apply($api, arguments)
-                    };
+                    //检查并创建
+                    hooks[hookName] = hooks[hookName] || [];
+                    hooks[hookName] = [].concat(hooks[hookName]);
+
+                    //合并
+                    hooks[hookName] = hooks[hookName].concat(function() {
+                        conf.hook[hookName].apply($api, arguments);
+                    });
+
+                    vnode.data.hook = hooks;
                 })
             }
 
@@ -1886,11 +1898,18 @@
 
             //写入钩子
             if (conf.hook) {
-                vnode.data.hook = vnode.data.hook || {};
+                var hooks = vnode.data.hook = vnode.data.hook || {};
                 Object.keys(conf.hook).forEach(function(hookName) {
-                    vnode.data.hook[hookName] = function() {
-                        conf.hook[hookName].apply($api, arguments)
-                    };
+                    //检查并创建
+                    hooks[hookName] = hooks[hookName] || [];
+                    hooks[hookName] = [].concat(hooks[hookName]);
+
+                    //合并
+                    hooks[hookName] = hooks[hookName].concat(function() {
+                        conf.hook[hookName].apply($api, arguments);
+                    });
+
+                    vnode.data.hook = hooks;
                 })
             }
 
@@ -4560,7 +4579,11 @@
 
             if (isDef(data)) {
                 //触发虚拟节点中的销毁钩子
-                if (isDef(i = data.hook) && isDef(i = i.destroy)) i(vnode);
+                if (isDef(i = data.hook) && isDef(i = i.destroy)) {
+                    [].concat(i).forEach(function(destroy) {
+                        destroy(vnode);
+                    })
+                };
             }
 
             //触发model中的销毁钩子
@@ -5485,7 +5508,9 @@
                     if (isDef(i)) {
                         //检查并触发create类型钩子
                         if (i.create)
-                            i.create(emptyNode, vnode);
+                            [].concat(i.create).forEach(function(create) {
+                                create(emptyNode, vnode);
+                            })
 
                         //收集并存储插入类型钩子
                         if (i.insert)
@@ -5508,7 +5533,9 @@
                 //获取并执行 虚拟节点中的初始化钩子
                 if (isDef(data) && isDef(i = data.hook) && isDef(i = i.init)) {
                     initCount++;
-                    i(vnode, initCreate, extraParameters);
+                    [].concat(i).forEach(function(init) {
+                        init(vnode, initCreate, extraParameters);
+                    })
                 } else if (!initCount) {
                     initCreate()
                 }
@@ -5731,7 +5758,11 @@
                     i = vnode.data.hook;
 
                     //触发节点中的update钩子
-                    if (isDef(i) && isDef(i = i.update)) i(oldVnode, vnode);
+                    if (isDef(i) && isDef(i = i.update)) {
+                        [].concat(i).forEach(function(update) {
+                            update(oldVnode, vnode);
+                        })
+                    };
                 }
 
                 //检查节点中的文本
@@ -5989,11 +6020,13 @@
                 //检查是否有回调
                 if (callback instanceof Function) callback(parent, function(newParent) {
                     parent = newParent
-                })
+                });
 
                 //触发队列中的insert钩子
                 insertedVnodeQueue.forEach(function(ivq) {
-                    ivq.data.hook.insert(ivq);
+                    [].concat(ivq.data.hook.insert).forEach(function(insert) {
+                        insert(ivq);
+                    })
                 });
 
                 return Vnode;
@@ -8062,6 +8095,10 @@
                     }
                 }, load.nowUrl)
             });
+            if (fileQueue.length === 0) {
+                callbackFn();
+            }
+
             delete load.nowUrl;
         }
 
@@ -12969,7 +13006,7 @@
                                 return map;
                             }, {});
 
-                            callback(sourceMap[sliceName], info)
+                            callback.call(this.option, sourceMap[sliceName], info)
 
                         } else {
                             log.error(option.mode + '文件【' + this.option.url + '】不存在!');

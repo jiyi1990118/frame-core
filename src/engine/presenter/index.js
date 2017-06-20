@@ -4,7 +4,6 @@
  */
 "use strict";
 
-var log=require('../../inside/log/log');
 var presenterEngine=require('./presenterInterface');
 
 module.exports={

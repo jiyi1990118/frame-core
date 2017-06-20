@@ -3,18 +3,10 @@
  */
 selectConf({
     name:'testName',
-    search:true,
-    // multiple:true,
-    style:{
-        width:'160px',
-    },
-    events:{
-        change:function () {
-            console.log(this,'yes')
-        },
-        click:function () {
-            console.log('click')
-        }
+    multiple:true,
+    placeholder:'请选择',
+    change:function () {
+        console.log(this,'yes')
     },
     dataList:[
         {
@@ -23,7 +15,7 @@ selectConf({
             list:[
                 {
                     isGroup:false,
-                    disabled:true,//是否不可以选择,默认false(即可选择)
+                    disabled:'disabled',//是否不可以选择,默认false(即可选择)
                     content:'西瓜3213135112FFFFFFFFFFFFFFFFFFFFF32131',
                     value:'水果1',
                 },
@@ -32,6 +24,7 @@ selectConf({
                     disabled:true,
                     content:'橙子',
                     value:'水果2',
+                    selected:true
                 },
                 {
                     isGroup:false,
@@ -85,11 +78,6 @@ selectConf({
                     disabled:false,
                     content:'尺子',
                     value:'办公用品4'
-                },
-                {
-                    "content": "--请选择--",
-                    "value": "-1",
-                    "selected": true
                 },
                 {
                     "content": "设置",
