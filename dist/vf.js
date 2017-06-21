@@ -1699,7 +1699,7 @@
 
                             //监听当前语法
                             if (propConf.watch instanceof Function) {
-                                syntaxExample.watch(propConf.watch.bind($api))
+                                syntaxExample.readWatch(propConf.watch.bind($api))
                             }
 
 
@@ -2012,7 +2012,7 @@
 
                                 //监听当前语法
                                 if (propConf.watch instanceof Function) {
-                                    syntaxExample.watch(propConf.watch.bind($api))
+                                    syntaxExample.readWatch(propConf.watch.bind($api))
                                 }
 
                                 //检查是否提供外部数据接口

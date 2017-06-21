@@ -9,7 +9,6 @@ vHref(function ($app) {
             return {
                 exp:exp,
                 key:'href',
-                default: true,
                 watch:function (data) {
                     vnode.setAttr('href',data);
                 }

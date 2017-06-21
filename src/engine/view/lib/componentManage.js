@@ -211,7 +211,7 @@ compClass.prototype.init = function () {
 
                     //监听当前语法
                     if(propConf.watch instanceof Function){
-                        syntaxExample.watch(propConf.watch.bind($api))
+                        syntaxExample.readWatch(propConf.watch.bind($api))
                     }
 
 
