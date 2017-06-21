@@ -16,6 +16,8 @@ var compStroage = {};
 //组件类
 function compClass(compConf, vnode, extraParameters,vdomApi) {
 
+    var This=this;
+
     //标识当前节点是组件
     vnode.isComponent = true;
 
@@ -45,6 +47,9 @@ function compClass(compConf, vnode, extraParameters,vdomApi) {
     //组件扩展参数
     this.extraParameter = extraParameters;
 
+    //外部接口数据存储
+    this.exports={};
+
     //监听存储
     this.watchs = {
         create: [],
@@ -71,7 +76,22 @@ function compClass(compConf, vnode, extraParameters,vdomApi) {
             return vnode;
 
         },
-        stroage: {}
+        rootScope: vnode.rootScope,
+        //模板节点
+        templateVnode: vnode.clone(),
+        stroage: {},
+        //对外提供数据出口
+        exports:function (key,data) {
+            if(This.exports[key]){
+                if(This.exports[key].ob){
+                    This.exports[key].ob.write(This.exports[key].exp,data)
+                }else{
+                    log.warn('++++++++++++++++，功能需做兼容!')
+                }
+            }else{
+                log.warn(directiveName +' 指令对外提供的数据接口 ['+key+'] 未定义!')
+            }
+        }
 
     }
 
@@ -189,57 +209,67 @@ compClass.prototype.init = function () {
                     //记录到虚拟节点上，以便后续销毁使用
                     (vnode.data.syntaxExample=vnode.data.syntaxExample||[]).push(syntaxExample);
 
-                    //读取表达式返回的值
-                    if (!syntaxExample.read(function (newData) {
+                    //监听当前语法
+                    if(propConf.watch instanceof Function){
+                        syntaxExample.watch(propConf.watch.bind($api))
+                    }
 
-                            $api.scope[propConf.key] = newData;
 
-                            //监听当前语法
-                            if(propConf.watch instanceof Function){
-                                propConf.watch.apply($api,arguments);
-                                syntaxExample.watch(propConf.watch.bind($api))
-                            }
+                    //检查是否提供外部数据接口
+                    if(propConf.isExports) {
+                        $this.exports[propConf.key] = {
+                            exp: propConf.exp,
+                            ob: syntaxExample.structRes.observers[0]
+                        };
 
-                            //获取当前值的watchKey
-                            if(propConf.getWatchInfo instanceof Function){
-                                propConf.getWatchInfo(syntaxExample.getWatchInfo());
-                            }
+                        renderTrigger();
+                    }else{
+                        //读取表达式返回的值
+                        if (!syntaxExample.read(function (newData) {
 
-                            //检查是否自动渲染
-                            if (propConf.autoRender) {
-                                //监听表达式返回的值
-                                syntaxExample.watch(function (newData) {
-                                    $api.scope[propConf.key] = newData;
+                                $api.scope[propConf.key] = newData;
 
-                                    //获取当前值的watchKey
-                                    if(propConf.getWatchInfo instanceof Function){
-                                        propConf.getWatchInfo(syntaxExample.getWatchInfo());
-                                    }
+                                //获取当前值的watchKey
+                                if(propConf.getWatchInfo instanceof Function){
+                                    propConf.getWatchInfo(syntaxExample.getWatchInfo());
+                                }
 
-                                    if (isRender){
-                                        $this.render();
-                                    }else{
-                                        renderTrigger();
-                                    }
+                                //检查是否自动渲染
+                                if (propConf.autoRender) {
+                                    //监听表达式返回的值
+                                    syntaxExample.watch(function (newData) {
+                                        $api.scope[propConf.key] = newData;
 
-                                })
-                            }
+                                        //获取当前值的watchKey
+                                        if(propConf.getWatchInfo instanceof Function){
+                                            propConf.getWatchInfo(syntaxExample.getWatchInfo());
+                                        }
 
-                            //检查是否有默认数据 并渲染
-                            if (propConf.hasOwnProperty('default') && isRender) {
-                                $this.render();
-                            } else {
+                                        if (isRender){
+                                            $this.render();
+                                        }else{
+                                            renderTrigger();
+                                        }
+
+                                    })
+                                }
+
+                                //检查是否有默认数据 并渲染
+                                if (propConf.hasOwnProperty('default') && isRender) {
+                                    $this.render();
+                                } else {
+                                    renderTrigger();
+                                }
+
+                            })) {
+
+                            //检查是否有默认数据
+                            if (propConf.hasOwnProperty('default') ) {
+                                $api.scope[propConf.key] = propConf['default'];
+                                renderTrigger();
+                            }else if(propConf.isEmpty){
                                 renderTrigger();
                             }
-
-                        })) {
-
-                        //检查是否有默认数据
-                        if (propConf.hasOwnProperty('default') ) {
-                            $api.scope[propConf.key] = propConf['default'];
-                            renderTrigger();
-                        }else if(propConf.isEmpty){
-                            renderTrigger();
                         }
                     }
 

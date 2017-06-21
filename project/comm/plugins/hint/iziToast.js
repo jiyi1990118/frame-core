@@ -92,7 +92,7 @@ define('confirm',[':iziToast'],function (iziToast) {
 			timeout:0,
 			color: 'dark',
 			icon: 'icon-person',
-			title: 'Hey',
+			title: '',
 			message: message,
 			position: 'center',
 			progressBar:false,

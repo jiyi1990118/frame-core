@@ -61,20 +61,52 @@
      * 根据层级key递归获取值与赋值
      * @param sourceObj
      * @param key
-     * @param [val]
+     * @param data
      * @returns {*}
      */
-    function levelKey(sourceObj, key) {
+    function levelKey(sourceObj, key,data) {
         //检查资源对象
         if (typeof sourceObj !== 'object' || sourceObj === null) {
             return undefined;
         }
         var res = arguments,
-            isVal = arguments.length === 3;
+            isVal = arguments.length === 3,
+            prepareWriteObj;
 
         recursionKey(key, function (nowKey, key) {
-            if (key)return sourceObj = sourceObj[nowKey];
-            res = isVal ? sourceObj[nowKey] = res[2] : (nowKey ? sourceObj[nowKey] : sourceObj);
+            if(isVal){
+                if (key){
+                    res= sourceObj[nowKey];
+                    if(typeof res !== 'object'){
+                        if(prepareWriteObj){
+                            res=sourceObj[nowKey]={}
+                        }else{
+                            prepareWriteObj={
+                                key:nowKey,
+                                obj:sourceObj,
+                                write:res={}
+                            }
+                        }
+                    }
+                    sourceObj=res
+                }else{
+                    sourceObj[nowKey] = data
+                    if(prepareWriteObj){
+                        prepareWriteObj.obj[prepareWriteObj.key]=prepareWriteObj.write;
+                        delete prepareWriteObj.key;
+                        delete prepareWriteObj.obj;
+                        delete prepareWriteObj.write;
+                        prepareWriteObj=null;
+                    }
+                }
+            }else{
+                if (key){
+                    res=sourceObj = sourceObj[nowKey];
+                }else{
+                    res = nowKey ? sourceObj[nowKey] : sourceObj;
+                }
+            }
+            return isVal? nowKey && key : res;
         });
         return res;
     }
@@ -380,10 +412,10 @@
         }
 
         //所有监听移除后还原数据原有属性
-        if (!this.listens.length && !Object.keys(this.child).length) {
+        if (!this.listens.length && (!this.child || !Object.keys(this.child).length)) {
 
             //此处主要销毁监听节点
-            if(checkChildListen(listen)){
+            if( this.child && checkChildListen(listen)){
                 return this;
             }else{
                 this.destroy();
@@ -751,6 +783,7 @@
         //存放资源数据
         observerProxyStroage[this.sourceId = uid()] ={
             resource:objs,
+            useOb:{},
             ob:objs.reduce(function (arr,val) {
                 arr.push(new observer(val));
                 return arr;
@@ -769,10 +802,11 @@
             })
         }
 
-        objs.ob.forEach(function (ob) {
+        objs.ob.forEach(function (ob,index) {
             ob.read(key, function (res) {
                 resData=res;
                 remove();
+                objs.useOb[key]=index;
                 fn.call(this,res)
             })
         })
@@ -781,8 +815,11 @@
     //数据监听
     multipleOb.prototype.watch=function (watchKey, watchFn) {
         var objs=observerProxyStroage[this.sourceId];
-        objs.ob.forEach(function (ob) {
-            ob.watch(watchKey, watchFn);
+        objs.ob.forEach(function (ob,index) {
+            ob.watch(watchKey, function () {
+                objs.useOb[watchKey]=index;
+                watchFn();
+            });
         });
     };
 
@@ -810,6 +847,7 @@
             watchQueue.push(ob);
             //监听数据
             ob.readWatch(watchKey, function (resData) {
+                objs.useOb[watchKey]=index;
                 watchFn.call(this,resData);
                 if(isRead)return;
                 remove(index+1);
@@ -840,6 +878,18 @@
             }
         }
     };
+
+    /**
+     * 设置对应的数据
+     * @param key
+     * @param data
+     */
+    multipleOb.prototype.write=function (key,data) {
+        var objs=observerProxyStroage[this.sourceId],
+            obLen=objs.ob.length,
+            startIndex=(objs.useOb[key]||(obLen-1));
+        objs.ob[startIndex].write(key,data);
+    }
 
     //销毁数据监听
     multipleOb.prototype.destroy=function () {

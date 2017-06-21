@@ -7,5 +7,15 @@ presenter('form-layout',function () {
 
     This.assign('selectConf',This.model(':selectConf'));
 
-    this/*.layout('HOME@layout:default')*/.display();
+    this.assign('getForm',function (getForm) {
+        return function () {
+            console.log(getForm,getForm.getData());
+
+        }
+    });
+
+
+    this.assign('window',window)
+
+    this.layout('HOME@layout:default').display();
 })

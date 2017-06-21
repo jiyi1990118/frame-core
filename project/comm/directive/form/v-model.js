@@ -6,24 +6,25 @@ vModel(function ($app) {
 
     $app.directive('v-model',{
         props: function (exp) {
-            console.log(exp);
             return {
                 exp:exp,
-                key:'class',
-                default:'',
-                watch:function () {
-
+                key:'modelVal',
+                isExports:true,
+                watch:function (val) {
+                    if(this.stroage.val !== val){
+                        if(this.vnode.elm){
+                            this.vnode.elm.value=val;
+                        }
+                        this.stroage.val = val;
+                    }
                 }
             }
         },
         hook: {
-            create: function (oldVnode,newVnode) {
-                console.log('----',this)
-
+            insert: function (vnode) {
                 var api=this;
-                newVnode.addEventListener('input',function () {
-                    console.log(this.value)
-                    api.exports('')
+                vnode.addEventListener('input',function () {
+                    api.exports('modelVal',this.value);
                 })
             }
         }

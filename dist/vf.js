@@ -1504,6 +1504,8 @@
         //组件类
         function compClass(compConf, vnode, extraParameters, vdomApi) {
 
+            var This = this;
+
             //标识当前节点是组件
             vnode.isComponent = true;
 
@@ -1533,6 +1535,9 @@
             //组件扩展参数
             this.extraParameter = extraParameters;
 
+            //外部接口数据存储
+            this.exports = {};
+
             //监听存储
             this.watchs = {
                 create: [],
@@ -1559,7 +1564,22 @@
                     return vnode;
 
                 },
-                stroage: {}
+                rootScope: vnode.rootScope,
+                //模板节点
+                templateVnode: vnode.clone(),
+                stroage: {},
+                //对外提供数据出口
+                exports: function(key, data) {
+                    if (This.exports[key]) {
+                        if (This.exports[key].ob) {
+                            This.exports[key].ob.write(This.exports[key].exp, data)
+                        } else {
+                            log.warn('++++++++++++++++，功能需做兼容!')
+                        }
+                    } else {
+                        log.warn(directiveName + ' 指令对外提供的数据接口 [' + key + '] 未定义!')
+                    }
+                }
 
             }
 
@@ -1677,57 +1697,67 @@
                             //记录到虚拟节点上，以便后续销毁使用
                             (vnode.data.syntaxExample = vnode.data.syntaxExample || []).push(syntaxExample);
 
-                            //读取表达式返回的值
-                            if (!syntaxExample.read(function(newData) {
+                            //监听当前语法
+                            if (propConf.watch instanceof Function) {
+                                syntaxExample.watch(propConf.watch.bind($api))
+                            }
 
-                                    $api.scope[propConf.key] = newData;
 
-                                    //监听当前语法
-                                    if (propConf.watch instanceof Function) {
-                                        propConf.watch.apply($api, arguments);
-                                        syntaxExample.watch(propConf.watch.bind($api))
-                                    }
+                            //检查是否提供外部数据接口
+                            if (propConf.isExports) {
+                                $this.exports[propConf.key] = {
+                                    exp: propConf.exp,
+                                    ob: syntaxExample.structRes.observers[0]
+                                };
 
-                                    //获取当前值的watchKey
-                                    if (propConf.getWatchInfo instanceof Function) {
-                                        propConf.getWatchInfo(syntaxExample.getWatchInfo());
-                                    }
+                                renderTrigger();
+                            } else {
+                                //读取表达式返回的值
+                                if (!syntaxExample.read(function(newData) {
 
-                                    //检查是否自动渲染
-                                    if (propConf.autoRender) {
-                                        //监听表达式返回的值
-                                        syntaxExample.watch(function(newData) {
-                                            $api.scope[propConf.key] = newData;
+                                        $api.scope[propConf.key] = newData;
 
-                                            //获取当前值的watchKey
-                                            if (propConf.getWatchInfo instanceof Function) {
-                                                propConf.getWatchInfo(syntaxExample.getWatchInfo());
-                                            }
+                                        //获取当前值的watchKey
+                                        if (propConf.getWatchInfo instanceof Function) {
+                                            propConf.getWatchInfo(syntaxExample.getWatchInfo());
+                                        }
 
-                                            if (isRender) {
-                                                $this.render();
-                                            } else {
-                                                renderTrigger();
-                                            }
+                                        //检查是否自动渲染
+                                        if (propConf.autoRender) {
+                                            //监听表达式返回的值
+                                            syntaxExample.watch(function(newData) {
+                                                $api.scope[propConf.key] = newData;
 
-                                        })
-                                    }
+                                                //获取当前值的watchKey
+                                                if (propConf.getWatchInfo instanceof Function) {
+                                                    propConf.getWatchInfo(syntaxExample.getWatchInfo());
+                                                }
 
-                                    //检查是否有默认数据 并渲染
-                                    if (propConf.hasOwnProperty('default') && isRender) {
-                                        $this.render();
-                                    } else {
+                                                if (isRender) {
+                                                    $this.render();
+                                                } else {
+                                                    renderTrigger();
+                                                }
+
+                                            })
+                                        }
+
+                                        //检查是否有默认数据 并渲染
+                                        if (propConf.hasOwnProperty('default') && isRender) {
+                                            $this.render();
+                                        } else {
+                                            renderTrigger();
+                                        }
+
+                                    })) {
+
+                                    //检查是否有默认数据
+                                    if (propConf.hasOwnProperty('default')) {
+                                        $api.scope[propConf.key] = propConf['default'];
+                                        renderTrigger();
+                                    } else if (propConf.isEmpty) {
                                         renderTrigger();
                                     }
-
-                                })) {
-
-                                //检查是否有默认数据
-                                if (propConf.hasOwnProperty('default')) {
-                                    $api.scope[propConf.key] = propConf['default'];
-                                    renderTrigger();
-                                } else if (propConf.isEmpty) {
-                                    renderTrigger();
                                 }
                             }
 
@@ -1807,10 +1837,15 @@
         //语法结构处理
         var syntaxHandle = require('./syntaxHandle');
 
+        var log = require('../../../inside/log/log');
+
         var directiveStroage = {};
 
         //指令类
         function directiveClass(directiveConf, vnode, extraParameters, directiveName, vdomApi) {
+
+            var This = this;
+
             this.vdomApi = vdomApi;
 
             //标识当前节点是指令
@@ -1839,6 +1874,9 @@
             //指令优先级
             this.priority = directiveConf.priority || 0;
 
+            //外部接口数据存储
+            this.exports = {};
+
             //监听存储
             this.watchs = {
                 create: [],
@@ -1859,14 +1897,20 @@
 
                 },
                 rootScope: vnode.rootScope,
-                stroage: {
-
-                },
+                stroage: {},
                 //模板节点
                 templateVnode: vnode.clone(),
                 //对外提供数据出口
-                exports: function() {
-
+                exports: function(key, data) {
+                    if (This.exports[key]) {
+                        if (This.exports[key].ob) {
+                            This.exports[key].ob.write(This.exports[key].exp, data)
+                        } else {
+                            log.warn('++++++++++++++++，功能需做兼容!')
+                        }
+                    } else {
+                        log.warn(directiveName + ' 指令对外提供的数据接口 [' + key + '] 未定义!')
+                    }
                 }
 
             }
@@ -1966,55 +2010,64 @@
                                 //记录到虚拟节点上，以便后续销毁使用
                                 (vnode.data.syntaxExample = vnode.data.syntaxExample || []).push(syntaxExample);
 
-                                //读取表达式返回的值
-                                if (!syntaxExample.read(function(newData) {
-                                        $api.scope[propConf.key] = newData;
+                                //监听当前语法
+                                if (propConf.watch instanceof Function) {
+                                    syntaxExample.watch(propConf.watch.bind($api))
+                                }
 
-                                        //监听当前语法
-                                        if (propConf.watch instanceof Function) {
-                                            propConf.watch.apply($api, arguments);
-                                            syntaxExample.watch(propConf.watch.bind($api))
-                                        }
+                                //检查是否提供外部数据接口
+                                if (propConf.isExports) {
+                                    $this.exports[propConf.key] = {
+                                        exp: propConf.exp,
+                                        ob: syntaxExample.structRes.observers[0]
+                                    };
+                                } else {
+                                    //读取表达式返回的值
+                                    if (!syntaxExample.read(function(newData) {
+                                            $api.scope[propConf.key] = newData;
 
-                                        //获取当前值的watchKey
-                                        if (propConf.getWatchInfo instanceof Function) {
-                                            propConf.getWatchInfo(syntaxExample.getWatchInfo());
-                                        }
+                                            //获取当前值的watchKey
+                                            if (propConf.getWatchInfo instanceof Function) {
+                                                propConf.getWatchInfo(syntaxExample.getWatchInfo());
+                                            }
 
-                                        //检查是否自动渲染
-                                        if (propConf.autoRender) {
-                                            //监听表达式返回的值
-                                            syntaxExample.watch(function(newData) {
+                                            //检查是否自动渲染
+                                            if (propConf.autoRender) {
+                                                //监听表达式返回的值
+                                                syntaxExample.watch(function(newData) {
 
-                                                $api.scope[propConf.key] = newData;
+                                                    $api.scope[propConf.key] = newData;
 
-                                                //获取当前值的watchKey
-                                                if (propConf.getWatchInfo instanceof Function) {
-                                                    propConf.getWatchInfo(syntaxExample.getWatchInfo());
-                                                }
+                                                    //获取当前值的watchKey
+                                                    if (propConf.getWatchInfo instanceof Function) {
+                                                        propConf.getWatchInfo(syntaxExample.getWatchInfo());
+                                                    }
 
-                                                if (isRender) {
-                                                    $this.render();
-                                                } else {
-                                                    renderTrigger();
-                                                }
-                                            })
-                                        }
+                                                    if (isRender) {
+                                                        $this.render();
+                                                    } else {
+                                                        renderTrigger();
+                                                    }
+                                                })
+                                            }
 
-                                        //检查是否有默认数据 并渲染
-                                        if (propConf.hasOwnProperty('default') && isRender) {
-                                            $this.render();
-                                        } else {
+                                            //检查是否有默认数据 并渲染
+                                            if (propConf.hasOwnProperty('default') && isRender) {
+                                                $this.render();
+                                            } else {
+                                                renderTrigger();
+                                            }
+                                        })) {
+                                        //检查是否有默认数据
+                                        if (propConf.hasOwnProperty('default')) {
+                                            //默认值
+                                            $api.scope[propConf.key] = propConf['default'];
                                             renderTrigger();
                                         }
-                                    })) {
-                                    //检查是否有默认数据
-                                    if (propConf.hasOwnProperty('default')) {
-                                        //默认值
-                                        $api.scope[propConf.key] = propConf['default'];
-                                        renderTrigger();
-                                    }
-                                };
+                                    };
+                                }
+
+
 
                             } else {
                                 console.warn('表达式： ' + propConf.exp + '有误！')
@@ -2089,6 +2142,7 @@
             };
         }
     }, {
+        "../../../inside/log/log": 62,
         "./syntaxHandle": 19,
         "./syntaxStruct": 20
     }],
@@ -10099,20 +10153,52 @@
              * 根据层级key递归获取值与赋值
              * @param sourceObj
              * @param key
-             * @param [val]
+             * @param data
              * @returns {*}
              */
-            function levelKey(sourceObj, key) {
+            function levelKey(sourceObj, key, data) {
                 //检查资源对象
                 if (typeof sourceObj !== 'object' || sourceObj === null) {
                     return undefined;
                 }
                 var res = arguments,
-                    isVal = arguments.length === 3;
+                    isVal = arguments.length === 3,
+                    prepareWriteObj;
 
                 recursionKey(key, function(nowKey, key) {
-                    if (key) return sourceObj = sourceObj[nowKey];
-                    res = isVal ? sourceObj[nowKey] = res[2] : (nowKey ? sourceObj[nowKey] : sourceObj);
+                    if (isVal) {
+                        if (key) {
+                            res = sourceObj[nowKey];
+                            if (typeof res !== 'object') {
+                                if (prepareWriteObj) {
+                                    res = sourceObj[nowKey] = {}
+                                } else {
+                                    prepareWriteObj = {
+                                        key: nowKey,
+                                        obj: sourceObj,
+                                        write: res = {}
+                                    }
+                                }
+                            }
+                            sourceObj = res
+                        } else {
+                            sourceObj[nowKey] = data
+                            if (prepareWriteObj) {
+                                prepareWriteObj.obj[prepareWriteObj.key] = prepareWriteObj.write;
+                                delete prepareWriteObj.key;
+                                delete prepareWriteObj.obj;
+                                delete prepareWriteObj.write;
+                                prepareWriteObj = null;
+                            }
+                        }
+                    } else {
+                        if (key) {
+                            res = sourceObj = sourceObj[nowKey];
+                        } else {
+                            res = nowKey ? sourceObj[nowKey] : sourceObj;
+                        }
+                    }
+                    return isVal ? nowKey && key : res;
                 });
                 return res;
             }
@@ -10420,10 +10506,10 @@
                 }
 
                 //所有监听移除后还原数据原有属性
-                if (!this.listens.length && !Object.keys(this.child).length) {
+                if (!this.listens.length && (!this.child || !Object.keys(this.child).length)) {
 
                     //此处主要销毁监听节点
-                    if (checkChildListen(listen)) {
+                    if (this.child && checkChildListen(listen)) {
                         return this;
                     } else {
                         this.destroy();
@@ -10791,6 +10877,7 @@
                 //存放资源数据
                 observerProxyStroage[this.sourceId = uid()] = {
                     resource: objs,
+                    useOb: {},
                     ob: objs.reduce(function(arr, val) {
                         arr.push(new observer(val));
                         return arr;
@@ -10809,10 +10896,11 @@
                     })
                 }
 
-                objs.ob.forEach(function(ob) {
+                objs.ob.forEach(function(ob, index) {
                     ob.read(key, function(res) {
                         resData = res;
                         remove();
+                        objs.useOb[key] = index;
                         fn.call(this, res)
                     })
                 })
@@ -10821,8 +10909,11 @@
             //数据监听
             multipleOb.prototype.watch = function(watchKey, watchFn) {
                 var objs = observerProxyStroage[this.sourceId];
-                objs.ob.forEach(function(ob) {
-                    ob.watch(watchKey, watchFn);
+                objs.ob.forEach(function(ob, index) {
+                    ob.watch(watchKey, function() {
+                        objs.useOb[watchKey] = index;
+                        watchFn();
+                    });
                 });
             };
 
@@ -10850,6 +10941,7 @@
                     watchQueue.push(ob);
                     //监听数据
                     ob.readWatch(watchKey, function(resData) {
+                        objs.useOb[watchKey] = index;
                         watchFn.call(this, resData);
                         if (isRead) return;
                         remove(index + 1);
@@ -10880,6 +10972,18 @@
                     }
                 }
             };
+
+            /**
+             * 设置对应的数据
+             * @param key
+             * @param data
+             */
+            multipleOb.prototype.write = function(key, data) {
+                var objs = observerProxyStroage[this.sourceId],
+                    obLen = objs.ob.length,
+                    startIndex = (objs.useOb[key] || (obLen - 1));
+                objs.ob[startIndex].write(key, data);
+            }
 
             //销毁数据监听
             multipleOb.prototype.destroy = function() {

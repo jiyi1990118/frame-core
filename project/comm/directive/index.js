@@ -12,6 +12,7 @@ directive(function ($app) {
         vAttr:'./comm/v-attr.js',
         vModel:'./form/v-model.js',
         vValid:'./form/v-valid.js',
+        vForm:'./form/v-form.js',
         inputType:'./form/form-input-type.js',
     })
 })

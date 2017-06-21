@@ -10,7 +10,6 @@ vValid(function ($app) {
             //必填
             required: function (ruleVal, eleVal, method) {
 
-                console.log(ruleVal, eleVal, method)
                 if (!ruleVal) {
                     if (eleVal === '') {
                         method.stop();
@@ -357,10 +356,21 @@ vValid(function ($app) {
     }
 
     //指令注册
-    $app.directive('v-valid', ['PLUGINS/hint/iziToast:confirm'], function ($confirm) {
-        console.log($confirm)
+    $app.directive('v-valid', ['PLUGINS/hint/iziToast:iziToast'], function (iziToast) {
         var tools = {
-            $hint: $confirm
+            $hint: function (msg) {
+                iziToast.warning({
+                    title:'',
+                    timeout: 3000,
+                    position: 'topRight',
+                    pauseOnHover: true,
+                    close: true,
+                    message: msg,
+                    progressBar: true,
+                    animateInside: true,
+                    transitionIn: 'bounceInLeft',
+                })
+            }
         };
         return {
             props: function (exp) {

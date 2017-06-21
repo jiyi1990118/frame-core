@@ -1105,10 +1105,11 @@ define(function () {
                     }
                 }
                 if (!(flags & jsc.leaveStyle)) {
+
                     if (this.styleElement) {
                         this.styleElement.style.backgroundImage = 'none';
                         this.styleElement.style.backgroundColor = '#' + this.toString();
-                        // this.styleElement.style.color = this.isLight() ? '#000' : '#FFF';
+                        this.styleElement.style.color = this.isLight() ? '#20a599' : '#FFF';
                     }
                 }
                 if (!(flags & jsc.leavePad) && isPickerOwner()) {
