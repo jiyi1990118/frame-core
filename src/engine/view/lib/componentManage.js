@@ -11,10 +11,12 @@ var syntaxHandle = require('./syntaxHandle');
 
 // var encrypt= require('../../../inside/lib/encrypt');
 
+var log=require('../../../inside/log/log');
+
 var compStroage = {};
 
 //组件类
-function compClass(compConf, vnode, extraParameters,vdomApi) {
+function compClass(compConf, vnode, extraParameters,vdomApi,compName) {
 
     var This=this;
 
@@ -40,6 +42,9 @@ function compClass(compConf, vnode, extraParameters,vdomApi) {
 
     //当前组件虚拟节点
     this.vnode = vnode;
+
+    //组件名称
+    this.compName=compName;
 
     //组件优先级
     this.priority = compConf.priority || 0;
@@ -67,7 +72,6 @@ function compClass(compConf, vnode, extraParameters,vdomApi) {
         vnode: vnode,
         //节点渲染
         render: function (html,scope,filter) {
-
             var vnode=vdomApi.html2vdom(html);
             vnode.innerScope=scope;
             vnode.$scope=scope||vnode.$scope;
@@ -89,7 +93,7 @@ function compClass(compConf, vnode, extraParameters,vdomApi) {
                     log.warn('++++++++++++++++，功能需做兼容!')
                 }
             }else{
-                log.warn(directiveName +' 指令对外提供的数据接口 ['+key+'] 未定义!')
+                log.warn(This.compName +' 组件对外提供的数据接口 ['+key+'] 未定义!')
             }
         }
 
@@ -125,7 +129,7 @@ compClass.prototype.init = function () {
     function propHandle(propName, prop) {
         var proData={};
         if (!attrsMap[propName] ) {
-            return prop.isEmpty || console.warn('组件数据属性 ' + propName + ' 未定义!');
+            return prop.isEmpty || console.warn('" '+$this.compName+'" 组件数据属性 ' + propName + ' 未定义!');
         }
 
         if (prop instanceof Function) {
@@ -152,26 +156,10 @@ compClass.prototype.init = function () {
 
     function renderTrigger() {
         if (watchProps.length <= ++propLoad) {
+            propLoad--;
+            if(!isRender)$this.render();
             isRender = true;
-            $this.render();
         }
-    }
-
-    //写入钩子
-    if(conf.hook){
-        var hooks=vnode.data.hook=vnode.data.hook||{};
-        Object.keys(conf.hook).forEach(function (hookName) {
-            //检查并创建
-            hooks[hookName]=hooks[hookName]||[];
-            hooks[hookName]=[].concat(hooks[hookName]);
-
-            //合并
-            hooks[hookName]=hooks[hookName].concat(function () {
-                conf.hook[hookName].apply($api,arguments);
-            });
-
-            vnode.data.hook=hooks;
-        })
     }
 
     //检查模板
@@ -274,22 +262,46 @@ compClass.prototype.init = function () {
                     }
 
                 } else {
-                    console.warn('表达式： ' + propConf.exp + '有误！')
+                    console.warn($this.compName+'组件  表达式： ' + propConf.exp + '有误！')
                 }
 
             })
-            return this;
         }
+        return this;
     } else {
         isRender = true;
         this.render();
     }
-
 }
 
 compClass.prototype.render = function () {
     var conf = this.conf,
-        vnode = this.vnode;
+        vnode = this.vnode,
+        $api = this.$api;
+
+    if(!this.isRender){
+
+        //写入钩子
+        if(conf.hook){
+            var hooks=vnode.data.hook=vnode.data.hook||{};
+            Object.keys(conf.hook).forEach(function (hookName) {
+                //检查并创建
+                hooks[hookName]=hooks[hookName]||[];
+                hooks[hookName]=[].concat(hooks[hookName]);
+
+                //合并
+                hooks[hookName]=hooks[hookName].concat(function () {
+                    conf.hook[hookName].apply($api,arguments);
+                });
+
+                vnode.data.hook=hooks;
+            });
+
+            if(typeof conf.hook.init === "function"){
+                conf.hook.init.apply($api,vnode);
+            }
+        }
+    }
 
     //检查是否有渲染的方法
     if (conf.render instanceof Function) {
@@ -330,6 +342,6 @@ exports.get = function (compName) {
 //组件注册
 exports.register = function (compName, compConf) {
     compStroage[compName] = function (vnode, extraParameters,vdomApi) {
-        return new compClass(compConf, vnode, extraParameters,vdomApi);
+        return new compClass(compConf, vnode, extraParameters,vdomApi,compName);
     };
 }

@@ -152,7 +152,7 @@ vValid(function ($app) {
                 this.dataset['validresult'] = 'false';
 
                 //过滤掉valid事件的异步校验(防止表单校验不通过)
-            } else if (event.type === 'valid' && asynRule.in(validInfo.ruleType) !== -1 && this.dataset['validresult'] !== 'fales') {
+            } else if (event.type === 'valid' && asynRule.indexOf(validInfo.ruleType) !== -1 && this.dataset['validresult'] !== 'fales') {
 
             }
             else

@@ -27,7 +27,7 @@ define(function () {
             '<span class="title-btns"><i class="iconfont icon-fangda" v-if="innerConf.maxmin" v-on:click="interface.zoomToggle"></i><i class="iconfont icon-close" v-on:click="interface.close"></i></span>' +
             '</div></div>' +
             '<div class="dialog-body"><div class="body-content" v-style="{width:innerConf.width}">' +
-            // '<template config="innerConf|:templateHandle($,innerConf.content)"></template>' +
+                '<template config="innerConf|:templateHandle($,innerConf.content)"></template>' +
             '</div></div>' +
             '<div v-if="innerConf.btns|:btnLen"  class="dialog-footer">' +
             '<ul class="footer-content"><li v-for="btnInfo in innerConf.btns"><button type="button" v-attr:class="btnInfo.theme" v-style="btnInfo.style" v-on:click="btnInfo|:trigger($,interface,innerConf)">{{btnInfo.name}}</button></li></ul>' +

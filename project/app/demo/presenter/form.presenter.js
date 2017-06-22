@@ -7,10 +7,15 @@ presenter('form-layout',function () {
 
     This.assign('selectConf',This.model(':selectConf'));
 
-    this.assign('getForm',function (getForm) {
+    this.assign('getForm',function (formAPI) {
         return function () {
-            console.log(getForm,getForm.getData());
+            console.log(formAPI,formAPI.getData());
+        }
+    });
 
+    this.assign('validForm',function (formAPI) {
+        return function () {
+            console.log(formAPI,formAPI.valid());
         }
     });
 

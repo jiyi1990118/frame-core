@@ -112,23 +112,6 @@ directiveClass.prototype.init = function () {
         exp=this.exp,
         extraParameters = this.extraParameter;
 
-    //写入钩子
-    if(conf.hook){
-        var hooks=vnode.data.hook=vnode.data.hook||{};
-        Object.keys(conf.hook).forEach(function (hookName) {
-            //检查并创建
-            hooks[hookName]=hooks[hookName]||[];
-            hooks[hookName]=[].concat(hooks[hookName]);
-
-            //合并
-            hooks[hookName]=hooks[hookName].concat(function () {
-                conf.hook[hookName].apply($api,arguments);
-            });
-
-            vnode.data.hook=hooks;
-        })
-    }
-
     function renderTrigger() {
         if (watchProps.length <= ++propLoad) {
             isRender = true;
@@ -262,6 +245,30 @@ directiveClass.prototype.render = function () {
     var conf = this.conf,
         vnode = this.vnode,
         renderVnode;
+
+    if(!this.isRender){
+
+        //写入钩子
+        if(conf.hook){
+            var hooks=vnode.data.hook=vnode.data.hook||{};
+            Object.keys(conf.hook).forEach(function (hookName) {
+                //检查并创建
+                hooks[hookName]=hooks[hookName]||[];
+                hooks[hookName]=[].concat(hooks[hookName]);
+
+                //合并
+                hooks[hookName]=hooks[hookName].concat(function () {
+                    conf.hook[hookName].apply($api,arguments);
+                });
+
+                vnode.data.hook=hooks;
+            })
+
+            if(typeof conf.hook.init === "function"){
+                conf.hook.init.apply($api,vnode);
+            }
+        }
+    }
 
     //检查是否有渲染的方法
     if (conf.render instanceof Function) {

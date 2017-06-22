@@ -4,7 +4,15 @@
   font-family: PingFangSC-Regular;
   margin-left:5px;//后期可以去掉
 
+  &.no-render{
+    .grid-header-row{
+      display: block !important;
+      border-bottom: 2px solid #1a921b;
+    }
+  }
 
+
+  @li-height: 39px;
   //++++++++公共部分样式++++++++
   //阴影样式
   .box-shadow(){
@@ -35,9 +43,8 @@
     user-select: none;
     //dataGrid头部样式中的ul
     >ul.grid-header-row {
-      padding: 0;
-      margin: 0;
       width: 100%;
+      height: @li-height;
       position: relative;
       overflow: hidden;
       display: table-row;
@@ -45,7 +52,6 @@
       background-color: #fcffff;
       //dataGrid头部样式中的ul下的li
       >li {
-        @li-height: 39px;
         padding:0px 12px;
         overflow: hidden;
         height: @li-height;
@@ -62,7 +68,7 @@
         @sort-asc: #AAAFB2;
         //降序
         @sort-desc:#567ED2;
-        &.asc,&.desc{
+        &[order]{
           cursor: pointer;
         }
         .table-cell{
@@ -79,6 +85,7 @@
         }
         span {
           left: 8px;
+          width: 12px;
           height: 100%;
           padding-left: 5px;
           vertical-align: middle;
@@ -90,17 +97,19 @@
           >.iconfont{
             font-size:12px !important;
             cursor:pointer;
-          }
-          // 升序排列/降序排列
-          .icon-down-copy-desc,.icon-down-copy-asc {
-            display:flex;
+            display: none;
             color: @sort-asc;
             &::before{
               height:10px;
             }
           }
         }
-        &.asc span{
+        &.order span{
+          i{
+            display: flex;
+          }
+        }
+        &[order="asc"] span{
           .icon-down-copy-asc{
             color: @sort-asc;
           }
@@ -108,7 +117,7 @@
             color: @sort-desc;
           }
         }
-        &.desc span{
+        &[order="desc"] span{
           .icon-down-copy-asc{
             color: @sort-desc;
           }
@@ -266,7 +275,18 @@
             background: #FFFFFF;
             border-radius: 5px;
             border: 1px solid #E5EBF4;
-            >li{
+
+            .paging-list{
+              >ul{
+                height:100%;
+                display: flex;
+                li:not(:first-child){
+                  border-left: solid 1px #e5ebf4;
+                }
+              }
+            }
+
+            >li:not(.paging-list),.paging-list li{
               padding: 0;
               margin: 0;
               cursor: pointer;
@@ -357,6 +377,11 @@
           }
           li{
             padding-left: 10px;
+            &.focus button{
+              color: white;
+              border: none;
+              background-color: #26B7AE;
+            }
           }
           button{
             color: #9BADCA;
@@ -365,11 +390,6 @@
             padding: 0 8px;
             background-color: white;
             border:solid 1px #E5EBF4;
-            &.focus{
-              color: white;
-              border: none;
-              background-color: #26B7AE;
-            }
           }
           >span{
             padding-left: 10px;

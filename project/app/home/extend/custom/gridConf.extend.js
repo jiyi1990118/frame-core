@@ -99,9 +99,7 @@ extend('gridStruct',function () {
                                     data = LIB.date.convert(data, 'yy-mm-dd hh:ii:ss');
                                     break;
                             }
-                            return {
-                                content: data
-                            }
+                            return data
                         };
                         break;
                     case 7:
@@ -131,7 +129,7 @@ extend('gridStruct',function () {
     //数据过滤函数
     function filtration(sendData,callback) {
         //当前页编码
-        sendData.currentPage=sendData.pageNow;
+        sendData.currentPage=sendData.pageNow||sendData.currentPage;
         server({
             url:'gridData',
             serverType:'api'

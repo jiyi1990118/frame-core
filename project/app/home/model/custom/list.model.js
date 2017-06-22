@@ -12,53 +12,49 @@ model('gridConf',['$:custom/gridConf:gridStruct'],function (gridStruct) {
             {
                 titleConfig: function () {
 
-                    return {
-                        template: '<input type="checkbox" v-on:change="onChange" $-checked:false="developScope.allChecked">',
-                        scope: {
-
-                        },
-                        filter: {
-
-                        }
-                    }
+                    return '<input type="checkbox">'
                 },
                 listConfig: function (data, rowData, index, gridListData) {
-
-
-                    return {
-                        template: '<input $-model="$isChecked" type="checkbox" >',
-                        scope: {
-                            text:2
-                        },
-                        filter: {
-
-                        }
-                    }
+                    return '<input type="checkbox" >'
                 }
             },
             {
                 //列表序号
                 name: '序号',
                 listConfig: function (data, rowData, index) {
-                    return {
-                        content: index + 1
-                    }
+                    return index + 1
                 }
             },
             {
                 name: '操作',
                 listConfig: function () {
+                    var actionElm=document.createElement('span');
+                    actionElm.className="iconfont icon-fenlei";
 
-                    // console.log(arguments)
-                    return {
-                        template: '<span  class="iconfont icon-fenlei"></span>',
-                        scope: {
-                            menu:{
+                    vf.loadPlugins('PLUGINS/menu/dropMenu',function(dropMenu){
+                        dropMenu(actionElm,{
+                            list:[
+                                {
+                                    content:'<span>栏目一</span>',
 
-                            }
-                        },
-                        events: {}
-                    }
+                                    click:function(){
+
+                                        console.log('yes')
+
+                                    }
+                                },
+                                {
+                                    content:'<span>栏目二</span>'
+                                },
+                                {
+                                    content:'<span>栏目三</span>'
+                                },
+                            ]
+                        })
+                    })
+
+
+                    return actionElm
                 }
             }
         ]
