@@ -11,7 +11,7 @@ function ajax(option){
     option.async = option.async === undefined ? true : option.async ? true : false;
 
     //请求类型
-    option.type = (new RegExp(option.type,'ig').exec('GET,DELETE,POST,PUT,HEAD,FORM').toString() || 'GET');
+    var requestType=option.type = (new RegExp(option.type,'ig').exec('GET,DELETE,POST,PUT,HEAD,FORM').toString() || 'GET');
 
     var xhr={
             responseType:'text'
@@ -106,6 +106,9 @@ function ajax(option){
         case 'POST':
 
             break;
+        case 'FORM':
+            requestType='POST';
+            break;
         case 'GET':
             url=URL.computedUrl(url,option.data);
             break;
@@ -120,7 +123,7 @@ function ajax(option){
             break;
     }
 
-    xhr.open(option.type,url,option.async);
+    xhr.open(requestType,url,option.async);
 
     //上传进度后回调
     var uploadprogress=option.uploadprogress || option.uploadProgress;
