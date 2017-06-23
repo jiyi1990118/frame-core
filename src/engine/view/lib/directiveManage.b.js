@@ -112,6 +112,22 @@ directiveClass.prototype.init = function () {
         exp=this.exp,
         extraParameters = this.extraParameter;
 
+    //写入钩子
+    if(conf.hook){
+        var hooks=vnode.data.hook=vnode.data.hook||{};
+        Object.keys(conf.hook).forEach(function (hookName) {
+            //检查并创建
+            hooks[hookName]=hooks[hookName]||[];
+            hooks[hookName]=[].concat(hooks[hookName]);
+
+            //合并
+            hooks[hookName]=hooks[hookName].concat(function () {
+                conf.hook[hookName].apply($api,arguments);
+            });
+
+            vnode.data.hook=hooks;
+        })
+    }
 
     function renderTrigger() {
         if (watchProps.length <= ++propLoad) {
@@ -177,7 +193,6 @@ directiveClass.prototype.init = function () {
                                 exp:propConf.exp,
                                 ob:syntaxExample.structRes.observers[0]
                             };
-                            renderTrigger();
                         }else{
                             //读取表达式返回的值
                             if (!syntaxExample.read(function (newData) {
@@ -201,7 +216,6 @@ directiveClass.prototype.init = function () {
                                             }
 
                                             if (isRender) {
-                                                isRender = true;
                                                 $this.render();
                                             } else {
                                                 renderTrigger();
@@ -211,7 +225,6 @@ directiveClass.prototype.init = function () {
 
                                     //检查是否有默认数据 并渲染
                                     if (propConf.hasOwnProperty('default') && isRender) {
-                                        isRender = true;
                                         $this.render();
                                     } else {
                                         renderTrigger();
@@ -225,52 +238,31 @@ directiveClass.prototype.init = function () {
                                 }
                             };
                         }
+
+
+
                     } else {
                         console.warn('表达式： ' + propConf.exp + '有误！')
                     }
+
                 })
 
-            }else{
-                isRender = true;
-                $this.render();
             }
+
+
         } else {
             console.warn('指令配置中props只能为function')
         }
     }else{
-        isRender = true;
         $this.render();
     }
 }
 
 directiveClass.prototype.render = function () {
-    var $api=this.$api,
-        conf = this.conf,
+    var conf = this.conf,
         vnode = this.vnode,
         renderVnode;
 
-    if(!this.isRender){
-        //写入钩子
-        if(conf.hook){
-            var hooks=vnode.data.hook=vnode.data.hook||{};
-            Object.keys(conf.hook).forEach(function (hookName) {
-                //检查并创建
-                hooks[hookName]=hooks[hookName]||[];
-                hooks[hookName]=[].concat(hooks[hookName]);
-
-                //合并
-                hooks[hookName]=hooks[hookName].concat(function () {
-                    conf.hook[hookName].apply($api,arguments);
-                });
-
-                vnode.data.hook=hooks;
-            })
-
-            if(typeof conf.hook.init === "function"){
-                conf.hook.init.apply($api,vnode);
-            }
-        }
-    }
     //检查是否有渲染的方法
     if (conf.render instanceof Function) {
         renderVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
@@ -304,6 +296,7 @@ directiveClass.prototype.render = function () {
     this.watchs.render.forEach(function (render) {
         render();
     })
+
     this.isRender = true;
 }
 

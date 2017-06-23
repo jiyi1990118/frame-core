@@ -29,7 +29,7 @@ config(function($app,$innerConfig){
     });
 
     //加载配置模式
-    $app.loadConfMode('dev');
+    $app.loadConfMode('pro');
 
 });
 

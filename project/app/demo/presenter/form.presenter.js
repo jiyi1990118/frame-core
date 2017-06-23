@@ -19,7 +19,6 @@ presenter('form-layout',function () {
         }
     });
 
-
     this.assign('window',window)
 
     this.layout('HOME@layout:default').display();

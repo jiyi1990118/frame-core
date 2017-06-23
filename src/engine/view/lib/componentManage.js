@@ -234,6 +234,7 @@ compClass.prototype.init = function () {
                                         }
 
                                         if (isRender){
+                                            isRender = true;
                                             $this.render();
                                         }else{
                                             renderTrigger();
@@ -244,6 +245,7 @@ compClass.prototype.init = function () {
 
                                 //检查是否有默认数据 并渲染
                                 if (propConf.hasOwnProperty('default') && isRender) {
+                                    isRender = true;
                                     $this.render();
                                 } else {
                                     renderTrigger();
@@ -266,12 +268,15 @@ compClass.prototype.init = function () {
                 }
 
             })
+        }else{
+            isRender = true;
+            this.render();
         }
-        return this;
     } else {
         isRender = true;
         this.render();
     }
+    return this;
 }
 
 compClass.prototype.render = function () {

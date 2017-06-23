@@ -1722,6 +1722,7 @@
                                                 }
 
                                                 if (isRender) {
+                                                    isRender = true;
                                                     $this.render();
                                                 } else {
                                                     renderTrigger();
@@ -1732,6 +1733,7 @@
 
                                         //检查是否有默认数据 并渲染
                                         if (propConf.hasOwnProperty('default') && isRender) {
+                                            isRender = true;
                                             $this.render();
                                         } else {
                                             renderTrigger();
@@ -1754,12 +1756,15 @@
                         }
 
                     })
+                } else {
+                    isRender = true;
+                    this.render();
                 }
-                return this;
             } else {
                 isRender = true;
                 this.render();
             }
+            return this;
         }
 
         compClass.prototype.render = function() {
@@ -1953,6 +1958,7 @@
                 exp = this.exp,
                 extraParameters = this.extraParameter;
 
+
             function renderTrigger() {
                 if (watchProps.length <= ++propLoad) {
                     isRender = true;
@@ -1967,8 +1973,8 @@
 
             //作用域处理合并
             /*Object.keys(extraParameters.scope = extraParameters.scope || {}).forEach(function (sKey) {
-                $api.scope[sKey] = extraParameters.scope[sKey];
-            })*/
+             $api.scope[sKey] = extraParameters.scope[sKey];
+             })*/
 
             //作用域处理合并
             Object.keys(conf.scope = conf.scope || {}).forEach(function(sKey) {
@@ -2017,6 +2023,7 @@
                                         exp: propConf.exp,
                                         ob: syntaxExample.structRes.observers[0]
                                     };
+                                    renderTrigger();
                                 } else {
                                     //读取表达式返回的值
                                     if (!syntaxExample.read(function(newData) {
@@ -2040,6 +2047,7 @@
                                                     }
 
                                                     if (isRender) {
+                                                        isRender = true;
                                                         $this.render();
                                                     } else {
                                                         renderTrigger();
@@ -2049,6 +2057,7 @@
 
                                             //检查是否有默认数据 并渲染
                                             if (propConf.hasOwnProperty('default') && isRender) {
+                                                isRender = true;
                                                 $this.render();
                                             } else {
                                                 renderTrigger();
@@ -2062,33 +2071,31 @@
                                         }
                                     };
                                 }
-
-
-
                             } else {
                                 console.warn('表达式： ' + propConf.exp + '有误！')
                             }
-
                         })
 
+                    } else {
+                        isRender = true;
+                        $this.render();
                     }
-
-
                 } else {
                     console.warn('指令配置中props只能为function')
                 }
             } else {
+                isRender = true;
                 $this.render();
             }
         }
 
         directiveClass.prototype.render = function() {
-            var conf = this.conf,
+            var $api = this.$api,
+                conf = this.conf,
                 vnode = this.vnode,
                 renderVnode;
 
             if (!this.isRender) {
-
                 //写入钩子
                 if (conf.hook) {
                     var hooks = vnode.data.hook = vnode.data.hook || {};
@@ -2110,7 +2117,6 @@
                     }
                 }
             }
-
             //检查是否有渲染的方法
             if (conf.render instanceof Function) {
                 renderVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
@@ -2122,9 +2128,9 @@
                     case renderVnode.elm && renderVnode.elm === vnode.elm:
                         //检查是否渲染，并检查更新元素
                         /*vnode.elm && this.vdomApi.cbs.update.forEach(function (updateHandle) {
-                            updateHandle(vnode,renderVnode);
-                        })
-                        return;*/
+                         updateHandle(vnode,renderVnode);
+                         })
+                         return;*/
                 }
 
                 vnode.innerVnode = renderVnode;
@@ -2144,7 +2150,6 @@
             this.watchs.render.forEach(function(render) {
                 render();
             })
-
             this.isRender = true;
         }
 
