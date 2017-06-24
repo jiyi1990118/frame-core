@@ -1,7 +1,7 @@
-<form v-form="formAPI.exps">
+<form ><!--v-form="formAPI.exps"-->
     <div class="form-layout" style="background-color: white;height:100%;">
         <ul>
-            <li>
+<!--            <li>
                 <label>{{window.textVal}}文本框</label>
                 <ins>
                     <input v-model="window.textVal" type="text" v-valid="{required:true,minlen:{value:5,message:'视图类型最短{{value}}字符'}}">
@@ -55,9 +55,15 @@
                 <ins>
                     <input name="color" type="color">
                 </ins>
+            </li>-->
+            <li>
+                <label>图标选择</label>
+                <ins>
+                    <input name="color" type="icons">
+                </ins>
             </li>
         </ul>
     </div>
-    <button type="button" v-on:click="getForm(formAPI.exps)">test get form</button>
-    <button type="button" v-on:click="validForm(formAPI.exps)">test form valid</button>
+<!--    <button type="button" v-on:click="getForm(formAPI.exps)">test get form</button>
+    <button type="button" v-on:click="validForm(formAPI.exps)">test form valid</button>-->
 </form>

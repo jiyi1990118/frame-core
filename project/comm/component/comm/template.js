@@ -13,17 +13,6 @@ template(function ($app) {
             },
         },
         isReplace: true,
-        hook: {
-            init: function () {
-
-            },
-            create: function () {
-
-            },
-            destroy: function () {
-
-            }
-        },
         render:function (vnode, scope) {
             var templateConf=scope.templateConf;
 

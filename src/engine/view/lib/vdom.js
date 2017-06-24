@@ -850,6 +850,10 @@ function init(modules) {
                 innerFilter = extraParameters.filter;
             }
 
+            //检查是否完全独立 （主要兼容 template 在组件内部 this.render方式）
+            if(vnode.rootScope === vnode.innerScope){
+                rootScope = vnode.rootScope;
+            }else
             //检查是否独立作用域
             if(parentNode.innerScope) {
                 rootScope = parentNode.innerScope;
@@ -857,7 +861,6 @@ function init(modules) {
                     scope: rootScope,
                     filter: innerFilter
                 }
-
             }  else {
                 rootScope = parentNode.rootScope;
                 //由父节点传递作用域给子级

@@ -1562,9 +1562,9 @@
                 render: function(html, scope, filter) {
                     var vnode = vdomApi.html2vdom(html);
                     vnode.innerScope = scope;
+                    vnode.rootScope = scope;
                     vnode.$scope = scope || vnode.$scope;
                     vnode.innerFilter = filter;
-
                     return vnode;
 
                 },
@@ -5388,21 +5388,24 @@
                         innerFilter = extraParameters.filter;
                     }
 
-                    //检查是否独立作用域
-                    if (parentNode.innerScope) {
-                        rootScope = parentNode.innerScope;
-                        extraParameters = {
-                            scope: rootScope,
-                            filter: innerFilter
+                    //检查是否完全独立 （主要兼容 template 在组件内部 this.render方式）
+                    if (vnode.rootScope === vnode.innerScope) {
+                        rootScope = vnode.rootScope;
+                    } else
+                        //检查是否独立作用域
+                        if (parentNode.innerScope) {
+                            rootScope = parentNode.innerScope;
+                            extraParameters = {
+                                scope: rootScope,
+                                filter: innerFilter
+                            }
+                        } else {
+                            rootScope = parentNode.rootScope;
+                            //由父节点传递作用域给子级
+                            if (parentNode instanceof Object) {
+                                Object.keys(parentNode.$scope || {}).length && vnode.middleScope.push(parentNode.$scope)
+                            }
                         }
-
-                    } else {
-                        rootScope = parentNode.rootScope;
-                        //由父节点传递作用域给子级
-                        if (parentNode instanceof Object) {
-                            Object.keys(parentNode.$scope || {}).length && vnode.middleScope.push(parentNode.$scope)
-                        }
-                    }
                 } else {
                     rootScope = extraParameters.scope;
                 }
@@ -9389,7 +9392,7 @@
             option.async = option.async === undefined ? true : option.async ? true : false;
 
             //请求类型
-            option.type = (new RegExp(option.type, 'ig').exec('GET,DELETE,POST,PUT,HEAD,FORM').toString() || 'GET');
+            var requestType = option.type = (new RegExp(option.type, 'ig').exec('GET,DELETE,POST,PUT,HEAD,FORM').toString() || 'GET');
 
             var xhr = {
                     responseType: 'text'
@@ -9483,6 +9486,9 @@
                 case 'POST':
 
                     break;
+                case 'FORM':
+                    requestType = 'POST';
+                    break;
                 case 'GET':
                     url = URL.computedUrl(url, option.data);
                     break;
@@ -9497,7 +9503,7 @@
                     break;
             }
 
-            xhr.open(option.type, url, option.async);
+            xhr.open(requestType, url, option.async);
 
             //上传进度后回调
             var uploadprogress = option.uploadprogress || option.uploadProgress;

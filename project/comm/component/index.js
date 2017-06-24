@@ -8,7 +8,8 @@ components(function ($app) {
         appNav:'./app/app-nav.js',
         listGrid:'./list/list-grid.js',
         template:'./comm/template.js',
-        select:'./form/select.js'
+        listIcon:'./list/list-icon.js',
+        select:'./form/select.js',
     });
 
 })

@@ -74,9 +74,9 @@ function compClass(compConf, vnode, extraParameters,vdomApi,compName) {
         render: function (html,scope,filter) {
             var vnode=vdomApi.html2vdom(html);
             vnode.innerScope=scope;
+            vnode.rootScope=scope;
             vnode.$scope=scope||vnode.$scope;
             vnode.innerFilter=filter;
-
             return vnode;
 
         },

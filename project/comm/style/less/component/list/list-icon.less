@@ -1,0 +1,51 @@
+//图标选择
+.input-icon{
+  display: inline-block;
+  .icon-container{
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    color: #d6d6d6;
+    cursor: pointer;
+    border: dashed 1px #bfb9b9;
+    display: flex;
+    align-items:center;
+    justify-content:center;
+    &:hover{
+      color:#d6d2c7;
+      border-color:#a2eaaf;
+      box-shadow: 0 0 5px #e0dfdf;
+    }
+  }
+  i{
+    font-size: 22px;
+    &.default:before{
+      content:'+';
+      margin-left: auto;
+    }
+  }
+}
+
+.list-icon{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  li{
+    width:50px;
+    height:50px;
+    display: flex;
+    align-items:center;
+    justify-content:center;
+    color:rgb(194, 208, 207);
+    &.focus{
+      color:white;
+      border-radius: 5px;
+      background-color: #d5f5c4;
+      border: dashed 1px #92d625;
+    }
+  }
+  i{
+    font-size: 26px;
+  }
+}
