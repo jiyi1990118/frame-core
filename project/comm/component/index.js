@@ -9,6 +9,7 @@ components(function ($app) {
         listGrid:'./list/list-grid.js',
         template:'./comm/template.js',
         listIcon:'./list/list-icon.js',
+        formLayout:'./form/form-layout.js',
         select:'./form/select.js',
     });
 

@@ -13,6 +13,8 @@ presenter('form-layout',function () {
         }
     });
 
+    this.assign('formConf',this.model('@form:formConf'));
+
     this.assign('validForm',function (formAPI) {
         return function () {
             console.log(formAPI,formAPI.valid());
@@ -21,5 +23,5 @@ presenter('form-layout',function () {
 
     this.assign('window',window)
 
-    this/*.layout('HOME@layout:default')*/.display();
+    this.layout('HOME@layout:default').display();
 })

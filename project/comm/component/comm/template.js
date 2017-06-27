@@ -14,7 +14,7 @@ template(function ($app) {
         },
         isReplace: true,
         render:function (vnode, scope) {
-            var templateConf=scope.templateConf;
+            var templateConf=scope.templateConf||{};
 
             return this.render(templateConf.template||'',templateConf.scope||{},templateConf.filter);
         }

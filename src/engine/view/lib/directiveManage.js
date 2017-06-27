@@ -9,16 +9,16 @@ var syntaxStruct = require('./syntaxStruct');
 //语法结构处理
 var syntaxHandle = require('./syntaxHandle');
 
-var log=require('../../../inside/log/log');
+var log = require('../../../inside/log/log');
 
 var directiveStroage = {};
 
 //指令类
-function directiveClass(directiveConf, vnode, extraParameters, directiveName,vdomApi) {
+function directiveClass(directiveConf, vnode, expInfo, extraParameters, directiveName, vdomApi) {
 
-    var This=this;
+    var This = this;
 
-    this.vdomApi=vdomApi;
+    this.vdomApi = vdomApi;
 
     //标识当前节点是指令
     vnode.isDirective = true;
@@ -26,10 +26,10 @@ function directiveClass(directiveConf, vnode, extraParameters, directiveName,vdo
     //指令名称
     this.name = directiveName;
 
-    this.expInfo=vnode.data.attrsMap[directiveName];
+    this.expInfo = expInfo;
 
     //表达式
-    this.exp = vnode.data.attrsMap[directiveName].value;
+    this.exp = expInfo.value;
 
     //指令实例配置
     this.conf = directiveConf;
@@ -38,7 +38,7 @@ function directiveClass(directiveConf, vnode, extraParameters, directiveName,vdo
     this.vnode = vnode;
 
     //当前节点备份
-    this.cloneVnode=vnode.clone();
+    this.cloneVnode = vnode.clone();
 
     //指令扩展参数
     this.extraParameter = extraParameters;
@@ -47,7 +47,7 @@ function directiveClass(directiveConf, vnode, extraParameters, directiveName,vdo
     this.priority = directiveConf.priority || 0;
 
     //外部接口数据存储
-    this.exports={};
+    this.exports = {};
 
     //监听存储
     this.watchs = {
@@ -63,7 +63,7 @@ function directiveClass(directiveConf, vnode, extraParameters, directiveName,vdo
         //虚拟节点
         vnode: vnode,
         //expInfo
-        expInfo:vnode.data.attrsMap[directiveName],
+        expInfo: vnode.data.attrsMap[directiveName],
         //节点渲染
         render: function () {
 
@@ -73,15 +73,15 @@ function directiveClass(directiveConf, vnode, extraParameters, directiveName,vdo
         //模板节点
         templateVnode: vnode.clone(),
         //对外提供数据出口
-        exports:function (key,data) {
-            if(This.exports[key]){
-                if(This.exports[key].ob){
-                    This.exports[key].ob.write(This.exports[key].exp,data)
-                }else{
+        exports: function (key, data) {
+            if (This.exports[key]) {
+                if (This.exports[key].ob) {
+                    This.exports[key].ob.write(This.exports[key].exp, data)
+                } else {
                     log.warn('++++++++++++++++，功能需做兼容!')
                 }
-            }else{
-                log.warn(directiveName +' 指令对外提供的数据接口 ['+key+'] 未定义!')
+            } else {
+                log.warn(directiveName + ' 指令对外提供的数据接口 [' + key + '] 未定义!')
             }
         }
 
@@ -109,7 +109,7 @@ directiveClass.prototype.init = function () {
         data = vnode.data,
         props = conf.props,
         watchProps = [],
-        exp=this.exp,
+        exp = this.exp,
         extraParameters = this.extraParameter;
 
 
@@ -138,15 +138,15 @@ directiveClass.prototype.init = function () {
     //检查观察的属性 中数据是否完全加载
     if (conf.props) {
         if (props instanceof Function) {
-            props = props.call($api, exp,this.expInfo,vnode);
+            props = props.call($api, exp, this.expInfo, vnode);
             watchProps = watchProps.concat(props)
 
             if (watchProps.length) {
                 //进行属性作用域数据获取
                 watchProps.forEach(function (propConf) {
-                    propConf.exp=propConf.exp||exp;
+                    propConf.exp = propConf.exp || exp;
 
-                    if(!propConf.exp)return renderTrigger();
+                    if (!propConf.exp)return renderTrigger();
 
                     var syntaxExample,
                         strcut = syntaxStruct(propConf.exp);
@@ -155,16 +155,16 @@ directiveClass.prototype.init = function () {
                     if (!strcut.errMsg) {
                         //收集作用域
                         var scopes = [vnode.rootScope].concat(vnode.middleScope);
-                        if(vnode.innerScope){
+                        if (vnode.innerScope) {
                             scopes.push(vnode.innerScope);
-                        }else{
+                        } else {
                             scopes.push(vnode.$scope);
                         }
 
                         syntaxExample = syntaxHandle(strcut, scopes, extraParameters.filter, true);
 
                         //记录到虚拟节点上，以便后续销毁使用
-                        (vnode.data.syntaxExample=vnode.data.syntaxExample||[]).push(syntaxExample);
+                        (vnode.data.syntaxExample = vnode.data.syntaxExample || []).push(syntaxExample);
 
                         //监听当前语法
                         if (propConf.watch instanceof Function) {
@@ -172,13 +172,13 @@ directiveClass.prototype.init = function () {
                         }
 
                         //检查是否提供外部数据接口
-                        if(propConf.isExports){
-                            $this.exports[propConf.key]={
-                                exp:propConf.exp,
-                                ob:syntaxExample.structRes.observers[0]
+                        if (propConf.isExports) {
+                            $this.exports[propConf.key] = {
+                                exp: propConf.exp,
+                                ob: syntaxExample.structRes.observers[0]
                             };
                             renderTrigger();
-                        }else{
+                        } else {
                             //读取表达式返回的值
                             if (!syntaxExample.read(function (newData) {
                                     $api.scope[propConf.key] = newData;
@@ -223,71 +223,78 @@ directiveClass.prototype.init = function () {
                                     $api.scope[propConf.key] = propConf['default'];
                                     renderTrigger();
                                 }
-                            };
+                            }
+                            ;
                         }
                     } else {
                         console.warn('表达式： ' + propConf.exp + '有误！')
                     }
                 })
 
-            }else{
+            } else {
                 isRender = true;
                 $this.render();
             }
         } else {
             console.warn('指令配置中props只能为function')
         }
-    }else{
+    } else {
         isRender = true;
         $this.render();
     }
 }
 
 directiveClass.prototype.render = function () {
-    var $api=this.$api,
+    var $api = this.$api,
         conf = this.conf,
         vnode = this.vnode,
         renderVnode;
 
-    if(!this.isRender){
+    if (!this.isRender) {
         //写入钩子
-        if(conf.hook){
-            var hooks=vnode.data.hook=vnode.data.hook||{};
+        if (conf.hook) {
+            var hooks = vnode.data.hook = vnode.data.hook || {};
             Object.keys(conf.hook).forEach(function (hookName) {
                 //检查并创建
-                hooks[hookName]=hooks[hookName]||[];
-                hooks[hookName]=[].concat(hooks[hookName]);
+                hooks[hookName] = hooks[hookName] || [];
+                hooks[hookName] = [].concat(hooks[hookName]);
 
                 //合并
-                hooks[hookName]=hooks[hookName].concat(function () {
-                    conf.hook[hookName].apply($api,arguments);
+                hooks[hookName] = hooks[hookName].concat(function () {
+                    conf.hook[hookName].apply($api, arguments);
                 });
 
-                vnode.data.hook=hooks;
+                vnode.data.hook = hooks;
             })
 
-            if(typeof conf.hook.init === "function"){
-                conf.hook.init.apply($api,vnode);
+            if (typeof conf.hook.init === "function") {
+                conf.hook.init.call($api, vnode);
+            }
+
+            //检查元素是否渲染
+            if (vnode.elm) {
+                if (typeof conf.hook.create === "function") {
+                    conf.hook.create.call($api, vnode);
+                }
+                if (vnode.elm.parentNode && typeof conf.hook.insert === "function") {
+                    conf.hook.insert.call($api, vnode);
+                }
             }
         }
     }
+
     //检查是否有渲染的方法
     if (conf.render instanceof Function) {
         renderVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
 
-        switch (true){
+        switch (true) {
             case !renderVnode:
                 return;
             case renderVnode === vnode:
             case renderVnode.elm && renderVnode.elm === vnode.elm:
-            //检查是否渲染，并检查更新元素
-            /*vnode.elm && this.vdomApi.cbs.update.forEach(function (updateHandle) {
-             updateHandle(vnode,renderVnode);
-             })
-             return;*/
         }
 
-        vnode.innerVnode=renderVnode;
+        vnode.innerVnode = renderVnode;
     }
 
     //标识当前节点是否替换
@@ -316,7 +323,7 @@ exports.get = function (directiveName) {
 
 //指令注册
 exports.register = function (directiveName, directiveConf) {
-    directiveStroage[directiveName] = function (vnode, extraParameters,vdomApi) {
-        return new directiveClass(directiveConf, vnode, extraParameters, directiveName,vdomApi);
+    directiveStroage[directiveName] = function (vnode, expInfo, extraParameters, vdomApi) {
+        return new directiveClass(directiveConf, vnode, expInfo, extraParameters, directiveName, vdomApi);
     };
 }

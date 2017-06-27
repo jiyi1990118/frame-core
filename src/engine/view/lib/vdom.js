@@ -70,7 +70,8 @@ var htmlDomApi = {
         }) : node.appendChild(child);
     },
     parentNode: function parentNode(node) {
-        return (node instanceof Array ? node[0] : node).parentNode;
+        node=node instanceof Array ? parentNode(node[0]) : node
+        return node?node.parentNode:null;
     },
     replaceChild: function (parentNode, newNode, oldNode) {
         var Rm;
@@ -820,6 +821,7 @@ function init(modules) {
     //根据虚拟节点创建真实dom节点
     function createElm(vnode, insertedVnodeQueue, callback, extraParameters, parentNode) {
         var i,
+            ivq,
             isRearrange,
             oldVnode,
             rootScope,
@@ -857,10 +859,8 @@ function init(modules) {
             //检查是否独立作用域
             if(parentNode.innerScope) {
                 rootScope = parentNode.innerScope;
-                extraParameters = {
-                    scope: rootScope,
-                    filter: innerFilter
-                }
+                extraParameters.scope=rootScope;
+                extraParameters.filter=innerFilter;
             }  else {
                 rootScope = parentNode.rootScope;
                 //由父节点传递作用域给子级
@@ -914,11 +914,9 @@ function init(modules) {
                     case vnode.innerVnode instanceof Array:
                     case vnode.innerVnode instanceof Object:
 
-
                         if (!(vnode.innerVnode instanceof Array)) {
                             vnode.innerVnode = [vnode.innerVnode];
                         }
-
                         //检查节点是否被渲染，此处需要做元素对比
                         if (vnode.elm && vnode.elm.length) {
                             patch(oldVnode, vnode, {
@@ -961,6 +959,7 @@ function init(modules) {
                 }
 
             } else {
+
                 //检查是否是注释
                 if (sel === '!') {
                     if (isUndef(vnode.text)) {
@@ -970,7 +969,7 @@ function init(modules) {
 
                 } else if (isDef(sel)) {
 
-
+                    //检查是否同一个元素
                     if(oldVnode && vnode.elm === oldVnode.elm)return;
 
                     //创建实体Dom元素
@@ -1049,20 +1048,42 @@ function init(modules) {
             }
 
             i = data.hook;
+
             if ( isDef(i)) {
                 //检查并触发create类型钩子
-                if (i.create)
-                    [].concat(i.create).forEach(function (create) {
+                if (i.create) {
+                    ;[].concat(i.create).forEach(function (create) {
                         create(emptyNode, vnode);
                     })
-
-                //收集并存储插入类型钩子
-                if (i.insert)
-                    insertedVnodeQueue.push(vnode);
+                }
             }
 
             //返回当前节点数据
             callback(vnode, isRearrange);
+
+            if(extraParameters.isload){
+
+                //收集延后的节点
+                var delayedInsertedVnodeQueue=[]
+                //触发队列中的insert钩子
+                while (ivq=insertedVnodeQueue.shift()){
+                    if(ivq.elm.parentNode){
+                        ivq.data && ivq.data.hook && ivq.data.hook.insert && [].concat(ivq.data.hook.insert).forEach(function (insert) {
+                            insert(ivq);
+                        })
+                    }else{
+                        delayedInsertedVnodeQueue.push(ivq)
+                    }
+                }
+
+                delayedInsertedVnodeQueue.forEach(function (ivq) {
+                    insertedVnodeQueue.push(ivq);
+                })
+
+            }
+
+            //收集并存储插入类型钩子
+            insertedVnodeQueue.push(vnode);
 
             //销毁旧节点
             // oldVnode && oldVnode.destroy();
@@ -1195,6 +1216,7 @@ function init(modules) {
 
         //元素对比
         while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+            console.log(newCh, oldCh,parentVnode)
             if (!oldStartVnode) {
                 oldStartVnode = oldCh[++oldStartIdx]; // Vnode might have been moved left
             }
@@ -1387,7 +1409,7 @@ function init(modules) {
     return function patch(oldVnode, Vnode, option, parentVnode, callback) {
         option = option || {};
 
-        var i, elm, parent, nextElm;
+        var i, elm, parent, nextElm,ivq;
         var insertedVnodeQueue = [];
 
         var extraParameters = {
@@ -1562,12 +1584,12 @@ function init(modules) {
         });
 
         //触发队列中的insert钩子
-        insertedVnodeQueue.forEach(function (ivq) {
-            [].concat(ivq.data.hook.insert).forEach(function (insert) {
+        while (ivq=insertedVnodeQueue.shift()){
+            ivq.data && ivq.data.hook && ivq.data.hook.insert && [].concat(ivq.data.hook.insert).forEach(function (insert) {
                 insert(ivq);
             })
-        });
-
+        }
+        extraParameters.isload=true;
         return Vnode;
     };
 }
@@ -1830,7 +1852,7 @@ function eventListenersModule() {
 var compManage = require('./componentManage');
 var directorieManage = require('./directiveManage');
 
-//组件检查
+//组件与指令检查
 function compAndDirectiveInspect() {
 
     function inspectInit(vnode, initCall, extraParameters, parentNode) {
@@ -1838,7 +1860,6 @@ function compAndDirectiveInspect() {
         var compExample,
             isInitCall,
             isLayoutElm,
-            layoutElmInfo,
             layoutStroage,
             data = vnode.data,
             attrsMap = data.attrsMap || {},
@@ -1868,13 +1889,11 @@ function compAndDirectiveInspect() {
                     })
                     compExample.init();
                 } else {
-                    compExample.init();
                     //检查是替换
                     if(handleExampleQueue.length || compExample.conf.isReplace){
                         exapmpleQueueHandle();
-                    }else{
-                        initCall();
                     }
+                    compExample.init();
                 }
             }
         }
@@ -1929,13 +1948,19 @@ function compAndDirectiveInspect() {
 
             //检查是否是指令
             if (directorieClass) {
-                directorieExample = directorieClass(vnode, extraParameters,module.exports);
-                //存入实例队列
-                handleExampleQueue.push(directorieExample);
-                //观察指令渲染
-                directorieExample.watchRender(function () {
-                    if (isInitCall) initCall();
+
+                //检查是否多个不同类型同名称的指令
+                [].concat(attrsMap[attrName]).forEach(function (expInfo) {
+
+                    directorieExample = directorieClass(vnode, expInfo,extraParameters,module.exports);
+                    //存入实例队列
+                    handleExampleQueue.push(directorieExample);
+                    //观察指令渲染
+                    directorieExample.watchRender(function () {
+                        if (isInitCall) initCall();
+                    })
                 })
+
             } else {
                 if (attrName.match(/^\w+$/)) {
                     //如果不是指令则写入属性

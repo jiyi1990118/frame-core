@@ -274,13 +274,21 @@ function str2vdom(htmlStr) {
                             }
                         }
 
-                        attrs[attrName] = {
-                            type: type,
-                            modifiers: modifiers,
-                            value: current.value,
-                            attrName: current.name
-                        };
-
+                        if(attrs[attrName] && type){
+                            attrs[attrName] =[{
+                                type: type,
+                                modifiers: modifiers,
+                                value: current.value,
+                                attrName: current.name
+                            }].concat(attrs[attrName]);
+                        }else{
+                            attrs[attrName] = {
+                                type: type,
+                                modifiers: modifiers,
+                                value: current.value,
+                                attrName: current.name
+                            };
+                        }
                         return attrs;
                     }, {})
                 },

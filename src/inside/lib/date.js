@@ -3,6 +3,8 @@
  */
 "use strict";
 
+var log=require('../log/log');
+
 /**
  * 时间转换
  * @param date
@@ -11,8 +13,30 @@
  */
 function convert(date,layout) {
 
-    if(typeof date === 'number' || typeof date === 'string'){
-        date=new Date(Number(date));
+    var matchdata
+    switch (typeof date){
+        case 'number':
+            date=new Date(date);
+            break;
+        case 'string':
+            if(matchdata=Number(date)){
+                date=new Date(matchdata);
+            }else{
+                if(matchdata=date.match(/(\d{2,4})?[-\s\\]*(\d{1,2})?[-\s\\]*(\d{1,2})?\s*(\d{1,2})?[-\s\\:]*(\d{1,2})?[-\s\\:]*(\d{1,2})?/)){
+                    date=new Date();
+                    matchdata[2] && date.setMonth(Number(matchdata[2])-1);
+                    matchdata[3] && date.setDate(matchdata[3]);
+                    matchdata[4] && date.setHours(matchdata[4]);
+                    matchdata[5] && date.setMinutes(matchdata[5]);
+                    matchdata[6] && date.setSeconds(matchdata[6]);
+                    //检查是否年份
+                    matchdata[2] ? date.setFullYear(matchdata[1]):date.setHours(matchdata[1]);
+                }else{
+                    log.error('时间转换错误 ['+data+']')
+                    return date
+                }
+            }
+            break
     }
 
     if(!(date instanceof Date)){

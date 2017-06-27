@@ -2,7 +2,7 @@
     function s(o, u) {
         if (!n[o]) {
             if (!t[o]) {
-                var a = typeof require === "function" && require;
+                var a = typeof require == "function" && require;
                 if (!u && a) return a(o, !0);
                 if (i) return i(o, !0);
                 var f = new Error("Cannot find module '" + o + "'");
@@ -18,7 +18,7 @@
         }
         return n[o].exports
     }
-    var i = typeof require === "function" && require;
+    var i = typeof require == "function" && require;
     for (var o = 0; o < r.length; o++) s(r[o]);
     return s
 })({
@@ -1860,7 +1860,7 @@
         var directiveStroage = {};
 
         //指令类
-        function directiveClass(directiveConf, vnode, extraParameters, directiveName, vdomApi) {
+        function directiveClass(directiveConf, vnode, expInfo, extraParameters, directiveName, vdomApi) {
 
             var This = this;
 
@@ -1872,10 +1872,10 @@
             //指令名称
             this.name = directiveName;
 
-            this.expInfo = vnode.data.attrsMap[directiveName];
+            this.expInfo = expInfo;
 
             //表达式
-            this.exp = vnode.data.attrsMap[directiveName].value;
+            this.exp = expInfo.value;
 
             //指令实例配置
             this.conf = directiveConf;
@@ -2113,10 +2113,21 @@
                     })
 
                     if (typeof conf.hook.init === "function") {
-                        conf.hook.init.apply($api, vnode);
+                        conf.hook.init.call($api, vnode);
+                    }
+
+                    //检查元素是否渲染
+                    if (vnode.elm) {
+                        if (typeof conf.hook.create === "function") {
+                            conf.hook.create.call($api, vnode);
+                        }
+                        if (vnode.elm.parentNode && typeof conf.hook.insert === "function") {
+                            conf.hook.insert.call($api, vnode);
+                        }
                     }
                 }
             }
+
             //检查是否有渲染的方法
             if (conf.render instanceof Function) {
                 renderVnode = conf.render.call(this.$api, this.$api.vnode, this.$api.scope);
@@ -2126,11 +2137,6 @@
                         return;
                     case renderVnode === vnode:
                     case renderVnode.elm && renderVnode.elm === vnode.elm:
-                        //检查是否渲染，并检查更新元素
-                        /*vnode.elm && this.vdomApi.cbs.update.forEach(function (updateHandle) {
-                         updateHandle(vnode,renderVnode);
-                         })
-                         return;*/
                 }
 
                 vnode.innerVnode = renderVnode;
@@ -2162,8 +2168,8 @@
 
         //指令注册
         exports.register = function(directiveName, directiveConf) {
-            directiveStroage[directiveName] = function(vnode, extraParameters, vdomApi) {
-                return new directiveClass(directiveConf, vnode, extraParameters, directiveName, vdomApi);
+            directiveStroage[directiveName] = function(vnode, expInfo, extraParameters, vdomApi) {
+                return new directiveClass(directiveConf, vnode, expInfo, extraParameters, directiveName, vdomApi);
             };
         }
     }, {
@@ -2451,13 +2457,21 @@
                                     }
                                 }
 
-                                attrs[attrName] = {
-                                    type: type,
-                                    modifiers: modifiers,
-                                    value: current.value,
-                                    attrName: current.name
-                                };
-
+                                if (attrs[attrName] && type) {
+                                    attrs[attrName] = [{
+                                        type: type,
+                                        modifiers: modifiers,
+                                        value: current.value,
+                                        attrName: current.name
+                                    }].concat(attrs[attrName]);
+                                } else {
+                                    attrs[attrName] = {
+                                        type: type,
+                                        modifiers: modifiers,
+                                        value: current.value,
+                                        attrName: current.name
+                                    };
+                                }
                                 return attrs;
                             }, {})
                         }, []
@@ -4606,7 +4620,8 @@
                 }) : node.appendChild(child);
             },
             parentNode: function parentNode(node) {
-                return (node instanceof Array ? node[0] : node).parentNode;
+                node = node instanceof Array ? parentNode(node[0]) : node
+                return node ? node.parentNode : null;
             },
             replaceChild: function(parentNode, newNode, oldNode) {
                 var Rm;
@@ -5357,6 +5372,7 @@
             //根据虚拟节点创建真实dom节点
             function createElm(vnode, insertedVnodeQueue, callback, extraParameters, parentNode) {
                 var i,
+                    ivq,
                     isRearrange,
                     oldVnode,
                     rootScope,
@@ -5395,10 +5411,8 @@
                         //检查是否独立作用域
                         if (parentNode.innerScope) {
                             rootScope = parentNode.innerScope;
-                            extraParameters = {
-                                scope: rootScope,
-                                filter: innerFilter
-                            }
+                            extraParameters.scope = rootScope;
+                            extraParameters.filter = innerFilter;
                         } else {
                             rootScope = parentNode.rootScope;
                             //由父节点传递作用域给子级
@@ -5452,11 +5466,9 @@
                             case vnode.innerVnode instanceof Array:
                             case vnode.innerVnode instanceof Object:
 
-
                                 if (!(vnode.innerVnode instanceof Array)) {
                                     vnode.innerVnode = [vnode.innerVnode];
                                 }
-
                                 //检查节点是否被渲染，此处需要做元素对比
                                 if (vnode.elm && vnode.elm.length) {
                                     patch(oldVnode, vnode, {
@@ -5499,6 +5511,7 @@
                         }
 
                     } else {
+
                         //检查是否是注释
                         if (sel === '!') {
                             if (isUndef(vnode.text)) {
@@ -5508,7 +5521,7 @@
 
                         } else if (isDef(sel)) {
 
-
+                            //检查是否同一个元素
                             if (oldVnode && vnode.elm === oldVnode.elm) return;
 
                             //创建实体Dom元素
@@ -5587,20 +5600,42 @@
                     }
 
                     i = data.hook;
+
                     if (isDef(i)) {
                         //检查并触发create类型钩子
-                        if (i.create)
+                        if (i.create) {;
                             [].concat(i.create).forEach(function(create) {
                                 create(emptyNode, vnode);
                             })
-
-                        //收集并存储插入类型钩子
-                        if (i.insert)
-                            insertedVnodeQueue.push(vnode);
+                        }
                     }
 
                     //返回当前节点数据
                     callback(vnode, isRearrange);
+
+                    if (extraParameters.isload) {
+
+                        //收集延后的节点
+                        var delayedInsertedVnodeQueue = []
+                        //触发队列中的insert钩子
+                        while (ivq = insertedVnodeQueue.shift()) {
+                            if (ivq.elm.parentNode) {
+                                ivq.data && ivq.data.hook && ivq.data.hook.insert && [].concat(ivq.data.hook.insert).forEach(function(insert) {
+                                    insert(ivq);
+                                })
+                            } else {
+                                delayedInsertedVnodeQueue.push(ivq)
+                            }
+                        }
+
+                        delayedInsertedVnodeQueue.forEach(function(ivq) {
+                            insertedVnodeQueue.push(ivq);
+                        })
+
+                    }
+
+                    //收集并存储插入类型钩子
+                    insertedVnodeQueue.push(vnode);
 
                     //销毁旧节点
                     // oldVnode && oldVnode.destroy();
@@ -5737,6 +5772,7 @@
 
                 //元素对比
                 while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+                    console.log(newCh, oldCh, parentVnode)
                     if (!oldStartVnode) {
                         oldStartVnode = oldCh[++oldStartIdx]; // Vnode might have been moved left
                     } else if (!oldEndVnode) {
@@ -5928,7 +5964,7 @@
             return function patch(oldVnode, Vnode, option, parentVnode, callback) {
                 option = option || {};
 
-                var i, elm, parent, nextElm;
+                var i, elm, parent, nextElm, ivq;
                 var insertedVnodeQueue = [];
 
                 var extraParameters = {
@@ -6105,12 +6141,12 @@
                 });
 
                 //触发队列中的insert钩子
-                insertedVnodeQueue.forEach(function(ivq) {
-                    [].concat(ivq.data.hook.insert).forEach(function(insert) {
+                while (ivq = insertedVnodeQueue.shift()) {
+                    ivq.data && ivq.data.hook && ivq.data.hook.insert && [].concat(ivq.data.hook.insert).forEach(function(insert) {
                         insert(ivq);
                     })
-                });
-
+                }
+                extraParameters.isload = true;
                 return Vnode;
             };
         }
@@ -6394,7 +6430,7 @@
         var compManage = require('./componentManage');
         var directorieManage = require('./directiveManage');
 
-        //组件检查
+        //组件与指令检查
         function compAndDirectiveInspect() {
 
             function inspectInit(vnode, initCall, extraParameters, parentNode) {
@@ -6402,7 +6438,6 @@
                 var compExample,
                     isInitCall,
                     isLayoutElm,
-                    layoutElmInfo,
                     layoutStroage,
                     data = vnode.data,
                     attrsMap = data.attrsMap || {},
@@ -6432,13 +6467,11 @@
                             })
                             compExample.init();
                         } else {
-                            compExample.init();
                             //检查是替换
                             if (handleExampleQueue.length || compExample.conf.isReplace) {
                                 exapmpleQueueHandle();
-                            } else {
-                                initCall();
                             }
+                            compExample.init();
                         }
                     }
                 }
@@ -6493,13 +6526,19 @@
 
                     //检查是否是指令
                     if (directorieClass) {
-                        directorieExample = directorieClass(vnode, extraParameters, module.exports);
-                        //存入实例队列
-                        handleExampleQueue.push(directorieExample);
-                        //观察指令渲染
-                        directorieExample.watchRender(function() {
-                            if (isInitCall) initCall();
+
+                        //检查是否多个不同类型同名称的指令
+                        [].concat(attrsMap[attrName]).forEach(function(expInfo) {
+
+                            directorieExample = directorieClass(vnode, expInfo, extraParameters, module.exports);
+                            //存入实例队列
+                            handleExampleQueue.push(directorieExample);
+                            //观察指令渲染
+                            directorieExample.watchRender(function() {
+                                if (isInitCall) initCall();
+                            })
                         })
+
                     } else {
                         if (attrName.match(/^\w+$/)) {
                             //如果不是指令则写入属性
@@ -8494,6 +8533,8 @@
          */
         "use strict";
 
+        var log = require('../log/log');
+
         /**
          * 时间转换
          * @param date
@@ -8502,8 +8543,30 @@
          */
         function convert(date, layout) {
 
-            if (typeof date === 'number' || typeof date === 'string') {
-                date = new Date(Number(date));
+            var matchdata
+            switch (typeof date) {
+                case 'number':
+                    date = new Date(date);
+                    break;
+                case 'string':
+                    if (matchdata = Number(date)) {
+                        date = new Date(matchdata);
+                    } else {
+                        if (matchdata = date.match(/(\d{2,4})?[-\s\\]*(\d{1,2})?[-\s\\]*(\d{1,2})?\s*(\d{1,2})?[-\s\\:]*(\d{1,2})?[-\s\\:]*(\d{1,2})?/)) {
+                            date = new Date();
+                            matchdata[2] && date.setMonth(Number(matchdata[2]) - 1);
+                            matchdata[3] && date.setDate(matchdata[3]);
+                            matchdata[4] && date.setHours(matchdata[4]);
+                            matchdata[5] && date.setMinutes(matchdata[5]);
+                            matchdata[6] && date.setSeconds(matchdata[6]);
+                            //检查是否年份
+                            matchdata[2] ? date.setFullYear(matchdata[1]) : date.setHours(matchdata[1]);
+                        } else {
+                            log.error('时间转换错误 [' + data + ']')
+                            return date
+                        }
+                    }
+                    break
             }
 
             if (!(date instanceof Date)) {
@@ -8624,7 +8687,9 @@
             getNowWeek: getNowWeek
         }
 
-    }, {}],
+    }, {
+        "../log/log": 62
+    }],
     43: [function(require, module, exports) {
         /**
          * Created by xiyuan on 15-11-30.
@@ -10265,6 +10330,7 @@
                     L = L.__proto__;
                 }
             }
+
 
             /**
              * 数据对比

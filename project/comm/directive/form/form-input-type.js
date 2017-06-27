@@ -3,6 +3,7 @@
  */
 
 inputType(function ($app) {
+    var vf=this;
 
     //图标选择组件
     function iconsRender(vnode, tools) {
@@ -67,11 +68,11 @@ inputType(function ($app) {
             },
             hook: {
                 insert: function (newVnode) {
-
                     //input 类型检查
                     if(newVnode.tag !== 'input')return
 
-                    var expInfo=this.expInfo;
+                    var lay,
+                        expInfo=this.expInfo;
 
                     switch (expInfo.value){
                         //取色器
@@ -81,12 +82,23 @@ inputType(function ($app) {
                             new jscolor(newVnode.elm);
                             break;
                         //日期组件
+                        case 'datetime':
+                            newVnode.setAttr('type','text');
+                            lay=document.getElementById('laydate_box');
+                            if(lay)lay.parentNode.removeChild(lay);
+                            layDate({elem:newVnode.elm,format: 'YYYY-MM-DD hh:mm:ss',istime: true});
+                            break;
                         case 'date':
                             newVnode.setAttr('type','text');
-                            var lay=document.getElementById('laydate_box');
+                            lay=document.getElementById('laydate_box');
                             if(lay)lay.parentNode.removeChild(lay);
-
-                            layDate({elem:newVnode.elm});
+                            layDate({elem:newVnode.elm,format: 'YYYY-MM-DD',istime: false,});
+                            break;
+                        case 'time':
+                            newVnode.setAttr('type','text');
+                            lay=document.getElementById('laydate_box');
+                            if(lay)lay.parentNode.removeChild(lay);
+                            lay=layDate({elem:newVnode.elm,format: 'YYYY-MM-DD hh:mm:ss',istime: true,});
                             break;
                         //图标样式选择组件
                         case 'icons':
