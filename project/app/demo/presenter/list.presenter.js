@@ -4,7 +4,6 @@
 
 presenter('list-grid',function () {
 
-
     var gridConf=this.model('HOME@custom/list:gridConf');
 
     gridConf.trigger('request',136&&148);
