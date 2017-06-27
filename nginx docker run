@@ -1,1 +1,0 @@
-docker run --name nginx  --privileged --net=host  -v /mnt/document/webStorage/wwwroot:/wwwroot -v /mnt/document/webStorage/wwwconf:/wwwconf -v /mnt/document/webStorage/wwwlog:/wwwlog -d nginx:1.11.13-alpine
